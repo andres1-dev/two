@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR PDA — Inventario</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --card-shadow: 0 6px 20px rgba(13, 24, 48, 0.06);
+            --radius: 12px;
+            --glass: rgba(15, 23, 42, 0.03);
+            --max-width: 100%;
+            --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            font-size: 14px;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .wrap {
+            width: 100%;
+            max-width: var(--max-width);
+            background: linear-gradient(180deg, rgba(255,255,255,1), rgba(250,250,250,1));
+            border-radius: 18px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            border: 1px solid rgba(15,23,42,0.04);
+        }
+
+        header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(15,23,42,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--primary);
+            box-shadow: inset 0 -1px 0 rgba(255,255,255,0.6);
+        }
+
+        h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0b1220;
+        }
+
+        .sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* status pills */
+        .status-pills {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 12px;
+            background: var(--glass);
+            border: 1px solid rgba(15,23,42,0.03);
+        }
+
+        .pill i {
+            font-size: 12px;
+        }
+
+        .pill.success {
+            background: linear-gradient(180deg, rgba(22,163,74,0.08), rgba(22,163,74,0.03));
+            color: var(--success);
+            border-color: rgba(22,163,74,0.12);
+        }
+
+        .pill.info {
+            background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02));
+            color: var(--primary);
+            border-color: rgba(37,99,235,0.08);
+        }
+
+        .pill.warning {
+            background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02));
+            color: var(--warning);
+            border-color: rgba(245,158,11,0.08);
+        }
+
+        .pill.danger {
+            background: linear-gradient(180deg, rgba(220,38,38,0.06), rgba(220,38,38,0.02));
+            color: var(--danger);
+            border-color: rgba(220,38,38,0.08);
+        }
+
+        /* main grid */
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        /* scanner section */
+        .scanner-card {
+            background: transparent;
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px dashed rgba(15,23,42,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .scan-icon {
+            font-size: 32px;
+            color: var(--primary);
+        }
+
+        .scan-text {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        /* hidden input */
+        .qr-input {
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            border: 0;
+            opacity: 0;
+            position: absolute;
+            left: -9999px;
+        }
+
+        /* visible focus indicator */
+        .fake-focus {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.06);
+            background: linear-gradient(180deg,#fff,#fbfbfb);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: text;
+            margin-top: 8px;
+        }
+
+        .fake-focus:focus {
+            outline: none;
+        }
+
+        .fake-focus .hint {
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* week display */
+        .week-display {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 14px;
+            padding: 16px;
+            color: white;
+            margin-top: 8px;
+        }
+
+        .week-bubble {
+            min-width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 800;
+            box-shadow: 0 8px 30px rgba(2,6,23,0.15);
+        }
+
+        .week-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .week-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 700;
+        }
+
+        .week-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* quick actions */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.06);
+            background: linear-gradient(180deg,#fff,#fbfbfb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* results card */
+        .results-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(15,23,42,0.04);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* priority info */
+        .priority-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .priority-field {
+            background: #fafbff;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(15,23,42,0.03);
+            text-align: center;
+        }
+
+        .priority-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .priority-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* details section */
+        .details-section {
+            margin-top: 16px;
+        }
+
+        .details-toggle {
+            width: 100%;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .details-content {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid rgba(15,23,42,0.03);
+        }
+
+        .details-content.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .detail-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(15,23,42,0.03);
+        }
+
+        .detail-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* soporte button */
+        .soporte-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .soporte-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        /* modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .modal-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: rgba(0, 0, 0, 0.7);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* cache info */
+        .cache-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        /* empty state */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        footer {
+            padding: 14px 16px;
+            border-top: 1px solid rgba(15,23,42,0.04);
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* responsive adjustments */
+        @media (max-width: 480px) {
+            .priority-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-btn {
+                min-width: calc(50% - 4px);
+            }
+            
+            .week-display {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+            
+            .week-bubble {
+                min-width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .action-btn {
+                min-width: 100%;
+            }
+            
+            .status-pills {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fas fa-qrcode"></i></div>
+                <div>
+                    <h1>Escáner PDA — Inventario</h1>
+                    <div class="sub">Sistema de escaneo con láser PDA</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="status-pills">
+                    <div id="pill-status" class="pill info"><i class="fas fa-info-circle"></i> Esperando</div>
+                    <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main">
+            <!-- Scanner Section -->
+            <div class="scanner-card">
+                <div class="scan-icon"><i class="fas fa-barcode"></i></div>
+                <div class="scan-text">Apunte con el láser del PDA para escanear códigos QR</div>
+                
+                <input id="qrInput" class="qr-input" type="text" autocomplete="off" autofocus>
+                
+                <div class="fake-focus" tabindex="0" onclick="document.getElementById('qrInput').focus();">
+                    <div class="hint">
+                        <i class="fas fa-arrow-down"></i>
+                        Último escaneo: <span id="lastScanned" style="font-weight:700;color:#0b1220;margin-left:4px">—</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--muted)">Foco activo</div>
+                </div>
+            </div>
+
+            <!-- Week Display -->
+            <div class="week-display">
+                <div class="week-bubble" id="weekNumber">—</div>
+                <div class="week-meta">
+                    <div class="week-label">SEMANA ACTUAL</div>
+                    <div class="week-desc">Información de inventario por semana</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="action-btn" onclick="loadAllData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+                <button class="action-btn" onclick="playSound('success')">
+                    <i class="fas fa-check"></i> Sonido OK
+                </button>
+                <button class="action-btn" onclick="playSound('error')">
+                    <i class="fas fa-times"></i> Sonido Error
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-card">
+                <div class="card-head">
+                    <div>
+                        <div class="title">Resultados del Escaneo</div>
+                        <div class="meta">La información aparecerá aquí tras el escaneo</div>
+                    </div>
+                    <div class="meta" id="recordMeta">JSON_Result</div>
+                </div>
+
+                <div id="resultArea">
+                    <div class="empty-state">
+                        <i class="fas fa-qrcode" style="font-size:32px;margin-bottom:12px;opacity:0.5"></i>
+                        <div>Escanee un código QR para ver la información</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Info -->
+            <div class="cache-info">
+                <div>Caché: <span id="cacheCount">0</span> registros</div>
+                <div id="cacheAge">— min</div>
+            </div>
+        </div>
+
+        <footer>
+            <div>Google Sheets Conectado</div>
+            <div>Hoja: JSON_Result | KEY</div>
+        </footer>
+    </div>
+
+    <!-- Modal para Soporte -->
+    <div id="soporteModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <img id="soporteImage" class="modal-img" src="" alt="Soporte">
+        </div>
+    </div>
+
+    <!-- Sonidos -->
+    <audio id="successSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="errorSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos DOM
+            const qrInput = document.getElementById('qrInput');
+            const lastScanned = document.getElementById('lastScanned');
+            const weekNumber = document.getElementById('weekNumber');
+            const resultArea = document.getElementById('resultArea');
+            const cacheCount = document.getElementById('cacheCount');
+            const cacheAge = document.getElementById('cacheAge');
+            const pillStatus = document.getElementById('pill-status');
+            const pillCount = document.getElementById('pill-count');
+            const soporteModal = document.getElementById('soporteModal');
+            const soporteImage = document.getElementById('soporteImage');
+            const closeModal = document.querySelector('.close-modal');
+            
+            // Configuración de Google Sheets
+            const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+            const sheetName = 'JSON_Result';
+            const range = 'A:Y';
+            const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+            
+            // Encabezados
+            const headers = [
+                'DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'DESCRIPCIÓN', 
+                'REFERENCIA', 'TIPO', 'PVP', 'PRENDA', 'GENERO', 
+                'PROVEEDOR', 'CLASE', 'FUENTE', 'NIT', 'CLIENTE', 
+                'CANT', 'FACTURA', 'SOPORTE', 'ESTADO', 'FACTURA_2', 
+                'FECHA_FACT', 'CANT_FACTURA', 'ESTADO', 'SEMANAS', 'KEY'
+            ];
+            
+            // Variables de control
+            let dataCache = null;
+            let cacheTimestamp = null;
+            const CACHE_DURATION = 5 * 60 * 1000;
+            let isProcessing = false;
+            let lastCode = '';
+            
+            // Función para reproducir sonido
+            function playSound(type) {
+                try {
+                    const sound = document.getElementById(type === 'success' ? 'successSound' : 'errorSound');
+                    sound.volume = 0.8;
+                    sound.currentTime = 0;
+                    sound.play().catch(() => {});
+                } catch (e) {
+                    console.log('Error con audio:', e);
+                }
+            }
+            
+            // Función para actualizar el estado
+            function setPill(type, text) {
+                pillStatus.className = 'pill ' + (type || 'info');
+                const icons = {
+                    success: 'fas fa-check-circle',
+                    error: 'fas fa-exclamation-circle',
+                    warning: 'fas fa-exclamation-triangle',
+                    info: 'fas fa-info-circle'
+                };
+                pillStatus.innerHTML = `<i class="${icons[type] || icons.info}"></i> ${text}`;
+            }
+            
+            // Extraer número de semana
+            function extractWeekNumber(weekText) {
+                if (!weekText) return '—';
+                const match = weekText.toString().match(/\d+/);
+                return match ? match[0] : weekText;
+            }
+            
+            // Cargar datos desde Google Sheets
+            async function loadAllData() {
+                setPill('info', 'Cargando base de datos...');
+                try {
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.values || data.values.length < 2) {
+                        throw new Error('No hay datos en la hoja');
+                    }
+                    
+                    const rows = data.values.slice(1);
+                    dataCache = {};
+                    
+                    rows.forEach(row => {
+                        if (row.length > 24 && row[24]) {
+                            const key = row[24].trim();
+                            const rowData = {};
+                            
+                            headers.forEach((header, index) => {
+                                rowData[header] = row[index] || '';
+                            });
+                            
+                            dataCache[key] = rowData;
+                        }
+                    });
+                    
+                    cacheTimestamp = Date.now();
+                    updateCacheInfo();
+                    setPill('success', `Base cargada: ${Object.keys(dataCache).length} registros`);
+                    pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
+                    
+                    return dataCache;
+                } catch (error) {
+                    console.error('Error al cargar datos:', error);
+                    setPill('error', 'Error cargando datos');
+                    resultArea.innerHTML = `<div class="empty-state">Error: ${error.message}</div>`;
+                    return null;
+                }
+            }
+            
+            // Verificar si el caché expiró
+            function isCacheExpired() {
+                return !cacheTimestamp || (Date.now() - cacheTimestamp) > CACHE_DURATION;
+            }
+            
+            // Actualizar información del caché
+            function updateCacheInfo() {
+                if (dataCache && cacheTimestamp) {
+                    cacheCount.textContent = Object.keys(dataCache).length;
+                    const age = Math.floor((Date.now() - cacheTimestamp) / 1000 / 60);
+                    cacheAge.textContent = age + ' min';
+                }
+            }
+            
+            // Buscar datos
+            async function searchData(searchValue) {
+                if (isProcessing || searchValue === lastCode) return;
+                
+                isProcessing = true;
+                lastCode = searchValue;
+                
+                setPill('info', `Buscando: ${searchValue}`);
+                
+                try {
+                    if (!dataCache || isCacheExpired()) {
+                        await loadAllData();
+                    }
+                    
+                    const foundData = dataCache ? dataCache[searchValue] : null;
+                    
+                    if (foundData) {
+                        renderResult(foundData);
+                        setPill('success', `Encontrado: ${searchValue}`);
+                        playSound('success');
+                    } else {
+                        resultArea.innerHTML = `<div class="empty-state">No se encontró: ${searchValue}</div>`;
+                        setPill('error', `No encontrado: ${searchValue}`);
+                        playSound('error');
+                    }
+                } catch (error) {
+                    console.error('Error en búsqueda:', error);
+                    setPill('error', 'Error en búsqueda');
+                } finally {
+                    isProcessing = false;
+                    setTimeout(() => {
+                        qrInput.value = '';
+                        lastScanned.textContent = searchValue;
+                    }, 100);
+                }
+            }
+            
+            // Renderizar resultados
+            function renderResult(rowData) {
+                weekNumber.textContent = extractWeekNumber(rowData.SEMANAS);
+                
+                let html = '';
+                
+                // Header con estado y botón de soporte
+                html += `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
+                        <div>
+                            <div style="font-weight:800; font-size:16px;">${rowData.DOCUMENTO || 'Sin documento'} — ${rowData.REFERENCIA || 'Sin referencia'}</div>
+                            <div style="color:var(--muted); font-size:13px; margin-top:4px;">${rowData.DESCRIPCIÓN || ''}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            ${rowData.SOPORTE ? 
+                                `<button class="soporte-btn" onclick="showSoporteImage('${rowData.SOPORTE}')">
+                                    <i class="fas fa-camera"></i> SOPORTE
+                                </button>` : ''
+                            }
+                            <div class="pill ${rowData.ESTADO === 'ENTREGADO' ? 'success' : (rowData.ESTADO === 'CANCELADO' ? 'danger' : 'warning')}">
+                                ${rowData.ESTADO || 'PENDIENTE'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Información prioritaria
+                html += `<div class="priority-info">`;
+                const priorityFields = [
+                    { label: 'CLASE', value: rowData.CLASE || '—' },
+                    { label: 'GÉNERO', value: rowData.GENERO || '—' },
+                    { label: 'PRENDA', value: rowData.PRENDA || '—' },
+                    { label: 'PROVEEDOR', value: rowData.PROVEEDOR || '—' }
+                ];
+                
+                priorityFields.forEach(field => {
+                    html += `
+                        <div class="priority-field">
+                            <div class="priority-label">${field.label}</div>
+                            <div class="priority-value">${field.value}</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                
+                // Detalles colapsables
+                html += `
+                    <div class="details-section">
+                        <button class="details-toggle" onclick="toggleDetails(this)">
+                            DETALLES COMPLETOS <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="details-content">
+                            <div class="detail-grid">
+                `;
+                
+                const detailFields = [
+                    'DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'TIPO', 
+                    'PVP', 'CANT', 'FACTURA', 'FECHA_FACT', 'CLIENTE',
+                    'NIT', 'FUENTE'
+                ];
+                
+                detailFields.forEach(field => {
+                    if (rowData[field]) {
+                        html += `
+                            <div class="detail-item">
+                                <div class="detail-label">${field}</div>
+                                <div class="detail-value">${rowData[field]}</div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                resultArea.innerHTML = html;
+            }
+            
+            // Toggle detalles
+            window.toggleDetails = function(button) {
+                const content = button.nextElementSibling;
+                const icon = button.querySelector('i');
+                
+                content.classList.toggle('show');
+                
+                if (content.classList.contains('show')) {
+                    button.innerHTML = 'OCULTAR DETALLES <i class="fas fa-chevron-up"></i>';
+                } else {
+                    button.innerHTML = 'DETALLES COMPLETOS <i class="fas fa-chevron-down"></i>';
+                }
+            };
+            
+            // Mostrar imagen de soporte
+            window.showSoporteImage = function(imageUrl) {
+                if (imageUrl) {
+                    soporteImage.src = imageUrl;
+                    soporteModal.classList.add('show');
+                }
+            };
+            
+            // Cerrar modal
+            closeModal.addEventListener('click', function() {
+                soporteModal.classList.remove('show');
+            });
+            
+            soporteModal.addEventListener('click', function(e) {
+                if (e.target === soporteModal) {
+                    soporteModal.classList.remove('show');
+                }
+            });
+            
+            // Evento de escaneo
+            qrInput.addEventListener('input', function() {
+                const searchValue = this.value.trim();
+                if (searchValue && !isProcessing) {
+                    searchData(searchValue);
+                }
+            });
+            
+            // Mantener foco
+            document.addEventListener('click', function() {
+                qrInput.focus();
+            });
+            
+            // Cargar datos iniciales
+            loadAllData();
+            
+            // Actualizar caché periódicamente
+            setInterval(updateCacheInfo, 30000);
+            
+            // Exponer funciones globales
+            window.loadAllData = loadAllData;
+            window.playSound = playSound;
+        });
+    </script>
+</body>
+</html>
