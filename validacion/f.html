@@ -125,12 +125,6 @@
             white-space: nowrap;
         }
         
-        .pill.info {
-            background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02));
-            color: var(--primary);
-            border-color: rgba(37,99,235,0.08);
-        }
-        
         .pill.success {
             background: linear-gradient(180deg, rgba(22,163,74,0.08), rgba(22,163,74,0.03));
             color: var(--success);
@@ -189,6 +183,26 @@
             font-size: 13px;
             color: var(--muted);
             line-height: 1.4;
+        }
+        
+        .camera-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        
+        .camera-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
         }
         
         /* Hidden input for PDA */
@@ -264,7 +278,42 @@
             margin-top: 4px;
         }
         
-        /* Settings */
+        /* Settings Colapsable */
+        .settings-section {
+            margin-top: 8px;
+        }
+        
+        .settings-toggle {
+            width: 100%;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0;
+        }
+        
+        .settings-content {
+            display: none;
+            padding-top: 12px;
+        }
+        
+        .settings-content.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+        
         .settings {
             display: flex;
             flex-direction: column;
@@ -399,7 +448,82 @@
             font-weight: 600;
         }
         
-        /* Modal */
+        /* Modal Cámara */
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.95);
+            z-index: 1000;
+            padding: 16px;
+        }
+        
+        .camera-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .camera-content {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .camera-preview {
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .camera-btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .camera-btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Modal Soporte */
         .modal {
             position: fixed;
             inset: 0;
@@ -559,7 +683,7 @@
             </div>
 
             <div class="header-actions">
-                <div id="pill-status" class="pill info"><i class="fas fa-info-circle"></i> Esperando</div>
+                <div id="pill-success" class="pill success" style="display:none"><i class="fas fa-check-circle"></i> Listo</div>
                 <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
             </div>
         </header>
@@ -568,7 +692,11 @@
             <div class="left">
                 <div class="card scanner" aria-label="Escáner PDA">
                     <div class="scan-qr"><i class="fas fa-barcode"></i></div>
-                    <div class="scan-text">Apunte con el láser del PDA. Campo de entrada oculto con foco persistente.</div>
+                    <div class="scan-text">Apunte con el láser del PDA o toque para realizar la captura por cámara</div>
+
+                    <button class="camera-btn" id="openCamera">
+                        <i class="fas fa-camera"></i> Abrir Cámara
+                    </button>
 
                     <input id="qrInput" class="qr-input" autocomplete="off" inputmode="text" />
 
@@ -589,21 +717,33 @@
                     </div>
                 </div>
 
-                <div class="card settings">
-                    <div style="font-weight:800;margin-bottom:8px">Configuración</div>
-                    <div class="setting-row">
-                        <div style="font-weight:700">Sonidos</div>
-                        <div class="toggle" id="toggle-sound"><div class="knob"></div></div>
+                <div class="card">
+                    <div class="settings-section">
+                        <button class="settings-toggle" id="settingsToggle">
+                            CONFIGURACIÓN <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="settings-content" id="settingsContent">
+                            <div class="settings">
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Sonidos BIOS</div>
+                                    <div class="toggle" id="toggle-sound"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Auto-Actualizar</div>
+                                    <div class="toggle" id="toggle-auto"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Miniatura soporte</div>
+                                    <div class="toggle" id="toggle-thumb"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Usar Cámara</div>
+                                    <div class="toggle" id="toggle-camera"><div class="knob"></div></div>
+                                </div>
+                                <div style="font-size:11px;color:var(--muted);margin-top:8px">Los ajustes se guardan localmente</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="setting-row">
-                        <div style="font-weight:700">Auto-Actualizar</div>
-                        <div class="toggle" id="toggle-auto"><div class="knob"></div></div>
-                    </div>
-                    <div class="setting-row">
-                        <div style="font-weight:700">Miniatura soporte</div>
-                        <div class="toggle" id="toggle-thumb"><div class="knob"></div></div>
-                    </div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:8px">Los ajustes se guardan localmente</div>
                 </div>
             </div>
 
@@ -638,6 +778,23 @@
         </footer>
     </div>
 
+    <!-- Modal Cámara -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-content">
+            <div class="camera-preview">
+                <video id="cameraVideo" autoplay playsinline></video>
+            </div>
+            <div class="camera-controls">
+                <button class="camera-btn-secondary" id="closeCamera">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button class="camera-btn-primary" id="switchCamera">
+                    <i class="fas fa-sync-alt"></i> Cambiar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal para soporte -->
     <div id="modal" class="modal">
         <div class="modal-content">
@@ -646,14 +803,15 @@
         </div>
     </div>
 
-    <!-- Sonidos -->
+    <!-- Sonidos BIOS reales -->
     <audio id="successSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
     </audio>
     <audio id="errorSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" type="audio/mpeg">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-warning-alarm-buzzer-2853.mp3" type="audio/mpeg">
     </audio>
 
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
         // Configuración
         const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
@@ -677,25 +835,36 @@
         const resultArea = document.getElementById('resultArea');
         const cacheCount = document.getElementById('cacheCount');
         const cacheAge = document.getElementById('cacheAge');
-        const pillStatus = document.getElementById('pill-status');
+        const pillSuccess = document.getElementById('pill-success');
         const pillCount = document.getElementById('pill-count');
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modalImg');
         const closeModal = document.querySelector('.close-modal');
+        const cameraModal = document.getElementById('cameraModal');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const openCamera = document.getElementById('openCamera');
+        const closeCamera = document.getElementById('closeCamera');
+        const switchCamera = document.getElementById('switchCamera');
+
+        // Variables cámara
+        let stream = null;
+        let currentFacingMode = 'environment';
+        let scanInterval = null;
 
         // Toggles
         const toggles = {
             sound: {el: document.getElementById('toggle-sound'), key: 'pda_sound', default: true},
             auto: {el: document.getElementById('toggle-auto'), key: 'pda_auto', default: true},
-            thumb: {el: document.getElementById('toggle-thumb'), key: 'pda_thumb', default: true}
+            thumb: {el: document.getElementById('toggle-thumb'), key: 'pda_thumb', default: true},
+            camera: {el: document.getElementById('toggle-camera'), key: 'pda_camera', default: true}
         };
 
-        // Sonidos
+        // Sonidos BIOS reales
         function playSound(type) {
             try {
                 if (!getSetting('pda_sound')) return;
                 const sound = document.getElementById(type === 'success' ? 'successSound' : 'errorSound');
-                sound.volume = 0.8;
+                sound.volume = 0.9; // Volumen alto como BIOS
                 sound.currentTime = 0;
                 sound.play().catch(() => {});
             } catch (e) {
@@ -713,6 +882,11 @@
                 t.el.addEventListener('click', () => {
                     const curr = t.el.classList.toggle('on');
                     localStorage.setItem(t.key, curr);
+                    
+                    // Actualizar UI según configuración
+                    if (t.key === 'pda_camera') {
+                        openCamera.style.display = curr ? 'flex' : 'none';
+                    }
                 });
             });
         }
@@ -721,15 +895,12 @@
             return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(true));
         }
 
-        function setPill(type, text) {
-            pillStatus.className = 'pill ' + (type || 'info');
-            const icons = {
-                success: 'fas fa-check-circle',
-                error: 'fas fa-exclamation-circle',
-                warning: 'fas fa-exclamation-triangle',
-                info: 'fas fa-info-circle'
-            };
-            pillStatus.innerHTML = `<i class="${icons[type] || icons.info}"></i> ${text}`;
+        function showPillSuccess(text) {
+            pillSuccess.innerHTML = `<i class="fas fa-check-circle"></i> ${text}`;
+            pillSuccess.style.display = 'flex';
+            setTimeout(() => {
+                pillSuccess.style.display = 'none';
+            }, 3000);
         }
 
         function extractWeekNumber(weekText) {
@@ -740,7 +911,7 @@
 
         // Cargar datos desde Sheets
         async function loadAllData() {
-            setPill('info', 'Cargando base de datos...');
+            showPillSuccess('Cargando base...');
             try {
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
                 const response = await fetch(url);
@@ -765,13 +936,12 @@
                 
                 cacheTimestamp = Date.now();
                 updateCacheInfo();
-                setPill('success', `Base cargada: ${Object.keys(dataCache).length} registros`);
+                showPillSuccess(`Base: ${Object.keys(dataCache).length} regs`);
                 pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
                 
                 return dataCache;
             } catch (e) {
-                setPill('error', 'Error al cargar datos');
-                resultArea.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">Error cargando base: ${e.message}</div>`;
+                console.error('Error cargando datos:', e);
                 return null;
             }
         }
@@ -793,7 +963,6 @@
             
             isProcessing = true;
             lastCode = val;
-            setPill('info', `Buscando: ${val}`);
             
             try {
                 if (!dataCache || isCacheExpired()) {
@@ -804,15 +973,14 @@
                 
                 if (found) {
                     renderResult(found);
-                    setPill('success', `Datos: ${val}`);
+                    showPillSuccess(`Encontrado: ${val}`);
                     playSound('success');
                 } else {
                     resultArea.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">No se encontró: ${val}</div>`;
-                    setPill('error', `No encontrado: ${val}`);
                     playSound('error');
                 }
             } catch (e) {
-                setPill('error', 'Error en búsqueda');
+                console.error('Error en búsqueda:', e);
             } finally {
                 isProcessing = false;
                 setTimeout(() => {
@@ -891,6 +1059,66 @@
             }
         }
 
+        // Funcionalidad Cámara
+        async function startCamera(facingMode = 'environment') {
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                cameraVideo.srcObject = stream;
+                currentFacingMode = facingMode;
+                
+                // Iniciar escaneo
+                startQRScanning();
+                
+            } catch (err) {
+                console.error('Error accediendo a la cámara:', err);
+                alert('No se pudo acceder a la cámara. Asegúrese de permitir los permisos.');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+        }
+
+        function startQRScanning() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            scanInterval = setInterval(() => {
+                if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
+                    canvas.width = cameraVideo.videoWidth;
+                    canvas.height = cameraVideo.videoHeight;
+                    context.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        searchData(code.data);
+                        stopCamera();
+                        cameraModal.classList.remove('show');
+                    }
+                }
+            }, 100);
+        }
+
         // Eventos
         qrInput.addEventListener('input', function() {
             const v = this.value.trim();
@@ -900,6 +1128,42 @@
         // Mantener foco
         document.addEventListener('click', () => qrInput.focus());
         window.addEventListener('focus', () => qrInput.focus());
+
+        // Configuración colapsable
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsContent = document.getElementById('settingsContent');
+        
+        settingsToggle.addEventListener('click', function() {
+            const isShowing = settingsContent.classList.toggle('show');
+            const icon = settingsToggle.querySelector('i');
+            
+            if (isShowing) {
+                settingsToggle.innerHTML = 'CONFIGURACIÓN <i class="fas fa-chevron-up"></i>';
+            } else {
+                settingsToggle.innerHTML = 'CONFIGURACIÓN <i class="fas fa-chevron-down"></i>';
+            }
+        });
+
+        // Inicialmente colapsado
+        settingsContent.classList.remove('show');
+
+        // Cámara events
+        openCamera.addEventListener('click', () => {
+            if (getSetting('pda_camera')) {
+                cameraModal.classList.add('show');
+                startCamera();
+            }
+        });
+
+        closeCamera.addEventListener('click', () => {
+            stopCamera();
+            cameraModal.classList.remove('show');
+        });
+
+        switchCamera.addEventListener('click', () => {
+            const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera(newFacingMode);
+        });
 
         // Modal
         closeModal.addEventListener('click', () => {
@@ -917,6 +1181,9 @@
         initToggles();
         loadAllData();
         setInterval(updateCacheInfo, 30000);
+
+        // Mostrar/ocultar botón cámara según configuración
+        openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
 
         // Exponer funciones globales
         window.loadAllData = loadAllData;

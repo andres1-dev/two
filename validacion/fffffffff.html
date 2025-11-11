@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR PDA - JSON Result</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .scanner-section {
+            margin-bottom: 20px;
+        }
+        
+        .scanner-input {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .scanner-input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .data-section {
+            margin-top: 20px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .card-badge {
+            background-color: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .priority-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .priority-field {
+            text-align: center;
+        }
+        
+        .priority-label {
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 11px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        
+        .priority-value {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: bold;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .collapse-section {
+            margin-top: 15px;
+        }
+        
+        .collapse-btn {
+            width: 100%;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .collapse-btn:hover {
+            background-color: #5a6268;
+        }
+        
+        .collapse-content {
+            display: none;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .collapse-content.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .data-field {
+            margin-bottom: 8px;
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 11px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        
+        .data-value {
+            font-size: 13px;
+            color: #2c3e50;
+            padding: 6px 8px;
+            background-color: white;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+            word-break: break-word;
+        }
+        
+        .soporte-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .soporte-btn:hover {
+            background-color: #138496;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .modal-img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        
+        .scan-indicator {
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px dashed #3498db;
+        }
+        
+        .scan-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .cache-info {
+            text-align: center;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .priority-info {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Escáner QR PDA - JSON Result</h1>
+            <p class="description">Escanea códigos QR con el lector láser del PDA</p>
+        </header>
+        
+        <section class="scanner-section">
+            <div class="scan-indicator">
+                <div class="scan-icon">📱</div>
+                <p>Listo para escanear - Apunte con el láser</p>
+            </div>
+            <input type="text" id="qrInput" class="scanner-input" placeholder="" autocomplete="off" autofocus>
+        </section>
+        
+        <div id="status" class="status info">
+            Escanee un código QR para mostrar los datos
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Consultando datos...</p>
+        </div>
+        
+        <section class="data-section">
+            <div id="dataCardContainer"></div>
+            <div id="cacheInfo" class="cache-info"></div>
+        </section>
+        
+        <!-- Modal para imagen de soporte -->
+        <div id="soporteModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <img id="soporteImage" class="modal-img" src="" alt="Soporte">
+            </div>
+        </div>
+        
+        <footer>
+            <p>Conectado a Google Sheets | Hoja: JSON_Result | Buscando en columna KEY</p>
+        </footer>
+    </div>
+
+    <!-- Sonidos -->
+    <audio id="successSound" src="https://assets.mixkit.co/active_storage/sfx/286/286-preview.mp3" preload="auto"></audio>
+    <audio id="errorSound" src="https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos DOM
+            const qrInput = document.getElementById('qrInput');
+            const statusDiv = document.getElementById('status');
+            const loadingDiv = document.getElementById('loading');
+            const dataCardContainer = document.getElementById('dataCardContainer');
+            const cacheInfo = document.getElementById('cacheInfo');
+            const soporteModal = document.getElementById('soporteModal');
+            const soporteImage = document.getElementById('soporteImage');
+            const closeModal = document.querySelector('.close-modal');
+            const successSound = document.getElementById('successSound');
+            const errorSound = document.getElementById('errorSound');
+            
+            // Configuración de Google Sheets
+            const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+            const sheetName = 'JSON_Result';
+            const range = 'A:Y'; // Desde columna A hasta Y (KEY)
+            const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+            
+            // Encabezados de las columnas
+            const headers = [
+                'DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'DESCRIPCIÓN', 
+                'REFERENCIA', 'TIPO', 'PVP', 'PRENDA', 'GENERO', 
+                'PROVEEDOR', 'CLASE', 'FUENTE', 'NIT', 'CLIENTE', 
+                'CANT', 'FACTURA', 'SOPORTE', 'ESTADO', 'FACTURA_2', 
+                'FECHA_FACT', 'CANT_FACTURA', 'ESTADO', 'SEMANAS', 'KEY'
+            ];
+            
+            // Variables para control de caché
+            let isProcessing = false;
+            let lastScannedCode = '';
+            let dataCache = null;
+            let cacheTimestamp = null;
+            const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos en milisegundos
+            
+            // Función para reproducir sonido
+            function playSound(type) {
+                try {
+                    if (type === 'success') {
+                        successSound.currentTime = 0;
+                        successSound.play();
+                    } else if (type === 'error') {
+                        errorSound.currentTime = 0;
+                        errorSound.play();
+                    }
+                } catch (e) {
+                    console.log('Error reproduciendo sonido:', e);
+                }
+            }
+            
+            // Función para mostrar estado
+            function showStatus(message, type) {
+                statusDiv.textContent = message;
+                statusDiv.className = 'status ' + type;
+            }
+            
+            // Función para cargar todos los datos desde Google Sheets
+            async function loadAllData() {
+                showStatus('Cargando base de datos...', 'info');
+                loadingDiv.classList.remove('hidden');
+                
+                try {
+                    // Construir URL para la API de Google Sheets
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+                    
+                    // Hacer la solicitud a la API
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Error en la respuesta: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.values || data.values.length < 2) {
+                        throw new Error('No se encontraron datos en la hoja');
+                    }
+                    
+                    // Crear estructura de datos optimizada
+                    const rows = data.values.slice(1); // Eliminar encabezados
+                    dataCache = {};
+                    
+                    // Indexar por KEY (columna Y)
+                    rows.forEach(row => {
+                        if (row.length > 24 && row[24]) { // KEY está en la columna Y (índice 24)
+                            const key = row[24].trim();
+                            const rowData = {};
+                            
+                            // Mapear cada valor con su encabezado correspondiente
+                            headers.forEach((header, index) => {
+                                rowData[header] = row[index] || '';
+                            });
+                            
+                            dataCache[key] = rowData;
+                        }
+                    });
+                    
+                    cacheTimestamp = Date.now();
+                    updateCacheInfo();
+                    showStatus(`Base de datos cargada: ${Object.keys(dataCache).length} registros`, 'success');
+                    
+                    return dataCache;
+                    
+                } catch (error) {
+                    console.error('Error al cargar datos:', error);
+                    showStatus(`Error al cargar datos: ${error.message}`, 'error');
+                    return null;
+                } finally {
+                    loadingDiv.classList.add('hidden');
+                }
+            }
+            
+            // Función para buscar datos en el caché
+            function searchInCache(searchValue) {
+                if (!dataCache || isCacheExpired()) {
+                    showStatus('Actualizando base de datos...', 'warning');
+                    return loadAllData().then(() => {
+                        return dataCache[searchValue] || null;
+                    });
+                }
+                
+                return Promise.resolve(dataCache[searchValue] || null);
+            }
+            
+            // Verificar si el caché ha expirado
+            function isCacheExpired() {
+                return !cacheTimestamp || (Date.now() - cacheTimestamp) > CACHE_DURATION;
+            }
+            
+            // Actualizar información del caché
+            function updateCacheInfo() {
+                if (dataCache && cacheTimestamp) {
+                    const age = Math.floor((Date.now() - cacheTimestamp) / 1000 / 60);
+                    const recordCount = Object.keys(dataCache).length;
+                    cacheInfo.textContent = `Caché: ${recordCount} registros | Actualizado hace ${age} min`;
+                } else {
+                    cacheInfo.textContent = 'Cargando base de datos...';
+                }
+            }
+            
+            // Función principal de búsqueda
+            async function searchData(searchValue) {
+                if (isProcessing || searchValue === lastScannedCode) return;
+                
+                isProcessing = true;
+                lastScannedCode = searchValue;
+                
+                showStatus(`Buscando: ${searchValue}`, 'info');
+                loadingDiv.classList.remove('hidden');
+                
+                try {
+                    const foundData = await searchInCache(searchValue);
+                    
+                    if (foundData) {
+                        displayDataCard(foundData);
+                        showStatus(`Datos encontrados para: ${searchValue}`, 'success');
+                        playSound('success');
+                    } else {
+                        showStatus(`No se encontraron datos para: ${searchValue}`, 'error');
+                        dataCardContainer.innerHTML = '<div class="card"><p>No se encontraron datos para el código QR escaneado.</p></div>';
+                        playSound('error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error en la búsqueda:', error);
+                    showStatus(`Error en la búsqueda: ${error.message}`, 'error');
+                    playSound('error');
+                } finally {
+                    loadingDiv.classList.add('hidden');
+                    isProcessing = false;
+                    
+                    // Limpiar el campo de entrada inmediatamente
+                    setTimeout(() => {
+                        qrInput.value = '';
+                    }, 100);
+                }
+            }
+            
+            // Función para mostrar los datos en formato tarjeta
+            function displayDataCard(rowData) {
+                // Crear tarjeta
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Encabezado de la tarjeta
+                const cardHeader = document.createElement('div');
+                cardHeader.className = 'card-header';
+                
+                const cardTitle = document.createElement('div');
+                cardTitle.className = 'card-title';
+                cardTitle.textContent = `${rowData.DOCUMENTO || 'Sin documento'} - ${rowData.REFERENCIA || 'Sin referencia'}`;
+                
+                const cardBadge = document.createElement('div');
+                cardBadge.className = 'card-badge';
+                cardBadge.textContent = rowData.ESTADO || 'PENDIENTE';
+                // Color según estado
+                if (rowData.ESTADO === 'ENTREGADO') cardBadge.style.backgroundColor = '#28a745';
+                else if (rowData.ESTADO === 'PENDIENTE') cardBadge.style.backgroundColor = '#ffc107';
+                else if (rowData.ESTADO === 'CANCELADO') cardBadge.style.backgroundColor = '#dc3545';
+                
+                cardHeader.appendChild(cardTitle);
+                cardHeader.appendChild(cardBadge);
+                card.appendChild(cardHeader);
+                
+                // Información prioritaria
+                const priorityInfo = document.createElement('div');
+                priorityInfo.className = 'priority-info';
+                
+                const priorityFields = [
+                    { label: 'ESTADO', value: rowData.ESTADO || 'N/A' },
+                    { label: 'SEMANA', value: rowData.SEMANAS || 'N/A' },
+                    { label: 'CLASE', value: rowData.CLASE || 'N/A' },
+                    { label: 'REFERENCIA', value: rowData.REFERENCIA || 'N/A' },
+                    { label: 'GÉNERO', value: rowData.GENERO || 'N/A' },
+                    { label: 'PRENDA', value: rowData.PRENDA || 'N/A' }
+                ];
+                
+                priorityFields.forEach(field => {
+                    const priorityField = document.createElement('div');
+                    priorityField.className = 'priority-field';
+                    
+                    const priorityLabel = document.createElement('div');
+                    priorityLabel.className = 'priority-label';
+                    priorityLabel.textContent = field.label;
+                    
+                    const priorityValue = document.createElement('div');
+                    priorityValue.className = 'priority-value';
+                    priorityValue.textContent = field.value;
+                    
+                    priorityField.appendChild(priorityLabel);
+                    priorityField.appendChild(priorityValue);
+                    priorityInfo.appendChild(priorityField);
+                });
+                
+                card.appendChild(priorityInfo);
+                
+                // Sección colapsable
+                const collapseSection = document.createElement('div');
+                collapseSection.className = 'collapse-section';
+                
+                const collapseBtn = document.createElement('button');
+                collapseBtn.className = 'collapse-btn';
+                collapseBtn.textContent = '▼ VER DETALLES COMPLETOS';
+                
+                const collapseContent = document.createElement('div');
+                collapseContent.className = 'collapse-content';
+                
+                const detailGrid = document.createElement('div');
+                detailGrid.className = 'detail-grid';
+                
+                // Campos para detalles
+                const detailFields = [
+                    'DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'DESCRIPCIÓN',
+                    'TIPO', 'PVP', 'PROVEEDOR', 'FUENTE', 'NIT', 
+                    'CLIENTE', 'CANT', 'FACTURA', 'FACTURA_2', 'FECHA_FACT', 
+                    'CANT_FACTURA'
+                ];
+                
+                detailFields.forEach(field => {
+                    if (rowData[field]) {
+                        const dataField = document.createElement('div');
+                        dataField.className = 'data-field';
+                        
+                        const dataLabel = document.createElement('div');
+                        dataLabel.className = 'data-label';
+                        dataLabel.textContent = field;
+                        
+                        const dataValue = document.createElement('div');
+                        dataValue.className = 'data-value';
+                        dataValue.textContent = rowData[field];
+                        
+                        dataField.appendChild(dataLabel);
+                        dataField.appendChild(dataValue);
+                        detailGrid.appendChild(dataField);
+                    }
+                });
+                
+                collapseContent.appendChild(detailGrid);
+                
+                // Botón para ver soporte (imagen)
+                if (rowData.SOPORTE) {
+                    const soporteBtn = document.createElement('button');
+                    soporteBtn.className = 'soporte-btn';
+                    soporteBtn.textContent = '📷 VER SOPORTE';
+                    soporteBtn.onclick = function() {
+                        showSoporteImage(rowData.SOPORTE);
+                    };
+                    collapseContent.appendChild(soporteBtn);
+                }
+                
+                collapseSection.appendChild(collapseBtn);
+                collapseSection.appendChild(collapseContent);
+                card.appendChild(collapseSection);
+                
+                // Agregar funcionalidad de colapsar
+                collapseBtn.addEventListener('click', function() {
+                    collapseContent.classList.toggle('show');
+                    collapseBtn.textContent = collapseContent.classList.contains('show') 
+                        ? '▲ OCULTAR DETALLES' 
+                        : '▼ VER DETALLES COMPLETOS';
+                });
+                
+                // Agregar tarjeta al contenedor
+                dataCardContainer.innerHTML = '';
+                dataCardContainer.appendChild(card);
+            }
+            
+            // Función para mostrar imagen de soporte en modal
+            function showSoporteImage(imageUrl) {
+                if (imageUrl) {
+                    soporteImage.src = imageUrl;
+                    soporteModal.classList.add('show');
+                }
+            }
+            
+            // Cerrar modal
+            closeModal.addEventListener('click', function() {
+                soporteModal.classList.remove('show');
+            });
+            
+            // Cerrar modal al hacer clic fuera
+            soporteModal.addEventListener('click', function(e) {
+                if (e.target === soporteModal) {
+                    soporteModal.classList.remove('show');
+                }
+            });
+            
+            // Evento para cuando se escanea un código QR
+            qrInput.addEventListener('input', function() {
+                const searchValue = qrInput.value.trim();
+                if (searchValue && !isProcessing) {
+                    searchData(searchValue);
+                }
+            });
+            
+            // Enfocar el campo de entrada al cargar la página
+            qrInput.focus();
+            
+            // Mantener el foco en el campo de entrada
+            document.addEventListener('click', function() {
+                qrInput.focus();
+            });
+            
+            // Cargar datos iniciales
+            loadAllData();
+            
+            // Actualizar información del caché periódicamente
+            setInterval(updateCacheInfo, 30000);
+        });
+    </script>
+</body>
+</html>
