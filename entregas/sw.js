@@ -6,9 +6,18 @@ const BASE = (new URL('.', self.location)).href;
 
 // Lista de assets relativa a la carpeta del SW (sin slash inicial)
 const RELATIVE_ASSETS = [
+  '',
+  //'index.html',
+  //'css/styles.css',
+  //'js/app.js',
+  //'js/camera.js',
+  //'js/upload-queue.js',
   'icons/icon-192.png',
+  'icons/icon-256.png',
+  'icons/icon-384.png',
   'icons/icon-512.png',
   'icons/icon-512-maskable.png'
+  'icons/icon-1024.png',
 ];
 
 // Convierte a URLs absolutas usando la ubicación del sw.js
