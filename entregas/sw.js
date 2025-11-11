@@ -16,8 +16,8 @@ const RELATIVE_ASSETS = [
   'icons/icon-256.png',
   'icons/icon-384.png',
   'icons/icon-512.png',
-  'icons/icon-512-maskable.png'
-  'icons/icon-1024.png',
+  'icons/icon-512-maskable.png',
+  'icons/icon-1024.png'
 ];
 
 // Convierte a URLs absolutas usando la ubicación del sw.js
