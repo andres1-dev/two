@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Escáner QR PDA — Inventario (PWA)</title>
+    <meta name="theme-color" content="#ffffff"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root{--bg:#fff;--muted:#6b7280;--primary:#2563eb;--success:#16a34a;--warning:#f59e0b;--danger:#dc2626;--shadow:0 6px 20px rgba(13,24,48,0.06);--radius:12px}
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
+        body{font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background:var(--bg);color:#0f172a;padding:18px;display:flex;justify-content:center}
+        .wrap{width:100%;max-width:980px;background:#fff;border-radius:16px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(15,23,42,0.04)}
+        header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(15,23,42,0.04)}
+        .brand{display:flex;align-items:center;gap:12px}
+        .logo{width:46px;height:46px;border-radius:12px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--primary)}
+        h1{font-size:16px;font-weight:800}
+        .sub{font-size:13px;color:var(--muted)}
+        .header-actions{display:flex;gap:10px;align-items:center}
+
+        .main{display:grid;grid-template-columns:320px 1fr;gap:20px;padding:20px}
+        @media (max-width:920px){.main{grid-template-columns:1fr}}
+
+        /* LEFT */
+        .left{display:flex;flex-direction:column;gap:14px}
+        .card{background:#fff;border-radius:12px;padding:14px;border:1px solid rgba(15,23,42,0.04);box-shadow:var(--shadow)}
+        .scanner{display:flex;flex-direction:column;gap:10px;align-items:center}
+        .scan-qr{font-size:34px;color:var(--primary)}
+        .scan-text{font-size:13px;color:var(--muted)}
+
+        /* hidden input for PDA with persistent focus */
+        .qr-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+        .fake-focus{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);background:#fbfdff;cursor:text}
+        .fake-left{display:flex;gap:10px;align-items:center}
+        .hint{font-size:13px;color:var(--muted)}
+
+        /* week big */
+        .week{display:flex;gap:12px;align-items:center}
+        .week-bubble{min-width:120px;height:120px;border-radius:14px;background:#0b1220;color:#fff;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:800;box-shadow:0 10px 30px rgba(2,6,23,0.08)}
+        .week-meta{display:flex;flex-direction:column}
+        .week-label{font-size:12px;color:var(--muted);font-weight:700}
+        .week-desc{font-size:14px}
+
+        /* settings toggles */
+        .settings{display:flex;flex-direction:column;gap:10px}
+        .setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .toggle{width:46px;height:26px;border-radius:20px;background:rgba(15,23,42,0.06);position:relative;cursor:pointer}
+        .toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(2,6,23,0.12);transition:all .18s}
+        .toggle.on{background:linear-gradient(90deg,var(--primary),#60a5fa)}.toggle.on .knob{left:23px}
+
+        /* RIGHT */
+        .right{display:flex;flex-direction:column;gap:12px}
+        .result-head{display:flex;align-items:center;justify-content:space-between}
+        .title{font-weight:800}
+        .meta{font-size:13px;color:var(--muted)}
+        .priority{display:flex;gap:10px;margin-top:12px}
+        .priority .mini{flex:1;background:#fbfdff;padding:10px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);text-align:center}
+        .mini-label{font-size:11px;color:var(--muted);font-weight:700}
+        .mini-value{font-size:16px;font-weight:800;margin-top:6px}
+
+        .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
+        .detail-item{background:#fff;border-radius:10px;padding:10px;border:1px solid rgba(15,23,42,0.04)}
+        .detail-label{font-size:11px;color:var(--muted);font-weight:700}
+        .detail-value{margin-top:6px}
+
+        .support-thumb{width:100%;height:160px;object-fit:cover;border-radius:8px;cursor:pointer}
+
+        /* modal */
+        .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:999}
+        .modal.show{display:flex}
+        .modal-content{width:min(920px,95%);background:#fff;border-radius:12px;padding:12px}
+        .modal-img{width:100%;height:auto;border-radius:8px}
+
+        footer{padding:12px 20px;border-top:1px solid rgba(15,23,42,0.04);display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fas fa-qrcode"></i></div>
+                <div>
+                    <h1>Sistema PDA — Inventario</h1>
+                    <div class="sub">PWA optimizada para PDA | Foco persistente</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div id="pill-status" class="pill info" style="padding:8px 12px;border-radius:999px;background:rgba(15,23,42,0.03);font-weight:700"><i class="fas fa-info-circle"></i> Esperando</div>
+                <div id="pill-count" class="pill" style="padding:8px 12px;border-radius:999px;background:rgba(15,23,42,0.03);font-weight:700"><i class="fas fa-database"></i> 0</div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="left">
+                <div class="card scanner" aria-label="Escáner PDA">
+                    <div class="scan-qr"><i class="fas fa-qrcode"></i></div>
+                    <div class="scan-text">Apunte con el láser del PDA. Campo de entrada oculto con foco persistente.</div>
+
+                    <input id="qrInput" class="qr-input" autocomplete="off" inputmode="text" />
+
+                    <div class="fake-focus" tabindex="0" onclick="document.getElementById('qrInput').focus();">
+                        <div class="fake-left"><i class="fas fa-arrow-down" style="opacity:.7"></i><div class="hint">Escaneado: <strong id="lastScanned">—</strong></div></div>
+                        <div style="font-size:12px;color:var(--muted)">PDA: foco permanente</div>
+                    </div>
+                </div>
+
+                <div class="card week">
+                    <div style="display:flex;gap:12px;align-items:center">
+                        <div class="week-bubble" id="weekNumber">—</div>
+                        <div class="week-meta"><div class="week-label">Número de Semana</div><div class="week-desc">Visible y grande para decisiones rápidas</div></div>
+                    </div>
+                </div>
+
+                <div class="card settings">
+                    <div style="font-weight:800;margin-bottom:6px">Configuración</div>
+                    <div class="setting-row"><div style="font-weight:700">Sonidos</div><div class="toggle" id="toggle-sound"><div class="knob"></div></div></div>
+                    <div class="setting-row"><div style="font-weight:700">Auto-Actualizar (cache)</div><div class="toggle" id="toggle-auto"><div class="knob"></div></div></div>
+                    <div class="setting-row"><div style="font-weight:700">Mostrar miniatura soporte</div><div class="toggle" id="toggle-thumb"><div class="knob"></div></div></div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:8px">Los toggles se guardan localmente en la PDA.</div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="card">
+                    <div class="result-head">
+                        <div>
+                            <div class="title">Resultado</div>
+                            <div class="meta">Los resultados aparecerán tras escanear</div>
+                        </div>
+                        <div class="meta">Hoja: JSON_Result</div>
+                    </div>
+
+                    <div id="resultArea">
+                        <div style="padding:18px;text-align:center;color:var(--muted)">Escanee un código QR para ver los detalles del inventario</div>
+                    </div>
+                </div>
+
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div>Conectado a Google Sheets</div>
+            <div style="color:var(--muted)">Hoja: JSON_Result | Columna: KEY</div>
+        </footer>
+    </div>
+
+    <!-- modal soporte -->
+    <div id="modal" class="modal"><div class="modal-content"><button id="closeModal" style="float:right;background:#111;color:#fff;border-radius:6px;padding:6px 10px;border:none;cursor:pointer">Cerrar</button><img id="modalImg" class="modal-img" src="" alt="Soporte"></div></div>
+
+    <!-- sonidos -->
+    <audio id="successSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
+    <audio id="errorSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" type="audio/mpeg"></audio>
+
+    <script>
+        // Configuración real (proporcionada por el código original)
+        const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+        const sheetName = 'JSON_Result';
+        const range = 'A:Y';
+        const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+
+        const headers = ['DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','REFERENCIA','TIPO','PVP','PRENDA','GENERO','PROVEEDOR','CLASE','FUENTE','NIT','CLIENTE','CANT','FACTURA','SOPORTE','ESTADO','FACTURA_2','FECHA_FACT','CANT_FACTURA','ESTADO','SEMANAS','KEY'];
+
+        // Estado local
+        let dataCache = null; let cacheTimestamp = null; const CACHE_DURATION = 5*60*1000; // 5 min
+        let isProcessing=false; let lastCode='';
+
+        // UI refs
+        const qrInput = document.getElementById('qrInput');
+        const lastScanned = document.getElementById('lastScanned');
+        const weekNumber = document.getElementById('weekNumber');
+        const resultArea = document.getElementById('resultArea');
+        const cacheCount = document.getElementById('cacheCount');
+        const cacheAge = document.getElementById('cacheAge');
+        const pillStatus = document.getElementById('pill-status');
+        const pillCount = document.getElementById('pill-count');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeModal = document.getElementById('closeModal');
+
+        // toggles
+        const toggles = {
+            sound: {el:document.getElementById('toggle-sound'), key:'pda_sound', default:true},
+            auto: {el:document.getElementById('toggle-auto'), key:'pda_auto', default:true},
+            thumb: {el:document.getElementById('toggle-thumb'), key:'pda_thumb', default:true}
+        };
+
+        // audio
+        function playSound(type){ try{ if(!getSetting('pda_sound')) return; const s = document.getElementById(type==='success'?'successSound':'errorSound'); s.volume=0.7; s.currentTime=0; s.play().catch(()=>{});}catch(e){} }
+
+        // init toggles
+        function initToggles(){ Object.values(toggles).forEach(t=>{ const on = JSON.parse(localStorage.getItem(t.key) ?? JSON.stringify(t.default)); if(on) t.el.classList.add('on'); else t.el.classList.remove('on'); t.el.addEventListener('click', ()=>{ const curr = t.el.classList.toggle('on'); localStorage.setItem(t.key, curr); }); }); }
+        function getSetting(k){ return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(true)); }
+
+        function setPill(type,text){ pillStatus.className = ''; pillStatus.classList.add('pill'); pillStatus.classList.add(type||'info'); pillStatus.style.padding='8px 12px'; pillStatus.style.borderRadius='999px'; pillStatus.innerHTML = `${type==='success'?'<i class="fas fa-check-circle"></i>':type==='error'?'<i class="fas fa-exclamation-circle"></i>':'<i class="fas fa-info-circle"></i>'} ${text}`; }
+
+        function extractWeekNumber(weekText){ if(!weekText) return '—'; const m = weekText.toString().match(/\d+/); return m?m[0]:weekText; }
+
+        // cargar datos desde Sheets
+        async function loadAllData(){ setPill('info','Cargando base de datos...'); try{ const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`; const r = await fetch(url); if(!r.ok) throw new Error(''+r.status); const data = await r.json(); if(!data.values || data.values.length<2) throw new Error('Sin datos'); const rows = data.values.slice(1); dataCache = {}; rows.forEach(row=>{ if(row.length>24 && row[24]){ const key = row[24].toString().trim(); const rowData = {}; headers.forEach((h,i)=>rowData[h]=row[i]||''); dataCache[key]=rowData; } }); cacheTimestamp = Date.now(); updateCacheInfo(); setPill('success',`Base cargada: ${Object.keys(dataCache).length} registros`); pillCount.innerText = Object.keys(dataCache).length; return dataCache; }catch(e){ setPill('error','Error al cargar datos'); resultArea.innerHTML = `<div style="padding:18px;color:var(--muted)">Error cargando base: ${e.message}</div>`; return null; } }
+
+        function isCacheExpired(){ return !cacheTimestamp || (Date.now()-cacheTimestamp)>CACHE_DURATION; }
+        function updateCacheInfo(){ if(dataCache && cacheTimestamp){ cacheCount.innerText = Object.keys(dataCache).length; cacheAge.innerText = Math.floor((Date.now()-cacheTimestamp)/1000/60) + ' min'; } }
+
+        async function searchData(val){ if(isProcessing || val===lastCode) return; isProcessing=true; lastCode=val; setPill('info',`Buscando: ${val}`); try{ if(!dataCache || isCacheExpired()){ if(getSetting('pda_auto')) await loadAllData(); } const found = dataCache?dataCache[val]:null; if(found){ renderResult(found); setPill('success',`Datos: ${val}`); playSound('success'); } else { resultArea.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted)">No se encontró: ${val}</div>`; setPill('error',`No encontrado: ${val}`); playSound('error'); } }catch(e){ setPill('error','Error en búsqueda'); } finally{ isProcessing=false; setTimeout(()=>{ qrInput.value=''; lastScanned.innerText = val; },120); } }
+
+        function renderResult(row){ weekNumber.innerText = extractWeekNumber(row.SEMANAS); const estado = (row.ESTADO||'PENDIENTE').toUpperCase(); const badgeClass = estado==='ENTREGADO'?'success':estado==='CANCELADO'?'danger':'warning';
+            let html = `
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div>
+                        <div style="font-weight:900;font-size:16px">${row.DOCUMENTO||'Sin documento'} — ${row.REFERENCIA||'Sin referencia'}</div>
+                        <div style="color:var(--muted);font-size:13px;margin-top:6px">Proveedor: ${row.PROVEEDOR||'—'}</div>
+                    </div>
+                    <div style="text-align:right"><div class="pill ${badgeClass}" style="padding:8px 12px;border-radius:999px;font-weight:800">${estado}</div></div>
+                </div>
+            `;
+
+            html += '<div class="priority" style="margin-top:14px">';
+            html += `<div class="mini"><div class="mini-label">CLASE</div><div class="mini-value">${row.CLASE||'—'}</div></div>`;
+            html += `<div class="mini"><div class="mini-label">GÉNERO</div><div class="mini-value">${row.GENERO||'—'}</div></div>`;
+            html += `<div class="mini"><div class="mini-label">PRENDA</div><div class="mini-value">${row.PRENDA||'—'}</div></div>`;
+            html += '</div>';
+
+            // thumbnail if exists and setting enabled
+            if(row.SOPORTE && getSetting('pda_thumb')){
+                html += `<div style="margin-top:12px"><img src="${row.SOPORTE}" class="support-thumb" id="supportThumb" alt="Soporte"></div>`;
+            }
+
+            // details grid
+            html += '<div class="detail-grid">';
+            ['DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','TIPO','PVP','CANT','FACTURA','FECHA_FACT'].forEach(k=>{ if(row[k]) html += `<div class="detail-item"><div class="detail-label">${k}</div><div class="detail-value">${row[k]}</div></div>`; });
+            html += '</div>';
+
+            resultArea.innerHTML = html;
+
+            // add click handler for support image if present
+            const thumb = document.getElementById('supportThumb'); if(thumb){ thumb.addEventListener('click',()=>{ modalImg.src = thumb.src; modal.classList.add('show'); }); }
+        }
+
+        // events
+        qrInput.addEventListener('input', function(e){ const v = this.value.trim(); if(v) searchData(v); });
+        document.addEventListener('click', ()=>qrInput.focus()); window.addEventListener('focus', ()=>qrInput.focus());
+        closeModal.addEventListener('click', ()=>{ modal.classList.remove('show'); modalImg.src=''; }); modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('show'); });
+
+        // initial
+        initToggles(); loadAllData(); setInterval(updateCacheInfo,30000);
+
+        // expose for buttons
+        window.loadAllData = loadAllData;
+
+        // --- PWA: create manifest and service worker dynamically ---
+        (function registerPWA(){
+            try{
+                // manifest
+                const manifest = {
+                    name: 'Escáner PDA — Inventario',
+                    short_name: 'PDA-Scan',
+                    start_url: '.',
+                    display: 'standalone',
+                    background_color: '#ffffff',
+                    theme_color: '#ffffff',
+                    icons: [{src:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect fill="%232563eb" width="100%" height="100%" rx="24"/><text x="50%" y="55%" font-size="96" fill="white" text-anchor="middle" font-family="Segoe UI">⌘</text></svg>', sizes:'192x192', type:'image/svg+xml'}]
+                };
+                const manifestBlob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
+                const manifestURL = URL.createObjectURL(manifestBlob);
+                const link = document.createElement('link'); link.rel='manifest'; link.href = manifestURL; document.head.appendChild(link);
+
+                // service worker via Blob (cache basic assets + offline fallback)
+                if('serviceWorker' in navigator){
+                    const swCode = `
+                        const CACHE_NAME = 'pda-cache-v1';
+                        const OFFLINE_URL = '/';
+                        self.addEventListener('install', event => {
+                            self.skipWaiting();
+                            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/', location.href, location.origin])));
+                        });
+                        self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+                        self.addEventListener('fetch', event => {
+                            if(event.request.method !== 'GET') return;
+                            event.respondWith(caches.match(event.request).then(resp => resp || fetch(event.request).then(r=>{ caches.open(CACHE_NAME).then(c=>c.put(event.request, r.clone())); return r; }).catch(()=>caches.match('/'))));
+                        });
+                    `;
+                    const swBlob = new Blob([swCode], {type:'application/javascript'});
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl).then(()=>console.log('SW registrado')).catch(e=>console.warn('SW error',e));
+                }
+            }catch(e){console.warn('PWA init error',e)}
+        })();
+
+    </script>
+</body>
+</html>
