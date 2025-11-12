@@ -4,173 +4,208 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="light">
-    <title>PWA-WMS - Modo Manual</title>
-    <meta name="theme-color" content="#4CAF50">
+    <title>PWA-wms</title>
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="WMS Manual">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <meta name="apple-mobile-web-app-title" content="Ingresos">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
     <link rel="manifest" href="manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/manual.css">
+    <!-- Favicon y iconos mejorados -->
+    <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
 </head>
-<body class="manual-mode">
+<body>
     <div class="top-safe-area" aria-hidden="true"></div>
-    
-    <div class="manual-container">
-        <!-- Header completo -->
-        <header class="manual-header">
-            <div class="manual-brand">
-                <div class="manual-logo">
-                    <i class="fab fa-github"></i>
-                </div>
-                <div class="manual-title">
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fab fa-github"></i></div>
+                <div class="brand-text">
                     <h1>PWA-WMS</h1>
-                    <div class="manual-subtitle">Modo Manual</div>
+                    <div class="sub">Optimizada para móviles</div>
                 </div>
             </div>
-            <div class="manual-actions">
-                <div id="manualStatus" class="status-pill info">
-                    <i class="fas fa-circle"></i> <span>PENDIENTE</span>
+
+            <div class="header-actions">
+                <div id="pill-status" class="pill info">
+                    <i class="fas fa-circle"></i> <span id="status-text">PENDIENTE</span>
                 </div>
-                <div id="dataCount" class="status-pill">
-                    <i class="fas fa-database"></i> <span>0</span>
-                </div>
+                <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
             </div>
         </header>
 
-        <!-- Contenido principal -->
-        <main class="manual-main">
-            <!-- Columna izquierda -->
-            <div class="manual-left">
-                <!-- Scanner con cámara -->
-                <div class="manual-scanner-card">
-                    <div class="scanner-header">
-                        <h3>Escáner</h3>
+        <div class="main">
+            <div class="left">
+                <div class="card scanner" aria-label="Escáner PDA">
+                    <div class="scan-qr">
+                    <i class="fas fa-qrcode" id="scannerIcon"></i>
                     </div>
-                    <div class="scanner-content">
-                        <div class="scanner-visual">
-                            <i class="fas fa-qrcode"></i>
-                        </div>
-                        <div class="scanner-instruction">
-                            Use cámara o ingrese código manualmente
-                        </div>
-                        
-                        <input type="text" 
-                               id="manualScannerInput" 
-                               class="manual-scanner-input" 
-                               placeholder="Escanee o escriba código..."
-                               autocomplete="off" />
 
-                        <button class="camera-btn" id="manualCameraBtn">
-                            <i class="fas fa-camera"></i> Abrir Cámara
+                    <div class="scan-text">Apunte con el láser del PDA o toque para realizar la captura por cámara</div>
+
+                    <!-- Input oculto para PDA -->
+                    <input type="text" 
+                           id="qrInput" 
+                           class="qr-input" 
+                           placeholder="Escanee con láser o escriba el código..."
+                           autocomplete="off" />
+                           <!-- QUITADO: autofocus -->
+                           
+                        <button class="camera-btn" id="openCamera">
+                        <i class="fas fa-camera"></i> Abrir Cámara
                         </button>
 
-                        <div class="last-scanned">
-                            <i class="fas fa-key"></i>
-                            <span id="manualLastScanned">—</span>
+
+                    <div class="fake-focus">
+                        <div class="fake-left">
+                            <i class="fas fa-key" style="opacity:.7"></i>
+                            <div class="hint"><strong id="lastScanned">—</strong></div>
                         </div>
+                        <div style="font-size:11px;color:var(--muted)">CDI</div>
                     </div>
                 </div>
 
-                <!-- Semana -->
-                <div class="manual-week-card">
-                    <div class="week-bubble" id="manualWeekNumber">—</div>
-                    <div class="week-info">
+                <div class="card week">
+                    <div class="week-bubble" id="weekNumber">—</div>
+                    <div class="week-meta">
                         <div class="week-label">SEMANA ACTUAL</div>
-                        <div class="week-desc">Información de inventario</div>
+                        <div class="week-desc">Información de inventario por semana</div>
                     </div>
                 </div>
 
-                <!-- Configuración rápida -->
-                <div class="manual-quick-config">
-                    <h4>Configuración Rápida</h4>
-                    <div class="quick-toggles">
-                        <div class="quick-toggle">
-                            <span>Sonidos</span>
-                            <div class="toggle" id="quickSoundToggle">
-                                <div class="toggle-knob"></div>
+                    <div class="card collapsed" id="configCard">
+                    <div class="card-header" id="configHeader">
+                        <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-cog"></i>
+                        Configuración
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    </div>
+
+                    <div class="card-content">
+                        <div class="settings">
+                            <div class="setting-row">
+                                <div style="font-weight:700">Sonidos</div>
+                                <div class="toggle" id="toggle-sound"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Cache</div>
+                                <div class="toggle" id="toggle-auto"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Soporte</div>
+                                <div class="toggle" id="toggle-thumb"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Cámara</div>
+                                <div class="toggle" id="toggle-camera"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Foco</div>
+                                <div class="toggle" id="toggle-focus"><div class="knob"></div></div>
+                            </div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:8px; text-align: center;">
+                                Los ajustes se guardan localmente
                             </div>
                         </div>
-                        <div class="quick-toggle">
-                            <span>Caché</span>
-                            <div class="toggle" id="quickCacheToggle">
-                                <div class="toggle-knob"></div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Columna derecha -->
-            <div class="manual-right">
-                <!-- Resultados completos -->
-                <div class="manual-results-card">
-                    <div class="results-header">
-                        <h3>Resultados Detallados</h3>
-                        <div class="results-meta"></div>
+            <div class="right">
+                <div class="card">
+                    <div class="result-head">
+                        <div>
+                            <div class="title">Resultados</div>
+                            <div class="meta"></div>
+                        </div>
+                        <div class="meta"></div>
                     </div>
-                    <div id="manualResultsArea" class="manual-results-area">
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
-                            <p>Realice una búsqueda para ver resultados</p>
+
+                    <div id="resultArea">
+                        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
+                            <i class="material-icons" style="font-size:32px;margin-bottom:12px;opacity:0.5">qr_code_2</i>
+                            <div>Escanee un código QR para ver los detalles</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Información de caché -->
-                <div class="manual-cache-card">
-                    <div class="cache-info">
-                        <span>Caché: <strong id="manualCacheCount">0</strong> registros</span>
-                        <span>Actualizado: <strong id="manualCacheAge">—</strong> min</span>
-                    </div>
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <!-- Footer -->
-        <footer class="manual-footer">
-            <div class="footer-content">
-                <div>Conectado a GitHub</div>
-                <div>
-                    <a href="index.html" class="footer-link">
-                        <i class="fas fa-home"></i> Inicio
-                    </a>
-                    <a href="config.html" class="footer-link">
-                        <i class="fas fa-cog"></i> Configuración
-                    </a>
-                </div>
-            </div>
+        <footer>
+            <div>Conectado a GitHub</div>
+            <div>Desarrollado por Andrés Mendoza</div>
         </footer>
     </div>
 
     <!-- Modal Cámara -->
-    <div id="manualCameraModal" class="camera-modal">
+    <div id="cameraModal" class="camera-modal">
         <div class="camera-content">
             <div class="camera-preview">
-                <video id="manualCameraVideo" autoplay playsinline></video>
-                <div class="scanning-overlay" id="manualScanningOverlay">
-                    <i class="fas fa-search"></i> Escaneando...
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="qrCanvas" style="display:none"></canvas>
+                <div class="scanning-overlay" id="scanningOverlay">
+                    <i class="material-icons" style="margin-right:8px">search</i> Escaneando...
                 </div>
             </div>
             <div class="camera-controls">
-                <button class="camera-btn secondary" id="manualCloseCamera">
-                    <i class="fas fa-times"></i> Cerrar
+                <button class="camera-btn-secondary" id="closeCamera">
+                    <i class="material-icons">close</i> Cerrar
                 </button>
-                <button class="camera-btn primary" id="manualSwitchCamera">
-                    <i class="fas fa-sync-alt"></i> Cambiar
+                <button class="camera-btn-primary" id="switchCamera">
+                    <i class="material-icons">switch_camera</i> Cambiar
                 </button>
+            </div>
+            <div style="text-align:center;color:#666;font-size:12px;margin-top:8px;">
+                Biblioteca: <span id="currentLibrary">Quagga2</span>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Modal para soporte -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal"><i class="material-icons">close</i></button>
+            <img id="modalImg" class="modal-img" src="" alt="Soporte">
+        </div>
+    </div>
+
+<script>
+  (function() {
+    function updateStandaloneClass() {
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone === true;
+      document.documentElement.classList.toggle('is-standalone', !!isStandalone);
+    }
+    updateStandaloneClass();
+    // también escucha cambios si el modo cambia (poco común)
+    window.matchMedia('(display-mode: standalone)').addEventListener?.('change', updateStandaloneClass);
+  })();
+</script>
+
+    
+    <!-- Quagga2 -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+
+    <!-- Html5-QRCode -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+
+    <!-- Tu app.js AL FINAL -->
     <script src="js/app.js"></script>
-    <script src="js/camera.js"></script>
     <script src="js/manual.js"></script>
 </body>
 </html>

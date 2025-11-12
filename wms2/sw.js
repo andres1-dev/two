@@ -41,12 +41,12 @@ const EXTERNAL_ASSETS = [
 
 // Instalación
 self.addEventListener('install', (event) => {
-    console.log('🟢 Service Worker instalando...');
+    console.log('Service Worker instalando...');
     
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('📦 Cacheando assets críticos...');
+                console.log('Cacheando assets críticos...');
                 return cache.addAll(CRITICAL_ASSETS)
                     .then(() => cache.addAll(ICON_ASSETS))
                     .then(() => {
@@ -55,7 +55,7 @@ self.addEventListener('install', (event) => {
                     });
             })
             .catch(err => {
-                console.log('⚠️ Error cacheando assets:', err);
+                console.log('Error cacheando assets:', err);
                 return self.skipWaiting();
             })
     );
@@ -63,7 +63,7 @@ self.addEventListener('install', (event) => {
 
 // Activación
 self.addEventListener('activate', (event) => {
-    console.log('🔵 Service Worker activando...');
+    console.log('Service Worker activando...');
     
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -77,7 +77,7 @@ self.addEventListener('activate', (event) => {
             );
         })
         .then(() => {
-            console.log('✅ Service Worker activado');
+            console.log('Service Worker activado');
             return self.clients.claim();
         })
     );
@@ -165,4 +165,4 @@ self.addEventListener('message', (event) => {
     }
 });
 
-console.log('🎯 Service Worker cargado - Soporte multi-vista');
+console.log('Service Worker cargado - Soporte multi-vista');

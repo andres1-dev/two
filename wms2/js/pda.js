@@ -19,9 +19,9 @@ class PDAModule {
         
         this.init();
     }
-    
+
     init() {
-        console.log('🔄 Inicializando módulo PDA...');
+        console.log('Inicializando módulo PDA...');
         
         // Configurar foco persistente
         this.setupPersistentFocus();
@@ -38,21 +38,21 @@ class PDAModule {
         // Actualizar información inicial
         this.updateCacheInfo();
         
-        console.log('✅ Módulo PDA inicializado correctamente');
+        console.log('Módulo PDA inicializado correctamente');
     }
     
     setupPersistentFocus() {
-        console.log('🎯 Configurando foco persistente...');
+        console.log('Configurando foco persistente...');
         
         // Enfocar el input inmediatamente
         setTimeout(() => {
             this.qrInput.focus();
-            console.log('✅ Input enfocado');
+            console.log('Input enfocado');
         }, 100);
         
         // Reenfocar cuando se pierda el foco
         this.qrInput.addEventListener('blur', () => {
-            console.log('⚠️ Input perdió foco, reenfocando...');
+            console.log('Input perdió foco, reenfocando...');
             setTimeout(() => {
                 this.qrInput.focus();
             }, 10);
@@ -78,7 +78,7 @@ class PDAModule {
         // Escanear código - INPUT event para captura inmediata
         this.qrInput.addEventListener('input', (e) => {
             const code = e.target.value.trim();
-            console.log('📥 Código ingresado:', code);
+            console.log('Código ingresado:', code);
             
             if (code && code !== this.lastCode) {
                 this.handleScannedCode(code);
@@ -121,7 +121,7 @@ class PDAModule {
             this.updateCacheInfo();
             window.app.playSuccessSound();
         } catch (error) {
-            console.error('❌ Error cargando datos:', error);
+            console.error('Error cargando datos:', error);
             this.updateStatus('ERROR', 'danger');
             window.app.playErrorSound();
         }
@@ -141,7 +141,7 @@ class PDAModule {
             this.updateCacheInfo();
             window.app.playSuccessSound();
         } catch (error) {
-            console.error('❌ Error actualizando datos:', error);
+            console.error('Error actualizando datos:', error);
             this.updateStatus('ERROR', 'danger');
             window.app.playErrorSound();
         }
@@ -149,7 +149,7 @@ class PDAModule {
     
     async handleScannedCode(code) {
         if (this.isProcessing) {
-            console.log('⚠️ Ya procesando código, ignorando:', code);
+            console.log('Ya procesando código, ignorando:', code);
             return;
         }
         
@@ -163,7 +163,7 @@ class PDAModule {
             const result = await window.app.searchData(code);
             
             if (result) {
-                console.log('✅ Resultado encontrado:', result.DOCUMENTO);
+                console.log('Resultado encontrado:', result.DOCUMENTO);
                 this.renderSimplifiedResult(result);
                 this.updateStatus(result.ESTADO || 'ENCONTRADO', 'success');
                 
@@ -176,7 +176,7 @@ class PDAModule {
                 
                 window.app.playSuccessSound();
             } else {
-                console.log('❌ Código no encontrado:', code);
+                console.log('Código no encontrado:', code);
                 this.showNotFound(code);
                 this.updateStatus('NO ENCONTRADO', 'danger');
                 
@@ -186,7 +186,7 @@ class PDAModule {
                 window.app.playErrorSound();
             }
         } catch (error) {
-            console.error('❌ Error en búsqueda:', error);
+            console.error('Error en búsqueda:', error);
             this.updateStatus('ERROR', 'danger');
             
             // NO actualizar semana cuando hay error
@@ -205,7 +205,7 @@ class PDAModule {
     }
     
     renderSimplifiedResult(data) {
-        console.log('🎨 Renderizando resultado simplificado:', data);
+        console.log('Renderizando resultado simplificado:', data);
         
         const html = `
             <div class="pda-simplified-result">
@@ -271,7 +271,7 @@ class PDAModule {
     }
     
     updateStatus(text, type = 'info') {
-        console.log('🔄 Actualizando estado:', text, type);
+        console.log('Actualizando estado:', text, type);
         
         this.statusText.textContent = text;
         
@@ -305,14 +305,14 @@ class PDAModule {
             const extractedWeek = window.app.extractWeekNumber(weekData);
             if (extractedWeek && extractedWeek !== '—') {
                 weekDisplay = extractedWeek;
-                console.log('📅 Semana desde datos:', weekDisplay);
+                console.log('Semana desde datos:', weekDisplay);
             } else {
                 weekDisplay = '—';
-                console.log('📅 Semana no válida en datos, usando default');
+                console.log('Semana no válida en datos, usando default');
             }
         } else {
             // No calcular semana automática, mantener el default
-            console.log('📅 Sin datos de semana, usando default');
+            console.log('Sin datos de semana, usando default');
         }
         
         this.weekNumber.textContent = weekDisplay;
