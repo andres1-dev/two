@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light"> <!-- ayuda a iOS a dibujar UI en esquema claro -->
     <title>PWA-wms</title>
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -181,6 +182,20 @@
             <img id="modalImg" class="modal-img" src="" alt="Soporte">
         </div>
     </div>
+
+<script>
+  (function() {
+    function updateStandaloneClass() {
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone === true;
+      document.documentElement.classList.toggle('is-standalone', !!isStandalone);
+    }
+    updateStandaloneClass();
+    // también escucha cambios si el modo cambia (poco común)
+    window.matchMedia('(display-mode: standalone)').addEventListener?.('change', updateStandaloneClass);
+  })();
+</script>
+
 	
 	<!-- Quagga2 -->
 	<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
