@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>PWA-WMS - Modo PDA</title>
+    <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WMS PDA">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pda.css">
+</head>
+<body class="pda-mode">
+    <div class="top-safe-area" aria-hidden="true"></div>
+    
+    <div class="pda-container">
+        <!-- Header simplificado -->
+        <header class="pda-header">
+            <div class="pda-brand">
+                <div class="pda-logo">
+                    <i class="fas fa-barcode"></i>
+                </div>
+                <div class="pda-title">
+                    <h1>Modo PDA</h1>
+                    <div class="pda-subtitle">Escaneo rápido</div>
+                </div>
+            </div>
+            <div class="pda-status">
+                <div id="pdaStatus" class="status-pill info">
+                    <i class="fas fa-circle"></i> <span>LISTO</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Área principal de escaneo -->
+        <main class="pda-main">
+            <!-- Semana actual -->
+            <div class="pda-week-card">
+                <div class="week-bubble" id="pdaWeekNumber">—</div>
+                <div class="week-info">
+                    <div class="week-label">SEMANA ACTUAL</div>
+                    <div class="week-desc">Inventario semanal</div>
+                </div>
+            </div>
+
+            <!-- Scanner -->
+            <div class="pda-scanner-card">
+                <div class="scanner-icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="scanner-instruction">
+                    Escanee con láser del PDA o escriba código
+                </div>
+                
+                <input type="text" 
+                       id="pdaScannerInput" 
+                       class="pda-scanner-input" 
+                       placeholder="Escanee código..."
+                       autocomplete="off" 
+                       autofocus />
+
+                <div class="last-scanned">
+                    <i class="fas fa-history"></i>
+                    <span id="pdaLastScanned">—</span>
+                </div>
+            </div>
+
+            <!-- Resultados simplificados -->
+            <div class="pda-results-card">
+                <div class="results-header">
+                    <h3>Resultados</h3>
+                </div>
+                <div id="pdaResultsArea" class="pda-results-area">
+                    <div class="empty-state">
+                        <i class="fas fa-qrcode"></i>
+                        <p>Escanee un código para ver detalles</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Navegación inferior -->
+        <nav class="pda-nav">
+            <button class="nav-btn" id="pdaBackBtn">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </button>
+            <button class="nav-btn" id="pdaRefreshBtn">
+                <i class="fas fa-sync-alt"></i>
+                <span>Actualizar</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pda.js"></script>
+</body>
+</html>

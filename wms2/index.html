@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>PWA-WMS - Selección de Modo</title>
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WMS">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/mode-selector.css">
+</head>
+<body>
+    <div class="top-safe-area" aria-hidden="true"></div>
+    <div class="mode-selector-container">
+        <header class="mode-header">
+            <div class="logo">
+                <i class="fab fa-github"></i>
+            </div>
+            <h1>PWA-WMS</h1>
+            <p>Selecciona el modo de operación</p>
+        </header>
+
+        <div class="mode-cards">
+            <div class="mode-card" id="pdaMode">
+                <div class="mode-icon">
+                    <i class="fas fa-barcode"></i>
+                </div>
+                <h2>Modo PDA</h2>
+                <p>Optimizado para escaneo rápido con enfoque automático en el campo de entrada</p>
+                <ul class="mode-features">
+                    <li><i class="fas fa-check"></i> Vista simplificada</li>
+                    <li><i class="fas fa-check"></i> Foco persistente</li>
+                    <li><i class="fas fa-check"></i> Resultados esenciales</li>
+                </ul>
+                <button class="mode-select-btn">Seleccionar</button>
+            </div>
+
+            <div class="mode-card" id="manualMode">
+                <div class="mode-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h2>Modo Manual</h2>
+                <p>Interfaz completa con todas las funcionalidades y opciones de cámara</p>
+                <ul class="mode-features">
+                    <li><i class="fas fa-check"></i> Vista completa</li>
+                    <li><i class="fas fa-check"></i> Cámara predeterminada</li>
+                    <li><i class="fas fa-check"></i> Todas las opciones</li>
+                </ul>
+                <button class="mode-select-btn">Seleccionar</button>
+            </div>
+        </div>
+
+        <div class="config-link">
+            <a href="config.html">
+                <i class="fas fa-cog"></i> Configuración avanzada
+            </a>
+        </div>
+
+        <footer class="mode-footer">
+            <div>Desarrollado por Andrés Mendoza</div>
+        </footer>
+    </div>
+
+    <script src="js/mode-selector.js"></script>
+</body>
+</html>
