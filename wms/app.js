@@ -146,18 +146,22 @@ async function startCamera(facingMode = 'environment') {
         scanningOverlay.style.display = 'flex';
         scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">camera</i> Iniciando cámara...';
         
-        // Primero obtener acceso a la cámara
-        stream = await navigator.mediaDevices.getUserMedia({
+        // FORZAR SIEMPRE CÁMARA TRASERA
+        const constraints = {
             video: { 
-                facingMode: facingMode,
+                // Forzar cámara trasera explícitamente
+                facingMode: { exact: 'environment' },
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             },
             audio: false
-        });
+        };
+        
+        // Primero obtener acceso a la cámara TRASERA
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         cameraVideo.srcObject = stream;
-        currentFacingMode = facingMode;
+        currentFacingMode = 'environment'; // Siempre trasera
         
         // Esperar a que el video esté listo
         await new Promise((resolve) => {
@@ -173,27 +177,34 @@ async function startCamera(facingMode = 'environment') {
         // Intentar con diferentes bibliotecas en orden
         if (typeof Quagga !== 'undefined') {
             console.log('Intentando con Quagga2...');
-            await startQuaggaScanning(facingMode);
+            await startQuaggaScanning('environment'); // Forzar environment
             return;
         }
         
         if (typeof Html5Qrcode !== 'undefined') {
             console.log('Quagga2 no disponible, usando Html5-QRCode...');
-            await startHtml5QrCode(facingMode);
+            await startHtml5QrCode('environment'); // Forzar environment
             return;
         }
         
         if (typeof ZXing !== 'undefined') {
             console.log('Html5-QRCode no disponible, usando ZXing...');
-            await startZXingScanning(facingMode);
+            await startZXingScanning('environment'); // Forzar environment
             return;
         }
         
         throw new Error('No hay bibliotecas de escaneo disponibles');
         
     } catch (err) {
-        console.error('Error accediendo a la cámara:', err);
-        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px;color:#ff6b6b">error</i> Error: ' + err.message;
+        console.error('Error accediendo a la cámara TRASERA:', err);
+        
+        // Si falla la cámara trasera, mostrar error específico
+        if (err.name === 'OverconstrainedError' || err.message.includes('constraint')) {
+            scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px;color:#ff6b6b">error</i> Error: Cámara trasera no disponible';
+        } else {
+            scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px;color:#ff6b6b">error</i> Error: ' + err.message;
+        }
+        
         setTimeout(() => {
             stopCamera();
             cameraModal.classList.remove('show');
@@ -643,11 +654,18 @@ closeCamera.addEventListener('click', () => {
     cameraModal.classList.remove('show');
 });
 
-switchCamera.addEventListener('click', () => {
-    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    stopCamera();
-    startCamera(newFacingMode);
-});
+// También corregir la función switchCamera para que NO cambie a frontal
+function switchCamera() {
+    // ELIMINAR ESTA FUNCIÓN o deshabilitar el botón
+    // Ya que siempre debe ser cámara trasera
+    console.log('Función deshabilitada - Solo cámara trasera permitida');
+    
+    // Opcional: mostrar mensaje
+    scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">info</i> Solo cámara trasera disponible';
+    setTimeout(() => {
+        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">search</i> Escaneando...';
+    }, 2000);
+}
 
 // Modal
 closeModal.addEventListener('click', () => {
