@@ -26,8 +26,31 @@ html, body {
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /*max-height: 100vh;
-    overflow: hidden;*/
+    background: #ffffff; /* color blanco para toda la ventana */
+    color-scheme: light;  /* sugiere un esquema claro */
+}
+
+/* Si usas viewport-fit=cover, usa los insets para no tapar contenido importante */
+.app-root {
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+/* (opcional) Si quieres un "panel" que rellene exactamente la zona superior bajo la isla: */
+.top-safe-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: #ffffff;
+  pointer-events: none; /* no interfiere */
+  z-index: 9999;
 }
 
 input, textarea, select {
