@@ -95,15 +95,17 @@
                         </div>
                     </div>
 
+                    <!-- En la sección de resultados, actualizar el empty state: -->
                     <div id="resultArea">
-                        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
-                            <i class="material-icons" style="font-size:32px;margin-bottom:12px;opacity:0.5">qr_code_2</i>
+                        <div class="pda-empty-state">
+                            <i class="material-icons">qr_code_2</i>
                             <div>Escanee un código QR para ver los detalles</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+                <!-- Y en el card de caché al final: -->
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding: 12px 16px;">
                     <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
                     <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
                 </div>
