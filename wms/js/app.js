@@ -991,6 +991,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initToggles();
     checkCameraPermissions();
     loadAllData();
+    initAudioActivator();
     setInterval(updateCacheInfo, 30000);
     initImageZoom();
 
@@ -1014,6 +1015,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('Aplicación iniciada correctamente');
 });
+
+// Agregar después de las funciones de sonido
+function initAudioActivator() {
+    const audioActivator = document.getElementById('audioActivator');
+    
+    // Mostrar botón en móviles
+    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        audioActivator.style.display = 'block';
+        
+        audioActivator.addEventListener('click', function() {
+            // Activar audio context con gesto del usuario
+            getAudioContext();
+            
+            // Reproducir sonido de prueba
+            playSuccessSound();
+            
+            // Ocultar botón después de activar
+            this.style.display = 'none';
+        });
+    }
+}
 
 // Service Worker Registration - Solo registrar en HTTPS o localhost
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
