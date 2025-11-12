@@ -654,19 +654,6 @@ closeCamera.addEventListener('click', () => {
     cameraModal.classList.remove('show');
 });
 
-// También corregir la función switchCamera para que NO cambie a frontal
-function switchCamera() {
-    // ELIMINAR ESTA FUNCIÓN o deshabilitar el botón
-    // Ya que siempre debe ser cámara trasera
-    console.log('Función deshabilitada - Solo cámara trasera permitida');
-    
-    // Opcional: mostrar mensaje
-    scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">info</i> Solo cámara trasera disponible';
-    setTimeout(() => {
-        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">search</i> Escaneando...';
-    }, 2000);
-}
-
 // Modal
 closeModal.addEventListener('click', () => {
     modal.classList.remove('show');
