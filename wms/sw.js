@@ -6,7 +6,6 @@ const BASE = (new URL('.', self.location)).href;
 
 // Lista de assets relativa a la carpeta del SW (sin slash inicial)
 const RELATIVE_ASSETS = [
-  '',
   'icons/icon-192.png',
   'icons/icon-256.png',
   'icons/icon-384.png',
