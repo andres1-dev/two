@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Escáner PDA — Inventario</title>
+    <meta name="theme-color" content="#2563eb"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fas fa-qrcode"></i></div>
+                <div class="brand-text">
+                    <h1>Escáner PDA — Inventario</h1>
+                    <div class="sub">PWA optimizada para móviles | Foco persistente</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div id="pill-status" class="pill info">
+                    <i class="fas fa-circle"></i> <span id="status-text">PENDIENTE</span>
+                </div>
+                <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="left">
+                <div class="card scanner" aria-label="Escáner PDA">
+                    <div class="scan-qr">
+                        <i class="material-icons" id="scannerIcon">qr_code_scanner</i>
+                    </div>
+                    <div class="scan-text">Apunte con el láser del PDA o toque para realizar la captura por cámara</div>
+
+                    <!-- Input oculto para PDA -->
+                    <input type="text" 
+                           id="qrInput" 
+                           class="qr-input" 
+                           placeholder="Escanee con láser o escriba el código..."
+                           autocomplete="off" 
+                           autofocus />
+                           <!-- style="display: none;"--> 
+
+                    <button class="camera-btn" id="openCamera">
+                        <i class="material-icons">camera_alt</i> Abrir Cámara
+                    </button>
+
+                    <div class="fake-focus">
+                        <div class="fake-left">
+                            <i class="fas fa-arrow-down" style="opacity:.7"></i>
+                            <div class="hint">Escaneado: <strong id="lastScanned">—</strong></div>
+                        </div>
+                        <div style="font-size:11px;color:var(--muted)">Foco activo para PDA</div>
+                    </div>
+                </div>
+
+                <div class="card week">
+                    <div class="week-bubble" id="weekNumber">—</div>
+                    <div class="week-meta">
+                        <div class="week-label">SEMANA ACTUAL</div>
+                        <div class="week-desc">Información de inventario por semana</div>
+                    </div>
+                </div>
+
+                <div class="card collapsed" id="configCard">
+                    <div class="card-header" id="configHeader">
+                        <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i class="material-icons">settings</i>
+                            CONFIGURACIÓN
+                        </div>
+                        <i class="material-icons">expand_more</i>
+                    </div>
+                    <div class="card-content">
+                        <div class="settings">
+                            <div class="setting-row">
+                                <div style="font-weight:700">Sonidos BIOS</div>
+                                <div class="toggle" id="toggle-sound"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Auto-Actualizar</div>
+                                <div class="toggle" id="toggle-auto"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Miniatura soporte</div>
+                                <div class="toggle" id="toggle-thumb"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Usar Cámara</div>
+                                <div class="toggle" id="toggle-camera"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Foco Persistente</div>
+                                <div class="toggle" id="toggle-focus"><div class="knob"></div></div>
+                            </div>
+                            <div class="setting-row">
+                                <div style="font-weight:700">Biblioteca Cámara</div>
+                                <select id="camera-library" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd;">
+                                    <option value="quagga">Quagga2 (Barcode)</option>
+                                    <option value="html5">HTML5 QR (QR Code)</option>
+                                    <option value="zxing">ZXing (Experimental)</option>
+                                </select>
+                            </div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:8px; text-align: center;">
+                                Los ajustes se guardan localmente
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="card">
+                    <div class="result-head">
+                        <div>
+                            <div class="title">Resultados del Escaneo</div>
+                            <div class="meta">La información aparecerá aquí tras el escaneo</div>
+                        </div>
+                        <div class="meta">JSON_Result</div>
+                    </div>
+
+                    <div id="resultArea">
+                        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
+                            <i class="material-icons" style="font-size:32px;margin-bottom:12px;opacity:0.5">qr_code_2</i>
+                            <div>Escanee un código QR para ver los detalles</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div>Conectado a Google Sheets</div>
+            <div>Hoja: JSON_Result | Columna: KEY</div>
+        </footer>
+    </div>
+
+    <!-- Modal Cámara -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-content">
+            <div class="camera-preview">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="qrCanvas" style="display:none"></canvas>
+                <div class="scanning-overlay" id="scanningOverlay">
+                    <i class="material-icons" style="margin-right:8px">search</i> Escaneando...
+                </div>
+            </div>
+            <div class="camera-controls">
+                <button class="camera-btn-secondary" id="closeCamera">
+                    <i class="material-icons">close</i> Cerrar
+                </button>
+                <button class="camera-btn-primary" id="switchCamera">
+                    <i class="material-icons">switch_camera</i> Cambiar
+                </button>
+            </div>
+            <div style="text-align:center;color:#666;font-size:12px;margin-top:8px;">
+                Biblioteca: <span id="currentLibrary">Quagga2</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para soporte -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal"><i class="material-icons">close</i></button>
+            <img id="modalImg" class="modal-img" src="" alt="Soporte">
+        </div>
+    </div>
+
+    <!-- Bibliotecas de escaneo -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga2@0.2.7/dist/quagga.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    
+    <!-- Scripts separados -->
+    <script src="camera-scanner.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
