@@ -140,11 +140,11 @@ function playConfirmArpeggio() {
     }
 }
 
-// Funcionalidad Cámara con múltiples bibliotecas (CÓDIGO MEJORADO)
+// REEMPLAZAR COMPLETAMENTE LA FUNCIÓN startCamera()
 async function startCamera() {
     try {
         scanningOverlay.style.display = 'flex';
-        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">camera</i> Iniciando cámara trasera...';
+        scanningOverlay.innerHTML = '<i class="fas fa-camera" style="margin-right:8px"></i> Iniciando cámara trasera...';
         
         console.log('Solicitando cámara trasera...');
         
@@ -206,10 +206,7 @@ async function startCamera() {
         
         console.log('✅ Video listo, iniciando escáner...');
         
-        // Cambiar icono a cámara activa
-        document.getElementById('scannerIcon').textContent = 'camera';
-        
-        // QUITAR ZXING - Solo usar Quagga y HTML5 QR
+        // Solo usar Quagga2 y Html5-QRCode (sin ZXing)
         if (typeof Quagga !== 'undefined') {
             console.log('🚀 Intentando con Quagga2...');
             await startQuaggaScanning();
@@ -222,14 +219,13 @@ async function startCamera() {
             return;
         }
         
-        // ELIMINADO ZXing - causa problemas
-        throw new Error('No hay bibliotecas de escaneo disponibles (Quagga2 o Html5-QRCode)');
+        throw new Error('No hay bibliotecas de escaneo disponibles');
         
     } catch (err) {
         console.error('❌ Error crítico con la cámara:', err);
         scanningOverlay.innerHTML = 
             '<div style="text-align:center;color:#ff6b6b">' +
-            '<i class="material-icons" style="font-size:48px;margin-bottom:16px">camera_off</i>' +
+            '<i class="fas fa-camera-slash" style="font-size:48px;margin-bottom:16px"></i>' +
             '<div style="font-size:16px;font-weight:bold">Error de Cámara</div>' +
             '<div style="font-size:14px;margin-top:8px">' + err.message + '</div>' +
             '<div style="font-size:12px;margin-top:16px;color:#ccc">Verifique permisos y recargue</div>' +
@@ -242,6 +238,8 @@ async function startCamera() {
     }
 }
 
+
+// REEMPLAZAR COMPLETAMENTE LA FUNCIÓN startQuaggaScanning()
 async function startQuaggaScanning() {
     return new Promise((resolve, reject) => {
         if (isScanning) {
@@ -251,7 +249,7 @@ async function startQuaggaScanning() {
         
         isScanning = true;
         scannerMode = 'quagga';
-        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">qr_code_scanner</i> Escaneando códigos de barras...';
+        scanningOverlay.innerHTML = '<i class="fas fa-qrcode" style="margin-right:8px"></i> Escaneando códigos de barras...';
 
         const config = {
             inputStream: {
@@ -259,7 +257,6 @@ async function startQuaggaScanning() {
                 type: "LiveStream", 
                 target: cameraVideo,
                 constraints: {
-                    // No forzar facingMode aquí, ya se maneja en getUserMedia
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
@@ -301,10 +298,12 @@ async function startQuaggaScanning() {
     });
 }
 
+
+// REEMPLAZAR COMPLETAMENTE LA FUNCIÓN startHtml5QrCode()
 async function startHtml5QrCode() {
     scannerMode = 'html5qrcode';
     isScanning = true;
-    scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">qr_code_2</i> Escaneando códigos QR...';
+    scanningOverlay.innerHTML = '<i class="fas fa-qrcode" style="margin-right:8px"></i> Escaneando códigos QR...';
     
     // Ocultar video nativo y usar el contenedor de Html5Qrcode
     cameraVideo.style.display = 'none';
@@ -334,25 +333,19 @@ async function startHtml5QrCode() {
                 handleScannedCode(decodedText);
             },
             (errorMessage) => {
-                // Esto es normal, no es un error
-                console.log('🔍 Html5-QRCode escaneando...');
+                // Esto es normal durante el escaneo, no es un error
             }
         );
         console.log('✅ Html5-QRCode iniciado correctamente');
     } catch (err) {
         console.error('❌ Error con Html5-QRCode:', err);
-        // Limpiar en caso de error
         cleanupHtml5QrCode();
         throw err;
     }
 }
 
-// ELIMINAR COMPLETAMENTE ZXing - causa problemas
-async function startZXingScanning() {
-    // NO IMPLEMENTAR - ZXing causa banners constantes
-    throw new Error('ZXing deshabilitado - causa problemas de interfaz');
-}
 
+// AGREGAR ESTA NUEVA FUNCIÓN (si no existe)
 function cleanupHtml5QrCode() {
     const qrReader = document.getElementById('qr-reader');
     if (qrReader) {
@@ -361,6 +354,7 @@ function cleanupHtml5QrCode() {
     cameraVideo.style.display = 'block';
 }
 
+// AGREGAR ESTA FUNCIÓN (si no existe)
 function handleScannedCode(code) {
     console.log('🎯 Procesando código escaneado:', code);
     searchData(code);
@@ -371,12 +365,10 @@ function handleScannedCode(code) {
 function stopCamera() {
     console.log('🛑 Deteniendo cámara, modo:', scannerMode);
     
-    // Restaurar icono a pistola de escáner
-    document.getElementById('scannerIcon').textContent = 'qr_code_scanner';
-    
     if (scannerMode === 'quagga' && typeof Quagga !== 'undefined') {
         try {
             Quagga.stop();
+            Quagga.offDetected();
             console.log('✅ Quagga2 detenido');
         } catch (e) {
             console.log('⚠️ Error deteniendo Quagga:', e);
@@ -502,13 +494,14 @@ async function loadAllData() {
         updateStatus('PENDIENTE');
         pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
         
-        // Reproducir sonido de carga
+        // Reproducir sonido de carga exitosa
         playChimeSound();
         
         return dataCache;
     } catch (e) {
         console.error('Error cargando datos:', e);
         updateStatus('ERROR');
+        playErrorSound();
         return null;
     }
 }
@@ -626,7 +619,10 @@ function renderResult(row) {
 qrInput.addEventListener('input', function() {
     const v = this.value.trim();
     console.log('Input detectado:', v);
-    if (v) searchData(v);
+    if (v) {
+        searchData(v);
+        this.value = ''; // Limpiar inmediatamente para el siguiente escaneo
+    }
 });
 
 // Configuración colapsable
@@ -636,7 +632,7 @@ configHeader.addEventListener('click', function() {
     icon.textContent = isCollapsed ? 'expand_more' : 'expand_less';
 });
 
-// Cámara events
+// EVENTOS DE CÁMARA - Reemplazar estos eventos
 openCamera.addEventListener('click', () => {
     if (getSetting('pda_camera')) {
         cameraModal.classList.add('show');
