@@ -60,31 +60,6 @@ const toggles = {
     focus: {el: document.getElementById('toggle-focus'), key: 'pda_focus', default: true}
 };
 
-// Agregar esta función después de las variables globales
-function clearResultsImmediately() {
-    console.log('🧹 Limpiando resultados inmediatamente');
-    
-    // Limpiar área de resultados
-    resultArea.innerHTML = `
-        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
-            <i class="material-icons" style="font-size:32px;margin-bottom:12px;opacity:0.5">qr_code_2</i>
-            <div>Escanee un código QR para ver los detalles</div>
-        </div>
-    `;
-    
-    // Resetear semana
-    weekNumber.innerText = '—';
-    
-    // Resetear último escaneo
-    lastScanned.innerText = '—';
-    
-    // Forzar re-render del DOM
-    resultArea.style.display = 'none';
-    setTimeout(() => {
-        resultArea.style.display = 'block';
-    }, 10);
-}
-
 function getAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -644,15 +619,12 @@ async function startZXingScanning() {
     }
 }
 
+// AGREGAR ESTA FUNCIÓN (si no existe)
 function handleScannedCode(code) {
     console.log('🎯 Procesando código escaneado:', code);
-    // Limpiar antes de buscar
-    clearResultsImmediately();
     searchData(code);
     stopCamera();
     cameraModal.classList.remove('show');
-    // Re-enfocar después de cerrar cámara
-    setTimeout(forceFocus, 200);
 }
 
 function stopCamera() {
@@ -757,27 +729,11 @@ function initToggles() {
                 openCamera.style.display = curr ? 'flex' : 'none';
             }
             
-            // En la función initToggles, modificar la parte del foco:
             if (t.key === 'pda_focus') {
                 if (curr) {
-                    console.log('✅ Foco automático ACTIVADO');
-                    setTimeout(forceFocus, 100);
-                    setTimeout(nuclearFocus, 200);
-                    
-                    // Agregar listeners adicionales
-                    document.addEventListener('visibilitychange', function() {
-                        if (!document.hidden && getSetting('pda_focus')) {
-                            setTimeout(forceFocus, 100);
-                        }
-                    });
+                    qrInput.focus();
                 } else {
-                    console.log('❌ Foco automático DESACTIVADO');
                     qrInput.blur();
-                    
-                    // Limpiar intervalo nuclear si existe
-                    if (window.nuclearFocusInterval) {
-                        clearInterval(window.nuclearFocusInterval);
-                    }
                 }
             }
             
@@ -873,10 +829,7 @@ function updateCacheInfo() {
 }
 
 async function searchData(val) {
-    if (isProcessing) return;
-    
-    // LIMPIAR INMEDIATAMENTE antes de procesar
-    clearResultsImmediately();
+    if (isProcessing || val === lastCode) return;
     
     isProcessing = true;
     lastCode = val;
@@ -906,142 +859,8 @@ async function searchData(val) {
         setTimeout(() => {
             qrInput.value = '';
             lastScanned.innerText = val;
-            // ENFOCAR INMEDIATAMENTE después del procesamiento
-            forceFocus();
-        }, 50);
+        }, 120);
     }
-}
-
-
-// REEMPLAZAR la función forceFocus existente con esta versión EXTREMA
-function forceFocus() {
-    if (!getSetting('pda_focus')) return;
-    
-    console.log('🎯 FORZANDO FOCO EXTREMO al input');
-    
-    // Estrategia múltiple y agresiva
-    const focusStrategies = [
-        // Estrategia 1: Enfocar directamente
-        () => {
-            qrInput.focus();
-            qrInput.setSelectionRange(0, 9999); // Seleccionar todo el texto
-        },
-        
-        // Estrategia 2: Timeout corto
-        () => setTimeout(() => {
-            qrInput.focus();
-            qrInput.setSelectionRange(0, 9999);
-        }, 10),
-        
-        // Estrategia 3: Timeout medio  
-        () => setTimeout(() => {
-            qrInput.focus();
-            qrInput.setSelectionRange(0, 9999);
-        }, 50),
-        
-        // Estrategia 4: Para iOS - enfoque ultra-agresivo
-        () => {
-            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                // Crear input temporal para "engañar" a iOS
-                const tempInput = document.createElement('input');
-                tempInput.style.position = 'fixed';
-                tempInput.style.top = '-100px';
-                tempInput.style.left = '-100px';
-                tempInput.style.opacity = '0';
-                tempInput.style.height = '1px';
-                tempInput.style.width = '1px';
-                tempInput.style.fontSize = '16px';
-                document.body.appendChild(tempInput);
-                
-                tempInput.focus();
-                
-                setTimeout(() => {
-                    qrInput.focus();
-                    qrInput.setSelectionRange(0, 9999);
-                    document.body.removeChild(tempInput);
-                }, 20);
-            }
-        },
-        
-        // Estrategia 5: Último intento
-        () => setTimeout(() => {
-            qrInput.focus();
-            qrInput.setSelectionRange(0, 9999);
-        }, 100)
-    ];
-    
-    // Ejecutar todas las estrategias
-    focusStrategies.forEach(strategy => {
-        try {
-            strategy();
-        } catch (e) {
-            console.log('Estrategia de foco falló:', e);
-        }
-    });
-    
-    // Verificar y corregir cada 100ms por un periodo corto
-    let verificationAttempts = 0;
-    const maxAttempts = 10;
-    
-    const verifyFocus = setInterval(() => {
-        if (document.activeElement !== qrInput) {
-            console.log('🔍 Foco perdido, recuperando...');
-            qrInput.focus();
-            qrInput.setSelectionRange(0, 9999);
-        }
-        
-        verificationAttempts++;
-        if (verificationAttempts >= maxAttempts) {
-            clearInterval(verifyFocus);
-        }
-    }, 100);
-}
-
-// AGREGAR esta función después de forceFocus()
-function nuclearFocus() {
-    if (!getSetting('pda_focus')) return;
-    
-    console.log('☢️ ACTIVANDO FOCO NUCLEAR');
-    
-    // 1. Bloquear cualquier otro elemento que pueda recibir foco
-    document.addEventListener('focusin', function preventOtherFocus(e) {
-        if (e.target !== qrInput && getSetting('pda_focus')) {
-            e.preventDefault();
-            e.stopPropagation();
-            setTimeout(() => {
-                qrInput.focus();
-                qrInput.setSelectionRange(0, 9999);
-            }, 10);
-        }
-    }, true);
-    
-    // 2. Interceptar clicks/touches para redirigir foco
-    document.addEventListener('click', function redirectClick(e) {
-        if (e.target !== qrInput && getSetting('pda_focus')) {
-            e.preventDefault();
-            e.stopPropagation();
-            setTimeout(forceFocus, 10);
-        }
-    }, true);
-    
-    document.addEventListener('touchstart', function redirectTouch(e) {
-        if (e.target !== qrInput && getSetting('pda_focus')) {
-            e.preventDefault();
-            e.stopPropagation();
-            setTimeout(forceFocus, 10);
-        }
-    }, true);
-    
-    // 3. Foco continuo cada 500ms como respaldo
-    const nuclearInterval = setInterval(() => {
-        if (getSetting('pda_focus') && document.activeElement !== qrInput) {
-            console.log('🔄 Foco nuclear: Re-enfocando');
-            forceFocus();
-        }
-    }, 500);
-    
-    // Guardar referencia para poder limpiar si se desactiva
-    window.nuclearFocusInterval = nuclearInterval;
 }
 
 function renderResult(row) {
@@ -1106,27 +925,13 @@ function renderResult(row) {
     }
 }
 
-// REEMPLAZAR el event listener existente del qrInput
+// Eventos principales
 qrInput.addEventListener('input', function() {
     const v = this.value.trim();
     console.log('Input detectado:', v);
     if (v) {
-        // Limpiar inmediatamente antes de buscar
-        this.value = '';
         searchData(v);
-    }
-});
-
-// AGREGAR event listener para keydown (captura más rápida)
-qrInput.addEventListener('keydown', function(e) {
-    // Si presiona Enter manualmente
-    if (e.key === 'Enter') {
-        const v = this.value.trim();
-        if (v) {
-            e.preventDefault();
-            this.value = '';
-            searchData(v);
-        }
+        this.value = ''; // Limpiar inmediatamente para el siguiente escaneo
     }
 });
 
@@ -1162,8 +967,7 @@ modal.addEventListener('click', (e) => {
     }
 });
 
-// En la sección de inicialización, modificar el evento DOMContentLoaded
-// REEMPLAZAR la sección de inicialización del foco en DOMContentLoaded
+// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando aplicación...');
     
@@ -1177,62 +981,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar/ocultar botón cámara según configuración
     openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
 
-    // FOCO PERSISTENTE EXTREMO - NUEVA VERSIÓN
+    // Manejar foco persistente según configuración
     if (getSetting('pda_focus')) {
-        // Iniciar inmediatamente
-        setTimeout(() => {
-            forceFocus();
-            nuclearFocus(); // Activar modo nuclear
-        }, 300);
+        qrInput.focus();
         
-        // Listeners globales de recuperación
-        const events = ['click', 'touchstart', 'touchend', 'focus', 'blur', 'keydown', 'keyup'];
-        
-        events.forEach(eventType => {
-            document.addEventListener(eventType, function() {
-                if (getSetting('pda_focus')) {
-                    setTimeout(forceFocus, 5);
-                }
-            });
-        });
-        
-        // Recuperación especial cuando la app vuelve a primer plano
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && getSetting('pda_focus')) {
-                console.log('📱 App en primer plano - Reforzando foco');
-                setTimeout(forceFocus, 100);
-                setTimeout(forceFocus, 500);
+        // Reenfocar cuando se pierde el foco
+        document.addEventListener('click', function() {
+            if (getSetting('pda_focus')) {
+                qrInput.focus();
             }
         });
-        
-        // Recuperación después de interacciones con modales
-        const setupModalRecovery = (closeButton, modal) => {
-            closeButton.addEventListener('click', function() {
-                setTimeout(() => {
-                    if (getSetting('pda_focus')) {
-                        console.log('🎯 Recuperando foco después de cerrar modal');
-                        forceFocus();
-                    }
-                }, 50);
-            });
-            
-            modal.addEventListener('transitionend', function() {
-                if (!modal.classList.contains('show') && getSetting('pda_focus')) {
-                    setTimeout(forceFocus, 50);
-                }
-            });
-        };
-        
-        setupModalRecovery(closeCamera, cameraModal);
-        setupModalRecovery(closeModal, modal);
-        
-        // Foco de respaldo cada 2 segundos
-        setInterval(() => {
-            if (getSetting('pda_focus') && document.activeElement !== qrInput) {
-                console.log('⏰ Foco de respaldo activado');
-                forceFocus();
-            }
-        }, 2000);
     }
 
     // Estado inicial
