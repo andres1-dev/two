@@ -14,6 +14,20 @@ let isProcessing = false;
 let lastCode = '';
 let currentEstado = 'PENDIENTE';
 
+// Variables cámara
+let stream = null;
+let currentFacingMode = 'environment';
+let isScanning = false;
+let scannerMode = null;
+let html5QrCode = null;
+let codeReader = null;
+
+// VARIABLES GLOBALES - Agregar estas al inicio del archivo
+let zxingReader = null;
+let zxingDecodeInterval = null;
+let lastDecodeTime = 0;
+const DECODE_COOLDOWN = 500; // ms entre escaneos
+
 // Referencias UI
 const qrInput = document.getElementById('qrInput');
 const lastScanned = document.getElementById('lastScanned');
@@ -35,11 +49,6 @@ const closeCamera = document.getElementById('closeCamera');
 const switchCamera = document.getElementById('switchCamera');
 const configCard = document.getElementById('configCard');
 const configHeader = document.getElementById('configHeader');
-
-// Variables cámara
-let stream = null;
-let currentFacingMode = 'environment';
-let isScanning = false;
 
 // Toggles
 const toggles = {
@@ -137,6 +146,385 @@ function playConfirmArpeggio() {
     }
 }
 
+// REEMPLAZAR COMPLETAMENTE LA FUNCIÓN startCamera()
+async function startCamera() {
+    try {
+        scanningOverlay.style.display = 'flex';
+        scanningOverlay.innerHTML = '<i class="fas fa-camera" style="margin-right:8px"></i> Iniciando cámara trasera...';
+        
+        console.log('=== INICIANDO ZXING SCANNER ===');
+        
+        // PASO 1: Solicitar cámara con fallback progresivo
+        let constraints = {
+            video: { 
+                facingMode: { exact: 'environment' },
+                width: { ideal: 1920, min: 1280 },
+                height: { ideal: 1080, min: 720 }
+            },
+            audio: false
+        };
+        
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('✅ Cámara trasera con exact');
+        } catch (exactError) {
+            console.log('Intentando sin exact...');
+            constraints.video.facingMode = 'environment';
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✅ Cámara con environment');
+            } catch (envError) {
+                console.log('Intentando cualquier cámara...');
+                constraints = {
+                    video: { 
+                        width: { ideal: 1920, min: 1280 },
+                        height: { ideal: 1080, min: 720 }
+                    },
+                    audio: false
+                };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✅ Cámara sin restricciones');
+            }
+        }
+        
+        // PASO 2: Configurar video
+        cameraVideo.srcObject = stream;
+        
+        await new Promise((resolve, reject) => {
+            cameraVideo.onloadedmetadata = () => {
+                cameraVideo.play()
+                    .then(resolve)
+                    .catch(reject);
+            };
+            
+            // Timeout de seguridad
+            setTimeout(() => reject(new Error('Video timeout')), 5000);
+        });
+        
+        // Obtener información del track
+        const videoTrack = stream.getVideoTracks()[0];
+        const settings = videoTrack.getSettings();
+        console.log('📹 Configuración de cámara:', {
+            width: settings.width,
+            height: settings.height,
+            facingMode: settings.facingMode,
+            deviceId: settings.deviceId
+        });
+        
+        console.log('✅ Video listo, iniciando ZXing...');
+        
+        // PASO 3: Iniciar ZXing
+        if (typeof ZXing === 'undefined') {
+            throw new Error('ZXing no está cargado. Verifica el script en tu HTML.');
+        }
+        
+        await startZXingScanning();
+        
+    } catch (err) {
+        console.error('❌ Error crítico:', err);
+        handleCameraError(err);
+    }
+}
+
+function handleCameraError(err) {
+    let errorMsg = 'Error desconocido';
+    let errorIcon = 'exclamation-triangle';
+    let errorColor = '#ff6b6b';
+    
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'Permiso de cámara denegado';
+        errorIcon = 'ban';
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg = 'No se encontró cámara';
+        errorIcon = 'video-slash';
+    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg = 'Cámara en uso por otra app';
+        errorIcon = 'lock';
+    } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Configuración de cámara no soportada';
+        errorIcon = 'cog';
+    } else if (err.message.includes('ZXing')) {
+        errorMsg = 'ZXing no está cargado';
+        errorIcon = 'code';
+    } else {
+        errorMsg = err.message || 'Error al iniciar cámara';
+    }
+    
+    scanningOverlay.innerHTML = 
+        `<div style="text-align:center;color:${errorColor};padding:20px">` +
+        `<i class="fas fa-${errorIcon}" style="font-size:48px;margin-bottom:16px"></i>` +
+        `<div style="font-size:16px;font-weight:bold;margin-bottom:8px">Error de Cámara</div>` +
+        `<div style="font-size:14px;margin-bottom:16px">${errorMsg}</div>` +
+        `<div style="font-size:12px;color:#999;line-height:1.6">` +
+        `Soluciones:<br>` +
+        `• Permite acceso a la cámara<br>` +
+        `• Cierra otras apps que la usen<br>` +
+        `• Verifica que ZXing esté cargado<br>` +
+        `• Recarga la página` +
+        `</div>` +
+        `</div>`;
+    
+    setTimeout(() => {
+        stopCamera();
+        cameraModal.classList.remove('show');
+    }, 5000);
+}
+
+async function diagnosticZXing() {
+    console.log('=== DIAGNÓSTICO ZXING ===');
+    
+    if (typeof ZXing === 'undefined') {
+        console.error('❌ ZXing NO está cargado!');
+        console.error('Agrega: <script src="https://unpkg.com/@zxing/library@latest"></script>');
+        return false;
+    }
+    
+    console.log('✅ ZXing cargado correctamente');
+    console.log('Versión:', ZXing.version || 'No disponible');
+    
+    // Listar formatos disponibles
+    console.log('Formatos disponibles:');
+    Object.keys(ZXing.BarcodeFormat).forEach(format => {
+        if (typeof ZXing.BarcodeFormat[format] === 'number') {
+            console.log(`  - ${format}: ${ZXing.BarcodeFormat[format]}`);
+        }
+    });
+    
+    // Verificar MediaDevices API
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('❌ getUserMedia no soportado en este navegador');
+        return false;
+    }
+    
+    console.log('✅ getUserMedia soportado');
+    
+    // Listar cámaras
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(d => d.kind === 'videoinput');
+        console.log(`✅ ${cameras.length} cámara(s) disponible(s):`);
+        cameras.forEach((cam, i) => {
+            console.log(`  ${i + 1}. ${cam.label || 'Cámara sin nombre'}`);
+        });
+    } catch (e) {
+        console.log('⚠️ No se pueden listar cámaras (necesita permisos)');
+    }
+    
+    return true;
+}
+
+// ============================================
+// EJECUTAR DIAGNÓSTICO AL CARGAR
+// ============================================
+setTimeout(() => {
+    diagnosticZXing();
+}, 1000);
+
+
+// ============================================
+// FUNCIÓN ZXING CON TODAS LAS OPCIONES
+// ============================================
+async function startZXingScanning() {
+    scannerMode = 'zxing';
+    isScanning = true;
+    
+    try {
+        // CREAR READER CON CONFIGURACIÓN COMPLETA
+        zxingReader = new ZXing.BrowserMultiFormatReader();
+        
+        // ===== CONFIGURAR HINTS (Opciones de decodificación) =====
+        const hints = new Map();
+        
+        // 1. FORMATOS SOPORTADOS (todos los disponibles)
+        const formats = [
+            ZXing.BarcodeFormat.QR_CODE,           // QR Codes
+            ZXing.BarcodeFormat.CODE_128,          // Code 128 (común en logística)
+            ZXing.BarcodeFormat.CODE_39,           // Code 39
+            ZXing.BarcodeFormat.CODE_93,           // Code 93
+            ZXing.BarcodeFormat.EAN_13,            // EAN-13 (productos retail)
+            ZXing.BarcodeFormat.EAN_8,             // EAN-8
+            ZXing.BarcodeFormat.UPC_A,             // UPC-A (productos USA)
+            ZXing.BarcodeFormat.UPC_E,             // UPC-E (compacto)
+            ZXing.BarcodeFormat.CODABAR,           // Codabar (farmacia, logística)
+            ZXing.BarcodeFormat.ITF,               // Interleaved 2 of 5
+            ZXing.BarcodeFormat.RSS_14,            // GS1 DataBar
+            ZXing.BarcodeFormat.RSS_EXPANDED,      // GS1 DataBar Expandido
+            ZXing.BarcodeFormat.DATA_MATRIX,       // Data Matrix (2D)
+            ZXing.BarcodeFormat.AZTEC,             // Aztec Code (2D)
+            ZXing.BarcodeFormat.PDF_417,           // PDF417 (2D, documentos)
+            ZXing.BarcodeFormat.MAXICODE           // MaxiCode (UPS)
+        ];
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        
+        // 2. TRY_HARDER - Más exhaustivo pero más lento
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        
+        // 3. PURE_BARCODE - Si es una imagen limpia sin ruido
+        // hints.set(ZXing.DecodeHintType.PURE_BARCODE, false);
+        
+        // 4. CHARACTER_SET - Encoding de caracteres
+        hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'UTF-8');
+        
+        // 5. ASSUME_GS1 - Para códigos GS1
+        // hints.set(ZXing.DecodeHintType.ASSUME_GS1, false);
+        
+        // 6. RETURN_CODABAR_START_END - Incluir start/stop en Codabar
+        // hints.set(ZXing.DecodeHintType.RETURN_CODABAR_START_END, false);
+        
+        // Aplicar hints al reader
+        zxingReader.hints = hints;
+        
+        // ===== CONFIGURAR TIMINGS =====
+        zxingReader.timeBetweenScansMillis = 150; // Tiempo entre intentos de escaneo
+        zxingReader.timeBetweenDecodingAttempts = 100; // Tiempo entre decodificaciones
+        
+        // Listar cámaras disponibles
+        const videoInputDevices = await zxingReader.listVideoInputDevices();
+        console.log('📷 Cámaras disponibles:', videoInputDevices.length);
+        
+        videoInputDevices.forEach((device, index) => {
+            console.log(`  ${index}: ${device.label} (${device.deviceId})`);
+        });
+        
+        // Seleccionar cámara trasera
+        let selectedDeviceId = videoInputDevices[0]?.deviceId;
+        
+        const backCamera = videoInputDevices.find(device => {
+            const label = device.label.toLowerCase();
+            return label.includes('back') || 
+                   label.includes('rear') || 
+                   label.includes('trasera') || 
+                   label.includes('environment') ||
+                   label.includes('posterior');
+        });
+        
+        if (backCamera) {
+            selectedDeviceId = backCamera.deviceId;
+            console.log('✅ Cámara trasera seleccionada:', backCamera.label);
+        } else {
+            console.log('⚠️ Usando cámara por defecto');
+        }
+        
+        // ===== MODO DE ESCANEO CONTINUO =====
+        scanningOverlay.innerHTML = 
+            '<div style="text-align:center">' +
+            '<i class="fas fa-qrcode" style="font-size:32px;margin-bottom:12px;animation:pulse 2s infinite"></i>' +
+            '<div style="font-size:14px;font-weight:600">Escaneando...</div>' +
+            '<div style="font-size:12px;margin-top:8px;color:#999">QR + Barcodes + 2D Codes</div>' +
+            '</div>';
+        
+        // Iniciar decodificación continua
+        await zxingReader.decodeFromVideoDevice(
+            selectedDeviceId,
+            cameraVideo,
+            (result, error) => {
+                if (result) {
+                    // Evitar escaneos duplicados rápidos
+                    const now = Date.now();
+                    if (now - lastDecodeTime < DECODE_COOLDOWN) {
+                        return;
+                    }
+                    lastDecodeTime = now;
+                    
+                    const code = result.getText();
+                    const format = result.getBarcodeFormat();
+                    const formatName = ZXing.BarcodeFormat[format];
+                    
+                    console.log('✅ CÓDIGO DETECTADO:');
+                    console.log('  Contenido:', code);
+                    console.log('  Formato:', formatName);
+                    console.log('  Puntos:', result.getResultPoints()?.length || 0);
+                    
+                    // Feedback visual
+                    scanningOverlay.innerHTML = 
+                        '<div style="text-align:center;color:#4ade80">' +
+                        '<i class="fas fa-check-circle" style="font-size:48px;margin-bottom:12px"></i>' +
+                        '<div style="font-size:16px;font-weight:bold">¡Escaneado!</div>' +
+                        '<div style="font-size:13px;margin-top:8px">' + formatName + '</div>' +
+                        '</div>';
+                    
+                    // Procesar código
+                    setTimeout(() => {
+                        handleScannedCode(code);
+                    }, 300);
+                }
+                
+                // Los errores durante el escaneo son normales
+                if (error && !(error instanceof ZXing.NotFoundException)) {
+                    console.log('Error de decodificación:', error.message);
+                }
+            }
+        );
+        
+        console.log('✅ ZXing iniciado correctamente');
+        
+        // Ocultar overlay después de 2 segundos
+        setTimeout(() => {
+            if (isScanning) {
+                scanningOverlay.style.display = 'none';
+            }
+        }, 2000);
+        
+    } catch (err) {
+        console.error('❌ Error iniciando ZXing:', err);
+        throw err;
+    }
+}
+
+// AGREGAR ESTA FUNCIÓN (si no existe)
+function handleScannedCode(code) {
+    console.log('🎯 Procesando código escaneado:', code);
+    searchData(code);
+    stopCamera();
+    cameraModal.classList.remove('show');
+}
+
+function stopCamera() {
+    console.log('🛑 Deteniendo cámara, modo:', scannerMode);
+    
+    // Limpiar ZXing
+    if (scannerMode === 'zxing' && zxingReader) {
+        try {
+            zxingReader.reset();
+            console.log('✅ ZXing reseteado');
+        } catch (e) {
+            console.log('⚠️ Error reseteando ZXing:', e);
+        }
+        zxingReader = null;
+    }
+    
+    // Limpiar intervalo si existe
+    if (zxingDecodeInterval) {
+        clearInterval(zxingDecodeInterval);
+        zxingDecodeInterval = null;
+    }
+    
+    // Detener stream
+    if (stream) {
+        stream.getTracks().forEach(track => {
+            track.stop();
+            console.log('✅ Track detenido:', track.kind);
+        });
+        stream = null;
+    }
+    
+    // Limpiar video
+    if (cameraVideo) {
+        cameraVideo.srcObject = null;
+        cameraVideo.load();
+    }
+    
+    // Resetear variables
+    isScanning = false;
+    scannerMode = null;
+    lastDecodeTime = 0;
+    scanningOverlay.style.display = 'none';
+}
+
+// Ocultar botón de cambiar cámara completamente
+switchCamera.style.display = 'none';
+
 // Actualizar estado visual
 function updateStatus(estado) {
     currentEstado = estado || 'PENDIENTE';
@@ -224,13 +612,14 @@ async function loadAllData() {
         updateStatus('PENDIENTE');
         pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
         
-        // Reproducir sonido de carga
+        // Reproducir sonido de carga exitosa
         playChimeSound();
         
         return dataCache;
     } catch (e) {
         console.error('Error cargando datos:', e);
         updateStatus('ERROR');
+        playErrorSound();
         return null;
     }
 }
@@ -344,110 +733,24 @@ function renderResult(row) {
     }
 }
 
-// Funcionalidad Cámara con Quagga2
-async function startCamera(facingMode = 'environment') {
-    try {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
-
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { 
-                facingMode: facingMode,
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        });
-        
-        cameraVideo.srcObject = stream;
-        currentFacingMode = facingMode;
-        
-        startQuaggaScanning();
-        
-    } catch (err) {
-        console.error('Error accediendo a la cámara:', err);
-        alert('No se pudo acceder a la cámara. Asegúrese de permitir los permisos.');
-    }
-}
-
-function startQuaggaScanning() {
-    if (isScanning) return;
-    
-    isScanning = true;
-    scanningOverlay.style.display = 'flex';
-
-    const config = {
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: cameraVideo,
-            constraints: {
-                facingMode: currentFacingMode
-            }
-        },
-        decoder: {
-            readers: [
-                "code_128_reader",
-                "ean_reader", 
-                "ean_8_reader",
-                "code_39_reader",
-                "code_39_vin_reader",
-                "codabar_reader",
-                "upc_reader",
-                "upc_e_reader",
-                "i2of5_reader"
-            ]
-        },
-        locate: true,
-        numOfWorkers: 2
-    };
-
-    Quagga.init(config, function(err) {
-        if (err) {
-            console.error('Error inicializando Quagga:', err);
-            scanningOverlay.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error cámara';
-            return;
-        }
-        Quagga.start();
-    });
-
-    Quagga.onDetected(function(result) {
-        if (result && result.codeResult && result.codeResult.code) {
-            const code = result.codeResult.code;
-            console.log('Código detectado:', code);
-            searchData(code);
-            stopCamera();
-            cameraModal.classList.remove('show');
-        }
-    });
-}
-
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-    if (isScanning) {
-        Quagga.stop();
-        isScanning = false;
-    }
-    scanningOverlay.style.display = 'none';
-}
-
 // Eventos principales
 qrInput.addEventListener('input', function() {
     const v = this.value.trim();
     console.log('Input detectado:', v);
-    if (v) searchData(v);
+    if (v) {
+        searchData(v);
+        this.value = ''; // Limpiar inmediatamente para el siguiente escaneo
+    }
 });
 
 // Configuración colapsable
 configHeader.addEventListener('click', function() {
-    configCard.classList.toggle('collapsed');
-    configHeader.classList.toggle('rotated');
+    const isCollapsed = configCard.classList.toggle('collapsed');
+    const icon = configHeader.querySelector('.material-icons:last-child');
+    icon.textContent = isCollapsed ? 'expand_more' : 'expand_less';
 });
 
-// Cámara events
+// EVENTOS DE CÁMARA - Reemplazar estos eventos
 openCamera.addEventListener('click', () => {
     if (getSetting('pda_camera')) {
         cameraModal.classList.add('show');
@@ -458,12 +761,6 @@ openCamera.addEventListener('click', () => {
 closeCamera.addEventListener('click', () => {
     stopCamera();
     cameraModal.classList.remove('show');
-});
-
-switchCamera.addEventListener('click', () => {
-    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    stopCamera();
-    startCamera(newFacingMode);
 });
 
 // Modal
@@ -479,31 +776,33 @@ modal.addEventListener('click', (e) => {
 });
 
 // Inicialización
-initToggles();
-loadAllData();
-setInterval(updateCacheInfo, 30000);
-
-// Mostrar/ocultar botón cámara según configuración
-openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
-
-// Manejar foco persistente según configuración
-if (getSetting('pda_focus')) {
-    qrInput.focus();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando aplicación...');
     
-    // Reenfocar cuando se pierde el foco
-    document.addEventListener('click', function() {
-        if (getSetting('pda_focus')) {
-            qrInput.focus();
-        }
-    });
-}
+    initToggles();
+    loadAllData();
+    setInterval(updateCacheInfo, 30000);
 
-// Estado inicial
-updateStatus('PENDIENTE');
+    // Mostrar/ocultar botón cámara según configuración
+    openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
 
-// Debug
-console.log('Aplicación iniciada correctamente');
-console.log('Input disponible:', qrInput);
+    // Manejar foco persistente según configuración
+    if (getSetting('pda_focus')) {
+        qrInput.focus();
+        
+        // Reenfocar cuando se pierde el foco
+        document.addEventListener('click', function() {
+            if (getSetting('pda_focus')) {
+                qrInput.focus();
+            }
+        });
+    }
+
+    // Estado inicial
+    updateStatus('PENDIENTE');
+
+    console.log('Aplicación iniciada correctamente');
+});
 
 // Service Worker Registration
 if ('serviceWorker' in navigator) {

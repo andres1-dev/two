@@ -116,28 +116,28 @@ h1 {
     background: linear-gradient(180deg, rgba(22,163,74,0.12), rgba(22,163,74,0.06));
     color: var(--success);
     border-color: rgba(22,163,74,0.2);
-    border: 2px solid var(--success);
+    border: 0.5px solid var(--success);
 }
 
 .pill.warning {
     background: linear-gradient(180deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06));
     color: var(--warning);
     border-color: rgba(245,158,11,0.2);
-    border: 2px solid var(--warning);
+    border: 0.5px solid var(--warning);
 }
 
 .pill.danger {
     background: linear-gradient(180deg, rgba(220,38,38,0.12), rgba(220,38,38,0.06));
     color: var(--danger);
     border-color: rgba(220,38,38,0.2);
-    border: 2px solid var(--danger);
+    border: 0.5px solid var(--danger);
 }
 
 .pill.info {
     background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06));
     color: var(--primary);
     border-color: rgba(37,99,235,0.2);
-    border: 2px solid var(--primary);
+    border: 0.5px solid var(--primary);
 }
 
 .main {
@@ -161,14 +161,10 @@ h1 {
     padding: 16px;
     border: 1px solid rgba(15,23,42,0.04);
     box-shadow: var(--shadow);
-    transition: all 0.3s ease;
 }
 
-.card.collapsed {
-    padding: 0;
-    background: transparent;
-    border: 1px solid transparent;
-    box-shadow: none;
+.card.collapsed .card-content {
+    display: none;
 }
 
 .card-header {
@@ -178,37 +174,12 @@ h1 {
     cursor: pointer;
     padding: 12px 16px;
     border-radius: var(--radius);
-    background: #f8f9fa;
+    background: #fff;
     border: 1px solid rgba(15,23,42,0.04);
 }
 
 .card-header:hover {
-    background: #e9ecef;
-}
-
-.card-header i {
-    transition: transform 0.3s ease;
-}
-
-.card-header.rotated i {
-    transform: rotate(180deg);
-}
-
-.card-content {
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.card.collapsed .card-content {
-    max-height: 0;
-    opacity: 0;
-    padding: 0;
-}
-
-.card:not(.collapsed) .card-content {
-    max-height: 500px;
-    opacity: 1;
-    padding-top: 16px;
+    background: #f8f9fa;
 }
 
 .scanner {
@@ -252,7 +223,7 @@ h1 {
     transform: translateY(-2px);
 }
 
-/* Hidden input for PDA */
+/* Input oculto para PDA */
 .qr-input {
     width: 100%;
     padding: 12px;
@@ -262,12 +233,6 @@ h1 {
     font-size: 16px;
     text-align: center;
     margin-top: 8px;
-}
-
-.qr-input:focus {
-    outline: none;
-    border-color: #1d4ed8;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .fake-focus {
