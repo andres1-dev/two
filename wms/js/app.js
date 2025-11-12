@@ -320,75 +320,58 @@ async function startCamera() {
         scanningOverlay.style.display = 'flex';
         scanningOverlay.innerHTML = '<i class="fas fa-camera" style="margin-right:8px"></i> Iniciando cámara...';
         
-        console.log('=== INICIANDO ZXING SCANNER ===');
+        console.log('=== INICIANDO CÁMARA iOS PWA ===');
         
-        // Verificar si ya tenemos permisos
-        if (!cameraPermissionGranted) {
-            // Solicitar permisos primero
-            try {
-                await navigator.mediaDevices.getUserMedia({ video: true });
-                cameraPermissionGranted = true;
-                console.log('✅ Permisos de cámara guardados');
-            } catch (permError) {
-                console.error('❌ Permisos denegados:', permError);
-                handleCameraError(permError);
-                return;
-            }
-        }
-        
-        // PASO 1: Solicitar cámara con permisos ya concedidos
+        // En iOS PWA, usar un enfoque más simple
         let constraints = {
             video: { 
-                facingMode: { exact: 'environment' },
-                width: { ideal: 1920, min: 1280 },
-                height: { ideal: 1080, min: 720 }
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
             },
             audio: false
         };
         
+        // Intentar primero sin 'exact' que causa problemas en iOS
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
-            console.log('✅ Cámara trasera con exact');
-        } catch (exactError) {
-            console.log('Intentando sin exact...');
-            constraints.video.facingMode = 'environment';
-            
-            try {
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                console.log('✅ Cámara con environment');
-            } catch (envError) {
-                console.log('Intentando cualquier cámara...');
-                constraints = {
-                    video: { 
-                        width: { ideal: 1920, min: 1280 },
-                        height: { ideal: 1080, min: 720 }
-                    },
-                    audio: false
-                };
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                console.log('✅ Cámara sin restricciones');
-            }
+            console.log('✅ Cámara iniciada con environment');
+        } catch (envError) {
+            console.log('⚠️ Falló environment, intentando user:', envError);
+            constraints.video.facingMode = 'user';
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('✅ Cámara iniciada con user');
         }
         
-        // Resto del código de startCamera permanece igual...
         cameraVideo.srcObject = stream;
         
+        // Esperar a que el video esté listo
         await new Promise((resolve, reject) => {
             cameraVideo.onloadedmetadata = () => {
-                cameraVideo.play()
-                    .then(resolve)
-                    .catch(reject);
+                cameraVideo.play().then(resolve).catch(reject);
             };
-            
-            setTimeout(() => reject(new Error('Video timeout')), 5000);
+            cameraVideo.onerror = reject;
+            setTimeout(resolve, 1000); // Timeout más corto para iOS
         });
         
         await startZXingScanning();
         
     } catch (err) {
-        console.error('❌ Error crítico:', err);
+        console.error('❌ Error crítico en iOS:', err);
         handleCameraError(err);
     }
+}
+
+function isIOSPWA() {
+    return (
+        /iPhone|iPad|iPod/i.test(navigator.userAgent) && 
+        navigator.standalone !== undefined && 
+        navigator.standalone
+    );
+}
+
+function isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
 
 function handleCameraError(err) {
@@ -1020,20 +1003,43 @@ document.addEventListener('DOMContentLoaded', function() {
 function initAudioActivator() {
     const audioActivator = document.getElementById('audioActivator');
     
-    // Mostrar botón en móviles
-    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    // Siempre mostrar en iOS, incluso si no es móvil genérico
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) || 
+        (navigator.standalone !== undefined && navigator.standalone)) {
         audioActivator.style.display = 'block';
         
         audioActivator.addEventListener('click', function() {
-            // Activar audio context con gesto del usuario
-            getAudioContext();
+            // Crear y destruir un contexto de audio para activar
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Crear un oscilador silencioso
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            gainNode.gain.value = 0; // Silencioso
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+                ctx.close();
+            }, 100);
+            
+            // Marcar como activado globalmente
+            window.audioActivated = true;
             
             // Reproducir sonido de prueba
             playSuccessSound();
             
-            // Ocultar botón después de activar
+            // Ocultar botón
             this.style.display = 'none';
+            
+            console.log('✅ Audio activado en iOS PWA');
         });
+    } else {
+        audioActivator.style.display = 'none';
+        // En otros navegadores, activar inmediatamente
+        getAudioContext();
     }
 }
 
