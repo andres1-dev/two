@@ -26,6 +26,9 @@ class PDAModule {
         // Configurar foco persistente
         this.setupPersistentFocus();
         
+        // Inicializar semana con "—" como en el original
+        this.updateWeekNumber();
+        
         // Cargar datos iniciales
         this.loadInitialData();
         
@@ -33,7 +36,6 @@ class PDAModule {
         this.setupEventListeners();
         
         // Actualizar información inicial
-        this.updateWeekNumber();
         this.updateCacheInfo();
         
         console.log('✅ Módulo PDA inicializado correctamente');
@@ -164,17 +166,32 @@ class PDAModule {
                 console.log('✅ Resultado encontrado:', result.DOCUMENTO);
                 this.renderSimplifiedResult(result);
                 this.updateStatus(result.ESTADO || 'ENCONTRADO', 'success');
-                this.updateWeekNumber(result.SEMANAS); // Actualizar semana con datos reales
+                
+                // SOLO actualizar semana si hay datos válidos
+                if (result.SEMANAS && result.SEMANAS.toString().trim() !== '') {
+                    this.updateWeekNumber(result.SEMANAS);
+                } else {
+                    this.updateWeekNumber(); // Mantener "—"
+                }
+                
                 window.app.playSuccessSound();
             } else {
                 console.log('❌ Código no encontrado:', code);
                 this.showNotFound(code);
                 this.updateStatus('NO ENCONTRADO', 'danger');
+                
+                // NO actualizar semana cuando no hay resultado
+                this.updateWeekNumber(); // Mantener "—"
+                
                 window.app.playErrorSound();
             }
         } catch (error) {
             console.error('❌ Error en búsqueda:', error);
             this.updateStatus('ERROR', 'danger');
+            
+            // NO actualizar semana cuando hay error
+            this.updateWeekNumber(); // Mantener "—"
+            
             window.app.playErrorSound();
         } finally {
             this.isProcessing = false;
@@ -281,20 +298,21 @@ class PDAModule {
     }
     
     updateWeekNumber(weekData = null) {
-        let weekDisplay = '—';
+        let weekDisplay = '—'; // Default como en el original
         
         if (weekData) {
-            // Usar la semana de los datos
-            weekDisplay = window.app.extractWeekNumber(weekData);
-            console.log('📅 Semana desde datos:', weekDisplay);
+            // Usar la semana de los datos solo si existe y tiene valor
+            const extractedWeek = window.app.extractWeekNumber(weekData);
+            if (extractedWeek && extractedWeek !== '—') {
+                weekDisplay = extractedWeek;
+                console.log('📅 Semana desde datos:', weekDisplay);
+            } else {
+                weekDisplay = '—';
+                console.log('📅 Semana no válida en datos, usando default');
+            }
         } else {
-            // Calcular semana actual como fallback
-            const now = new Date();
-            const start = new Date(now.getFullYear(), 0, 1);
-            const days = Math.floor((now - start) / (24 * 60 * 60 * 1000));
-            const weekNumber = Math.ceil(days / 7);
-            weekDisplay = weekNumber.toString();
-            console.log('📅 Semana calculada:', weekDisplay);
+            // No calcular semana automática, mantener el default
+            console.log('📅 Sin datos de semana, usando default');
         }
         
         this.weekNumber.textContent = weekDisplay;
