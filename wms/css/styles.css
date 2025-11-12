@@ -303,16 +303,25 @@ h1 {
     transform: translateY(-2px);
 }
 
-/* Input oculto para PDA */
+/* Agregar estos estilos para el input */
 .qr-input {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     border: 2px solid var(--primary);
     background: #fbfdff;
-    font-size: 16px;
+    font-size: 16px !important; /* Forzar para iOS */
     text-align: center;
     margin-top: 8px;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Para PWA en iOS, asegurar que el input sea interactuable */
+.is-standalone .qr-input {
+    font-size: 16px !important;
+    transform: translateZ(0); /* Aceleración hardware */
 }
 
 .fake-focus {

@@ -60,6 +60,31 @@ const toggles = {
     focus: {el: document.getElementById('toggle-focus'), key: 'pda_focus', default: true}
 };
 
+// Agregar esta función después de las variables globales
+function clearResultsImmediately() {
+    console.log('🧹 Limpiando resultados inmediatamente');
+    
+    // Limpiar área de resultados
+    resultArea.innerHTML = `
+        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
+            <i class="material-icons" style="font-size:32px;margin-bottom:12px;opacity:0.5">qr_code_2</i>
+            <div>Escanee un código QR para ver los detalles</div>
+        </div>
+    `;
+    
+    // Resetear semana
+    weekNumber.innerText = '—';
+    
+    // Resetear último escaneo
+    lastScanned.innerText = '—';
+    
+    // Forzar re-render del DOM
+    resultArea.style.display = 'none';
+    setTimeout(() => {
+        resultArea.style.display = 'block';
+    }, 10);
+}
+
 function getAudioContext() {
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -619,12 +644,15 @@ async function startZXingScanning() {
     }
 }
 
-// AGREGAR ESTA FUNCIÓN (si no existe)
 function handleScannedCode(code) {
     console.log('🎯 Procesando código escaneado:', code);
+    // Limpiar antes de buscar
+    clearResultsImmediately();
     searchData(code);
     stopCamera();
     cameraModal.classList.remove('show');
+    // Re-enfocar después de cerrar cámara
+    setTimeout(forceFocus, 200);
 }
 
 function stopCamera() {
@@ -729,9 +757,17 @@ function initToggles() {
                 openCamera.style.display = curr ? 'flex' : 'none';
             }
             
+            // En la función initToggles, mejorar la parte del foco
             if (t.key === 'pda_focus') {
                 if (curr) {
-                    qrInput.focus();
+                    setTimeout(forceFocus, 100);
+                    
+                    // Agregar listeners adicionales cuando se activa
+                    document.addEventListener('visibilitychange', function() {
+                        if (!document.hidden && getSetting('pda_focus')) {
+                            setTimeout(forceFocus, 100);
+                        }
+                    });
                 } else {
                     qrInput.blur();
                 }
@@ -829,7 +865,10 @@ function updateCacheInfo() {
 }
 
 async function searchData(val) {
-    if (isProcessing || val === lastCode) return;
+    if (isProcessing) return;
+    
+    // LIMPIAR INMEDIATAMENTE antes de procesar
+    clearResultsImmediately();
     
     isProcessing = true;
     lastCode = val;
@@ -859,7 +898,42 @@ async function searchData(val) {
         setTimeout(() => {
             qrInput.value = '';
             lastScanned.innerText = val;
-        }, 120);
+            // ENFOCAR INMEDIATAMENTE después del procesamiento
+            forceFocus();
+        }, 50);
+    }
+}
+
+// Agregar esta función para foco extremo
+function forceFocus() {
+    if (!getSetting('pda_focus')) return;
+    
+    console.log('🎯 Forzando foco al input');
+    
+    // Método 1: Enfocar directamente
+    qrInput.focus();
+    
+    // Método 2: Timeout adicional para casos difíciles
+    setTimeout(() => {
+        qrInput.focus();
+    }, 100);
+    
+    // Método 3: Para iOS/Safari - crear y destruir un input temporal
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+            const tempInput = document.createElement('input');
+            tempInput.style.position = 'absolute';
+            tempInput.style.opacity = '0';
+            tempInput.style.height = '0';
+            tempInput.style.fontSize = '16px'; // Previene zoom
+            document.body.appendChild(tempInput);
+            tempInput.focus();
+            
+            setTimeout(() => {
+                qrInput.focus();
+                document.body.removeChild(tempInput);
+            }, 50);
+        }, 150);
     }
 }
 
@@ -925,13 +999,27 @@ function renderResult(row) {
     }
 }
 
-// Eventos principales
+// REEMPLAZAR el event listener existente del qrInput
 qrInput.addEventListener('input', function() {
     const v = this.value.trim();
     console.log('Input detectado:', v);
     if (v) {
+        // Limpiar inmediatamente antes de buscar
+        this.value = '';
         searchData(v);
-        this.value = ''; // Limpiar inmediatamente para el siguiente escaneo
+    }
+});
+
+// AGREGAR event listener para keydown (captura más rápida)
+qrInput.addEventListener('keydown', function(e) {
+    // Si presiona Enter manualmente
+    if (e.key === 'Enter') {
+        const v = this.value.trim();
+        if (v) {
+            e.preventDefault();
+            this.value = '';
+            searchData(v);
+        }
     }
 });
 
@@ -967,7 +1055,7 @@ modal.addEventListener('click', (e) => {
     }
 });
 
-// Inicialización
+// En la sección de inicialización, modificar el evento DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando aplicación...');
     
@@ -981,15 +1069,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar/ocultar botón cámara según configuración
     openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
 
-    // Manejar foco persistente según configuración
+    // FOCO PERSISTENTE EXTREMO
     if (getSetting('pda_focus')) {
-        qrInput.focus();
+        // Enfocar inmediatamente
+        setTimeout(() => {
+            forceFocus();
+        }, 500);
         
-        // Reenfocar cuando se pierde el foco
+        // Múltiples estrategias de re-foco
         document.addEventListener('click', function() {
             if (getSetting('pda_focus')) {
-                qrInput.focus();
+                setTimeout(forceFocus, 10);
             }
+        });
+        
+        document.addEventListener('touchstart', function() {
+            if (getSetting('pda_focus')) {
+                setTimeout(forceFocus, 10);
+            }
+        });
+        
+        // Re-foco periódico por si acaso
+        setInterval(() => {
+            if (getSetting('pda_focus') && document.activeElement !== qrInput) {
+                forceFocus();
+            }
+        }, 2000);
+        
+        // Re-foco cuando se cierra la cámara
+        closeCamera.addEventListener('click', () => {
+            setTimeout(forceFocus, 100);
+        });
+        
+        // Re-foco cuando se cierra el modal de imagen
+        closeModal.addEventListener('click', () => {
+            setTimeout(forceFocus, 100);
         });
     }
 
