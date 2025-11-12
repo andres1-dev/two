@@ -98,28 +98,81 @@ function playErrorSound() {
     }
 }
 
+// Reemplazar la función playChimeSound
 function playChimeSound() {
     if (!getSetting('pda_sound')) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const now = ctx.currentTime;
-        const freqs = [880, 1320, 1760];
-        freqs.forEach((f, i) => {
-            const osc = ctx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(f, now + i * 0.1);
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(0.0001, now + i * 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.9, now + i * 0.1 + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.1 + 0.6);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now + i * 0.1);
-            osc.stop(now + i * 0.1 + 0.6);
-        });
+        
+        // Sonido más simple y confiable
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(880, now + 0.1);
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
     } catch (e) {
-        console.log("Error al reproducir sonido de carga (chime):", e);
+        console.log("Error al reproducir sonido de carga:", e);
     }
+}
+
+// Agregar funcionalidad de zoom táctil al modal de imagen
+function initImageZoom() {
+    const modalImg = document.getElementById('modalImg');
+    let currentScale = 1;
+    let startDistance = 0;
+    
+    modalImg.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            startDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    });
+    
+    modalImg.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const currentDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            
+            if (startDistance > 0) {
+                const scale = currentDistance / startDistance;
+                currentScale = Math.max(1, Math.min(scale * currentScale, 5));
+                
+                this.style.transform = `scale(${currentScale})`;
+                this.style.cursor = 'zoom-out';
+            }
+        }
+    });
+    
+    modalImg.addEventListener('touchend', function() {
+        startDistance = 0;
+    });
+    
+    // Click para resetear zoom
+    modalImg.addEventListener('click', function(e) {
+        if (currentScale > 1) {
+            e.stopPropagation();
+            currentScale = 1;
+            this.style.transform = 'scale(1)';
+            this.style.cursor = 'zoom-in';
+        }
+    });
 }
 
 function playConfirmArpeggio() {
@@ -829,6 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkCameraPermissions();
     loadAllData();
     setInterval(updateCacheInfo, 30000);
+    initImageZoom();
 
     // Mostrar/ocultar botón cámara según configuración
     openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';

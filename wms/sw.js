@@ -15,6 +15,17 @@ const RELATIVE_ASSETS = [
   'icons/icon-1024.png'
 ];
 
+// sw.js - Actualizar ASSETS_TO_CACHE
+/*const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './css/styles.css',
+  './js/app.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './manifest.json'
+].map(url => new URL(url, self.location).href);*/
+
 // Convierte a URLs absolutas usando la ubicación del sw.js
 const ASSETS_TO_CACHE = RELATIVE_ASSETS.map(p => new URL(p, BASE).href);
 
