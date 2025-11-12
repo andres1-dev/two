@@ -37,8 +37,9 @@
             <div class="left">
                 <div class="card scanner" aria-label="Escáner PDA">
                     <div class="scan-qr">
-                        <i class="material-icons" id="scannerIcon">qr_code_scanner</i>
+                    <i class="fas fa-qrcode" id="scannerIcon"></i>
                     </div>
+
                     <div class="scan-text">Apunte con el láser del PDA o toque para realizar la captura por cámara</div>
 
                     <!-- Input oculto para PDA -->
@@ -48,11 +49,12 @@
                            placeholder="Escanee con láser o escriba el código..."
                            autocomplete="off" 
                            autofocus />
-                           <!-- style="display: none;"--> 
+                           <!-- style="display: none;" -->
+                           
+                        <button class="camera-btn" id="openCamera">
+                        <i class="fas fa-camera"></i> Abrir Cámara
+                        </button>
 
-                    <button class="camera-btn" id="openCamera">
-                        <i class="material-icons">camera_alt</i> Abrir Cámara
-                    </button>
 
                     <div class="fake-focus">
                         <div class="fake-left">
@@ -71,14 +73,15 @@
                     </div>
                 </div>
 
-                <div class="card collapsed" id="configCard">
+                    <div class="card collapsed" id="configCard">
                     <div class="card-header" id="configHeader">
                         <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                            <i class="material-icons">settings</i>
-                            CONFIGURACIÓN
-                        </div>
-                        <i class="material-icons">expand_more</i>
+                        <i class="fas fa-cog"></i>
+                        Configuración
+                        <i class="fas fa-chevron-down"></i>
                     </div>
+                    </div>
+
                     <div class="card-content">
                         <div class="settings">
                             <div class="setting-row">

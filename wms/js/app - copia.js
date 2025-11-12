@@ -146,34 +146,15 @@ function playConfirmArpeggio() {
     }
 }
 
-// ============================================
-// FUNCIÓN INICIAR CÁMARA MODIFICADA
-// ============================================
-let cameraPermissionGranted = false;
-
-// REEMPLAZAR LA FUNCIÓN startCamera()
+// REEMPLAZAR COMPLETAMENTE LA FUNCIÓN startCamera()
 async function startCamera() {
     try {
         scanningOverlay.style.display = 'flex';
-        scanningOverlay.innerHTML = '<i class="fas fa-camera" style="margin-right:8px"></i> Iniciando cámara...';
+        scanningOverlay.innerHTML = '<i class="fas fa-camera" style="margin-right:8px"></i> Iniciando cámara trasera...';
         
         console.log('=== INICIANDO ZXING SCANNER ===');
         
-        // Verificar si ya tenemos permisos
-        if (!cameraPermissionGranted) {
-            // Solicitar permisos primero
-            try {
-                await navigator.mediaDevices.getUserMedia({ video: true });
-                cameraPermissionGranted = true;
-                console.log('✅ Permisos de cámara guardados');
-            } catch (permError) {
-                console.error('❌ Permisos denegados:', permError);
-                handleCameraError(permError);
-                return;
-            }
-        }
-        
-        // PASO 1: Solicitar cámara con permisos ya concedidos
+        // PASO 1: Solicitar cámara con fallback progresivo
         let constraints = {
             video: { 
                 facingMode: { exact: 'environment' },
@@ -207,7 +188,7 @@ async function startCamera() {
             }
         }
         
-        // Resto del código de startCamera permanece igual...
+        // PASO 2: Configurar video
         cameraVideo.srcObject = stream;
         
         await new Promise((resolve, reject) => {
@@ -217,8 +198,26 @@ async function startCamera() {
                     .catch(reject);
             };
             
+            // Timeout de seguridad
             setTimeout(() => reject(new Error('Video timeout')), 5000);
         });
+        
+        // Obtener información del track
+        const videoTrack = stream.getVideoTracks()[0];
+        const settings = videoTrack.getSettings();
+        console.log('📹 Configuración de cámara:', {
+            width: settings.width,
+            height: settings.height,
+            facingMode: settings.facingMode,
+            deviceId: settings.deviceId
+        });
+        
+        console.log('✅ Video listo, iniciando ZXing...');
+        
+        // PASO 3: Iniciar ZXing
+        if (typeof ZXing === 'undefined') {
+            throw new Error('ZXing no está cargado. Verifica el script en tu HTML.');
+        }
         
         await startZXingScanning();
         
@@ -544,32 +543,8 @@ function updateStatus(estado) {
     }
 }
 
-async function checkCameraPermissions() {
-    try {
-        // Verificar si ya tenemos permisos
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasCameraAccess = devices.some(device => 
-            device.kind === 'videoinput' && device.label !== ''
-        );
-        
-        if (hasCameraAccess) {
-            cameraPermissionGranted = true;
-            console.log('✅ Permisos de cámara ya concedidos');
-        }
-    } catch (error) {
-        console.log('ℹ️ Aún no hay permisos de cámara');
-    }
-}
-
 // Inicializar toggles
 function initToggles() {
-    // Reemplazar íconos Material Icons por FontAwesome en los toggles
-    const configHeaderIcon = configHeader.querySelector('.material-icons');
-    if (configHeaderIcon) {
-        configHeaderIcon.classList.remove('material-icons');
-        configHeaderIcon.classList.add('fas', 'fa-cogs');
-    }
-    
     Object.values(toggles).forEach(t => {
         const on = JSON.parse(localStorage.getItem(t.key) ?? JSON.stringify(t.default));
         if (on) t.el.classList.add('on');
@@ -591,14 +566,7 @@ function initToggles() {
                 }
             }
             
-            // Si se desactiva el caché, limpiar datos actuales
-            if (t.key === 'pda_auto' && !curr) {
-                dataCache = null;
-                cacheTimestamp = null;
-                updateCacheInfo();
-                console.log('🗑️ Caché deshabilitado - Datos limpiados');
-            }
-            
+            // Reproducir sonido de confirmación al cambiar configuración
             playConfirmArpeggio();
         });
     });
@@ -617,21 +585,7 @@ function extractWeekNumber(weekText) {
 // Cargar datos desde Sheets
 async function loadAllData() {
     updateStatus('CARGANDO');
-    
-    // Reproducir sonido de carga al inicio
-    playChimeSound();
-    
     try {
-        // Verificar si el caché está deshabilitado
-        const cacheEnabled = getSetting('pda_auto');
-        
-        if (!cacheEnabled) {
-            console.log('🔄 Caché deshabilitado - Cargando datos frescos');
-            // Forzar recarga ignorando caché
-            dataCache = null;
-            cacheTimestamp = null;
-        }
-        
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
         const response = await fetch(url);
         
@@ -658,8 +612,8 @@ async function loadAllData() {
         updateStatus('PENDIENTE');
         pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
         
-        // Reproducir sonido de éxito
-        playSuccessSound();
+        // Reproducir sonido de carga exitosa
+        playChimeSound();
         
         return dataCache;
     } catch (e) {
@@ -826,7 +780,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Inicializando aplicación...');
     
     initToggles();
-    checkCameraPermissions();
     loadAllData();
     setInterval(updateCacheInfo, 30000);
 

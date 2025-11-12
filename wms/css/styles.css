@@ -175,7 +175,7 @@ h1 {
     padding: 12px 16px;
     border-radius: var(--radius);
     background: #fff;
-    border: 1px solid rgba(15,23,42,0.04);
+    /*border: 1px solid rgba(15,23,42,0.04);*/
 }
 
 .card-header:hover {
@@ -313,7 +313,7 @@ h1 {
     gap: 12px;
     padding: 10px;
     border-radius: 8px;
-    background: #f8f9fa;
+    /*background: #f8f9fa;*/
 }
 
 .setting-row:hover {
