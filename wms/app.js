@@ -43,7 +43,7 @@ const toggles = {
     focus: {el: document.getElementById('toggle-focus'), key: 'pda_focus', default: true}
 };
 
-// Sonidos BIOS (los mismos que antes)
+// Sonidos BIOS (mantener igual)
 function playSuccessSound() {
     if (!getSetting('pda_sound')) return;
     try {
@@ -358,26 +358,54 @@ configHeader.addEventListener('click', function() {
     icon.textContent = isCollapsed ? 'expand_more' : 'expand_less';
 });
 
-// Cámara events
-openCamera.addEventListener('click', () => {
-    if (getSetting('pda_camera')) {
+// Cámara events - MEJORADO CON MANEJO DE ERRORES
+openCamera.addEventListener('click', async () => {
+    if (!getSetting('pda_camera')) {
+        alert('La función de cámara está desactivada en configuración');
+        return;
+    }
+
+    try {
+        console.log('Abriendo cámara...');
         cameraModal.classList.add('show');
-        if (window.cameraScanner) {
-            window.cameraScanner.startCamera();
-        }
+        
+        // Pequeño delay para asegurar que el modal esté visible
+        setTimeout(async () => {
+            if (window.cameraScanner) {
+                const success = await window.cameraScanner.startCamera();
+                if (!success) {
+                    alert('No se pudo acceder a la cámara. Verifique los permisos.');
+                    cameraModal.classList.remove('show');
+                }
+            } else {
+                alert('El escáner de cámara no está disponible. Recargue la página.');
+                cameraModal.classList.remove('show');
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('Error abriendo cámara:', error);
+        alert('Error al abrir la cámara: ' + error.message);
+        cameraModal.classList.remove('show');
     }
 });
 
 closeCamera.addEventListener('click', () => {
+    console.log('Cerrando cámara...');
     if (window.cameraScanner) {
         window.cameraScanner.stopCamera();
     }
     cameraModal.classList.remove('show');
 });
 
-switchCamera.addEventListener('click', () => {
+switchCamera.addEventListener('click', async () => {
     if (window.cameraScanner) {
-        window.cameraScanner.switchCamera();
+        try {
+            await window.cameraScanner.switchCamera();
+        } catch (error) {
+            console.error('Error cambiando cámara:', error);
+            alert('Error al cambiar cámara: ' + error.message);
+        }
     }
 });
 
@@ -395,6 +423,8 @@ modal.addEventListener('click', (e) => {
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando aplicación...');
+    
     initToggles();
     loadAllData();
     setInterval(updateCacheInfo, 30000);
@@ -417,9 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Estado inicial
     updateStatus('PENDIENTE');
 
-    // Debug
     console.log('Aplicación iniciada correctamente');
-    console.log('Input disponible (oculto):', qrInput);
 });
 
 // Service Worker Registration
