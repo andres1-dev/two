@@ -318,6 +318,25 @@ h1 {
     z-index: 10;
 }
 
+@media screen and (max-width: 768px) {
+    body {
+        /* Prevenir zoom y rotación */
+        touch-action: pan-x pan-y;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+    
+    /* Contenedor principal que mantiene la orientación */
+    .wrap {
+        /* Si prefieres landscape, cambia max-width y max-height */
+        max-width: 100vw;
+        max-height: 100vh;
+        overflow: hidden;
+    }
+}
+
 /* Para PWA en iOS, asegurar que el input sea interactuable */
 .is-standalone .qr-input {
     font-size: 16px !important;
