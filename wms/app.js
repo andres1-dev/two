@@ -14,6 +14,14 @@ let isProcessing = false;
 let lastCode = '';
 let currentEstado = 'PENDIENTE';
 
+// Variables cámara
+let stream = null;
+let currentFacingMode = 'environment';
+let isScanning = false;
+let scannerMode = null;
+let html5QrCode = null;
+let codeReader = null;
+
 // Referencias UI
 const qrInput = document.getElementById('qrInput');
 const lastScanned = document.getElementById('lastScanned');
@@ -28,6 +36,8 @@ const modal = document.getElementById('modal');
 const modalImg = document.getElementById('modalImg');
 const closeModal = document.querySelector('.close-modal');
 const cameraModal = document.getElementById('cameraModal');
+const cameraVideo = document.getElementById('cameraVideo');
+const scanningOverlay = document.getElementById('scanningOverlay');
 const openCamera = document.getElementById('openCamera');
 const closeCamera = document.getElementById('closeCamera');
 const switchCamera = document.getElementById('switchCamera');
@@ -43,7 +53,7 @@ const toggles = {
     focus: {el: document.getElementById('toggle-focus'), key: 'pda_focus', default: true}
 };
 
-// Sonidos BIOS (mantener igual)
+// Sonidos BIOS
 function playSuccessSound() {
     if (!getSetting('pda_sound')) return;
     try {
@@ -128,6 +138,275 @@ function playConfirmArpeggio() {
     } catch (e) {
         console.log("Error al reproducir sonido de confirmación:", e);
     }
+}
+
+// Funcionalidad Cámara con múltiples bibliotecas (CÓDIGO MEJORADO)
+async function startCamera(facingMode = 'environment') {
+    try {
+        scanningOverlay.style.display = 'flex';
+        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">camera</i> Iniciando cámara...';
+        
+        // Primero obtener acceso a la cámara
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+                facingMode: facingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        });
+        
+        cameraVideo.srcObject = stream;
+        currentFacingMode = facingMode;
+        
+        // Esperar a que el video esté listo
+        await new Promise((resolve) => {
+            cameraVideo.onloadedmetadata = () => {
+                cameraVideo.play();
+                resolve();
+            };
+        });
+        
+        // Cambiar icono a cámara activa
+        document.getElementById('scannerIcon').textContent = 'camera';
+        
+        // Intentar con diferentes bibliotecas en orden
+        if (typeof Quagga !== 'undefined') {
+            console.log('Intentando con Quagga2...');
+            await startQuaggaScanning(facingMode);
+            return;
+        }
+        
+        if (typeof Html5Qrcode !== 'undefined') {
+            console.log('Quagga2 no disponible, usando Html5-QRCode...');
+            await startHtml5QrCode(facingMode);
+            return;
+        }
+        
+        if (typeof ZXing !== 'undefined') {
+            console.log('Html5-QRCode no disponible, usando ZXing...');
+            await startZXingScanning(facingMode);
+            return;
+        }
+        
+        throw new Error('No hay bibliotecas de escaneo disponibles');
+        
+    } catch (err) {
+        console.error('Error accediendo a la cámara:', err);
+        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px;color:#ff6b6b">error</i> Error: ' + err.message;
+        setTimeout(() => {
+            stopCamera();
+            cameraModal.classList.remove('show');
+        }, 3000);
+    }
+}
+
+async function startQuaggaScanning(facingMode) {
+    return new Promise((resolve, reject) => {
+        if (isScanning) {
+            resolve();
+            return;
+        }
+        
+        isScanning = true;
+        scannerMode = 'quagga';
+        scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">search</i> Escaneando (Quagga2)...';
+
+        const config = {
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: cameraVideo,
+                constraints: {
+                    facingMode: facingMode,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "code_39_vin_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader",
+                    "2of5_reader",
+                    "code_93_reader"
+                ]
+            },
+            locate: true,
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            frequency: 10
+        };
+
+        Quagga.init(config, function(err) {
+            if (err) {
+                console.error('Error inicializando Quagga:', err);
+                reject(err);
+                return;
+            }
+            Quagga.start();
+            console.log('Quagga2 iniciado correctamente');
+            resolve();
+        });
+
+        Quagga.onDetected(function(result) {
+            if (result && result.codeResult && result.codeResult.code) {
+                const code = result.codeResult.code;
+                console.log('Código detectado (Quagga2):', code);
+                handleScannedCode(code);
+            }
+        });
+    });
+}
+
+async function startHtml5QrCode(facingMode) {
+    scannerMode = 'html5qrcode';
+    isScanning = true;
+    scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">search</i> Escaneando (Html5-QRCode)...';
+    
+    cameraVideo.style.display = 'none';
+    
+    const qrReader = document.createElement('div');
+    qrReader.id = 'qr-reader';
+    qrReader.style.width = '100%';
+    qrReader.style.height = '300px';
+    cameraVideo.parentElement.appendChild(qrReader);
+    
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    try {
+        await html5QrCode.start(
+            { facingMode: facingMode },
+            config,
+            (decodedText) => {
+                console.log('Código detectado (Html5-QRCode):', decodedText);
+                handleScannedCode(decodedText);
+            },
+            (errorMessage) => {
+                // Error de escaneo continuo, no es crítico
+                console.log('Html5-QRCode escaneando...', errorMessage);
+            }
+        );
+        console.log('Html5-QRCode iniciado correctamente');
+    } catch (err) {
+        console.error('Error con Html5-QRCode:', err);
+        // Limpiar en caso de error
+        const qrReader = document.getElementById('qr-reader');
+        if (qrReader) qrReader.remove();
+        cameraVideo.style.display = 'block';
+        throw err;
+    }
+}
+
+async function startZXingScanning(facingMode) {
+    scannerMode = 'zxing';
+    isScanning = true;
+    scanningOverlay.innerHTML = '<i class="material-icons" style="margin-right:8px">search</i> Escaneando (ZXing)...';
+    
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    
+    try {
+        const videoInputDevices = await codeReader.listVideoInputDevices();
+        let selectedDeviceId = videoInputDevices[0].deviceId;
+        
+        if (facingMode === 'environment') {
+            const backCamera = videoInputDevices.find(device => 
+                device.label.toLowerCase().includes('back') || 
+                device.label.toLowerCase().includes('rear')
+            );
+            if (backCamera) {
+                selectedDeviceId = backCamera.deviceId;
+            }
+        }
+        
+        codeReader.decodeFromVideoDevice(selectedDeviceId, cameraVideo, (result, err) => {
+            if (result) {
+                console.log('Código detectado (ZXing):', result.text);
+                handleScannedCode(result.text);
+            }
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.log('ZXing error:', err);
+            }
+        });
+        
+        console.log('ZXing iniciado correctamente');
+    } catch (err) {
+        console.error('Error con ZXing:', err);
+        throw err;
+    }
+}
+
+function handleScannedCode(code) {
+    console.log('Manejando código escaneado:', code);
+    searchData(code);
+    stopCamera();
+    cameraModal.classList.remove('show');
+}
+
+function stopCamera() {
+    console.log('Deteniendo cámara, modo:', scannerMode);
+    
+    // Restaurar icono a pistola de escáner
+    document.getElementById('scannerIcon').textContent = 'qr_code_scanner';
+    
+    if (scannerMode === 'quagga' && typeof Quagga !== 'undefined') {
+        try {
+            Quagga.stop();
+            Quagga.offDetected();
+            console.log('Quagga detenido');
+        } catch (e) {
+            console.log('Error deteniendo Quagga:', e);
+        }
+    }
+    
+    if (scannerMode === 'html5qrcode' && html5QrCode) {
+        try {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                const qrReader = document.getElementById('qr-reader');
+                if (qrReader) qrReader.remove();
+                cameraVideo.style.display = 'block';
+                console.log('Html5-QRCode detenido');
+            }).catch(e => console.log('Error deteniendo Html5-QRCode:', e));
+        } catch (e) {
+            console.log('Error deteniendo Html5-QRCode:', e);
+        }
+        html5QrCode = null;
+    }
+    
+    if (scannerMode === 'zxing' && codeReader) {
+        try {
+            codeReader.reset();
+            console.log('ZXing detenido');
+        } catch (e) {
+            console.log('Error deteniendo ZXing:', e);
+        }
+        codeReader = null;
+    }
+    
+    if (stream) {
+        stream.getTracks().forEach(track => {
+            track.stop();
+            console.log('Track de cámara detenido:', track.kind);
+        });
+        stream = null;
+    }
+    
+    isScanning = false;
+    scannerMode = null;
+    scanningOverlay.style.display = 'none';
+    cameraVideo.srcObject = null;
 }
 
 // Actualizar estado visual
@@ -344,13 +623,6 @@ qrInput.addEventListener('input', function() {
     if (v) searchData(v);
 });
 
-// Escuchar eventos de código escaneado desde camera-scanner.js
-document.addEventListener('codeScanned', function(e) {
-    const code = e.detail.code;
-    console.log('Código recibido desde cámara:', code, 'con biblioteca:', e.detail.library);
-    searchData(code);
-});
-
 // Configuración colapsable
 configHeader.addEventListener('click', function() {
     const isCollapsed = configCard.classList.toggle('collapsed');
@@ -358,55 +630,23 @@ configHeader.addEventListener('click', function() {
     icon.textContent = isCollapsed ? 'expand_more' : 'expand_less';
 });
 
-// Cámara events - MEJORADO CON MANEJO DE ERRORES
-openCamera.addEventListener('click', async () => {
-    if (!getSetting('pda_camera')) {
-        alert('La función de cámara está desactivada en configuración');
-        return;
-    }
-
-    try {
-        console.log('Abriendo cámara...');
+// Cámara events
+openCamera.addEventListener('click', () => {
+    if (getSetting('pda_camera')) {
         cameraModal.classList.add('show');
-        
-        // Pequeño delay para asegurar que el modal esté visible
-        setTimeout(async () => {
-            if (window.cameraScanner) {
-                const success = await window.cameraScanner.startCamera();
-                if (!success) {
-                    alert('No se pudo acceder a la cámara. Verifique los permisos.');
-                    cameraModal.classList.remove('show');
-                }
-            } else {
-                alert('El escáner de cámara no está disponible. Recargue la página.');
-                cameraModal.classList.remove('show');
-            }
-        }, 100);
-        
-    } catch (error) {
-        console.error('Error abriendo cámara:', error);
-        alert('Error al abrir la cámara: ' + error.message);
-        cameraModal.classList.remove('show');
+        startCamera();
     }
 });
 
 closeCamera.addEventListener('click', () => {
-    console.log('Cerrando cámara...');
-    if (window.cameraScanner) {
-        window.cameraScanner.stopCamera();
-    }
+    stopCamera();
     cameraModal.classList.remove('show');
 });
 
-switchCamera.addEventListener('click', async () => {
-    if (window.cameraScanner) {
-        try {
-            await window.cameraScanner.switchCamera();
-        } catch (error) {
-            console.error('Error cambiando cámara:', error);
-            alert('Error al cambiar cámara: ' + error.message);
-        }
-    }
+switchCamera.addEventListener('click', () => {
+    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    startCamera(newFacingMode);
 });
 
 // Modal
