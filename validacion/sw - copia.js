@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'pandadash-v4';
+const CACHE_NAME = 'validación-v1';
 
 // Base URL relativa al lugar donde está este archivo sw.js
 const BASE = (new URL('.', self.location)).href;
@@ -7,11 +7,6 @@ const BASE = (new URL('.', self.location)).href;
 // Lista de assets relativa a la carpeta del SW (sin slash inicial)
 const RELATIVE_ASSETS = [
   '',
-  //'index.html',
-  //'css/styles.css',
-  //'js/app.js',
-  //'js/camera.js',
-  //'js/upload-queue.js',
   'icons/icon-192.png',
   'icons/icon-256.png',
   'icons/icon-384.png',

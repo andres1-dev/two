@@ -1,7 +1,7 @@
 {
-  "name": "PandaDash",
-  "short_name": "PandaDash",
-  "description": "Sistema de gestión y escaneo de códigos QR para entregas",
+  "name": "Validación",
+  "short_name": "Validación",
+  "description": "Sistema de gestión y escaneo de códigos QR para CDI",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

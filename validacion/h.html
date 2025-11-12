@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Escáner QR PDA — Inventario</title>
+    <meta name="theme-color" content="#2563eb"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #fff;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --shadow: 0 4px 12px rgba(13,24,48,0.08);
+            --radius: 12px;
+            --glass: rgba(15,23,42,0.03);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            height: 100%;
+            font-size: 14px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #0f172a;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        
+        .wrap {
+            width: 100%;
+            max-width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(15,23,42,0.04);
+        }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(15,23,42,0.04);
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #fff;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        
+        .brand-text {
+            min-width: 0;
+        }
+        
+        h1 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0b1220;
+            line-height: 1.2;
+        }
+        
+        .sub {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.3;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 12px;
+            background: var(--glass);
+            border: 1px solid rgba(15,23,42,0.03);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        
+        .pill.success {
+            background: linear-gradient(180deg, rgba(22,163,74,0.12), rgba(22,163,74,0.06));
+            color: var(--success);
+            border-color: rgba(22,163,74,0.2);
+            border: 2px solid var(--success);
+        }
+        
+        .pill.warning {
+            background: linear-gradient(180deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06));
+            color: var(--warning);
+            border-color: rgba(245,158,11,0.2);
+            border: 2px solid var(--warning);
+        }
+        
+        .pill.danger {
+            background: linear-gradient(180deg, rgba(220,38,38,0.12), rgba(220,38,38,0.06));
+            color: var(--danger);
+            border-color: rgba(220,38,38,0.2);
+            border: 2px solid var(--danger);
+        }
+        
+        .pill.info {
+            background: linear-gradient(180deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06));
+            color: var(--primary);
+            border-color: rgba(37,99,235,0.2);
+            border: 2px solid var(--primary);
+        }
+        
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+            background: #fff;
+        }
+        
+        /* LEFT COLUMN - Scanner & Week */
+        .left {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 16px;
+            border: 1px solid rgba(15,23,42,0.04);
+            box-shadow: var(--shadow);
+        }
+        
+        .scanner {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .scan-qr {
+            font-size: 32px;
+            color: var(--primary);
+        }
+        
+        .scan-text {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+        
+        .camera-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        
+        .camera-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        /* Hidden input for PDA */
+        .qr-input {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+        
+        .fake-focus {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.04);
+            background: #fbfdff;
+            cursor: text;
+            margin-top: 8px;
+        }
+        
+        .fake-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .hint {
+            font-size: 13px;
+            color: var(--muted);
+        }
+        
+        /* Week Display - Único con gradiente morado */
+        .week {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        .week-bubble {
+            min-width: 100px;
+            height: 100px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: 800;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .week-meta {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        .week-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        
+        .week-desc {
+            font-size: 13px;
+            line-height: 1.4;
+            margin-top: 4px;
+        }
+        
+        /* Settings Colapsable */
+        .settings-section {
+            margin-top: 8px;
+        }
+        
+        .settings-toggle {
+            width: 100%;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0;
+        }
+        
+        .settings-content {
+            display: none;
+            padding-top: 12px;
+        }
+        
+        .settings-content.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+        
+        .settings {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .toggle {
+            width: 46px;
+            height: 26px;
+            border-radius: 20px;
+            background: rgba(15,23,42,0.06);
+            position: relative;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .toggle .knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(2,6,23,0.12);
+            transition: all .18s;
+        }
+        
+        .toggle.on {
+            background: linear-gradient(90deg, var(--primary), #60a5fa);
+        }
+        
+        .toggle.on .knob {
+            left: 23px;
+        }
+        
+        /* RIGHT COLUMN - Results */
+        .right {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .result-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .title {
+            font-weight: 800;
+            font-size: 16px;
+        }
+        
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+        
+        .priority {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        .mini {
+            background: #fbfdff;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.04);
+            text-align: center;
+        }
+        
+        .mini-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        
+        .mini-value {
+            font-size: 14px;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+        
+        /* Support Thumbnail */
+        .support-thumb {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 12px;
+            border: 1px solid rgba(15,23,42,0.04);
+        }
+        
+        /* Details Grid */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .detail-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(15,23,42,0.04);
+        }
+        
+        .detail-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+        
+        .detail-value {
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* Modal Cámara */
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.95);
+            z-index: 1000;
+            padding: 16px;
+        }
+        
+        .camera-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .camera-content {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .camera-preview {
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        #cameraCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .camera-btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .camera-btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .scanning-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Modal Soporte */
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.9);
+            z-index: 999;
+            padding: 16px;
+        }
+        
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+        }
+        
+        .modal-img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background: #111;
+            color: #fff;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        
+        footer {
+            padding: 14px 18px;
+            border-top: 1px solid rgba(15,23,42,0.04);
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--muted);
+            flex-wrap: wrap;
+            gap: 8px;
+            background: #fff;
+        }
+        
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .main {
+                display: grid;
+                grid-template-columns: 320px 1fr;
+                gap: 20px;
+            }
+            
+            .priority {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .week {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+            
+            .week-bubble {
+                min-width: 80px;
+                height: 80px;
+                font-size: 36px;
+            }
+            
+            .priority {
+                grid-template-columns: 1fr;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            footer {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .card {
+                padding: 12px;
+            }
+            
+            .main {
+                padding: 12px;
+                gap: 12px;
+            }
+            
+            .week-bubble {
+                min-width: 70px;
+                height: 70px;
+                font-size: 32px;
+            }
+        }
+        
+        /* PWA specific styles */
+        @media all and (display-mode: standalone) {
+            body {
+                padding: 0;
+            }
+            
+            .wrap {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fas fa-qrcode"></i></div>
+                <div class="brand-text">
+                    <h1>Escáner PDA — Inventario</h1>
+                    <div class="sub">PWA optimizada para móviles | Foco persistente</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div id="pill-status" class="pill info">
+                    <i class="fas fa-circle"></i> <span id="status-text">PENDIENTE</span>
+                </div>
+                <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="left">
+                <div class="card scanner" aria-label="Escáner PDA">
+                    <div class="scan-qr"><i class="fas fa-barcode"></i></div>
+                    <div class="scan-text">Apunte con el láser del PDA o toque para realizar la captura por cámara</div>
+
+                    <button class="camera-btn" id="openCamera">
+                        <i class="fas fa-camera"></i> Abrir Cámara
+                    </button>
+
+                    <input id="qrInput" class="qr-input" autocomplete="off" inputmode="text" />
+
+                    <div class="fake-focus" tabindex="0" onclick="document.getElementById('qrInput').focus();">
+                        <div class="fake-left">
+                            <i class="fas fa-arrow-down" style="opacity:.7"></i>
+                            <div class="hint">Escaneado: <strong id="lastScanned">—</strong></div>
+                        </div>
+                        <div style="font-size:11px;color:var(--muted)">Foco activo</div>
+                    </div>
+                </div>
+
+                <div class="card week">
+                    <div class="week-bubble" id="weekNumber">—</div>
+                    <div class="week-meta">
+                        <div class="week-label">SEMANA ACTUAL</div>
+                        <div class="week-desc">Información de inventario por semana</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="settings-section">
+                        <button class="settings-toggle" id="settingsToggle">
+                            CONFIGURACIÓN <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="settings-content" id="settingsContent">
+                            <div class="settings">
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Sonidos BIOS</div>
+                                    <div class="toggle" id="toggle-sound"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Auto-Actualizar</div>
+                                    <div class="toggle" id="toggle-auto"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Miniatura soporte</div>
+                                    <div class="toggle" id="toggle-thumb"><div class="knob"></div></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div style="font-weight:700">Usar Cámara</div>
+                                    <div class="toggle" id="toggle-camera"><div class="knob"></div></div>
+                                </div>
+                                <div style="font-size:11px;color:var(--muted);margin-top:8px">Los ajustes se guardan localmente</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="card">
+                    <div class="result-head">
+                        <div>
+                            <div class="title">Resultados del Escaneo</div>
+                            <div class="meta">La información aparecerá aquí tras el escaneo</div>
+                        </div>
+                        <div class="meta">JSON_Result</div>
+                    </div>
+
+                    <div id="resultArea">
+                        <div style="padding:30px 20px;text-align:center;color:var(--muted)">
+                            <i class="fas fa-qrcode" style="font-size:32px;margin-bottom:12px;opacity:0.5"></i>
+                            <div>Escanee un código QR para ver los detalles</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div>Conectado a Google Sheets</div>
+            <div>Hoja: JSON_Result | Columna: KEY</div>
+        </footer>
+    </div>
+
+    <!-- Modal Cámara -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-content">
+            <div class="camera-preview">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="cameraCanvas" style="display:none"></canvas>
+                <div class="scanning-overlay" id="scanningOverlay">
+                    <i class="fas fa-search" style="margin-right:8px"></i> Escaneando...
+                </div>
+            </div>
+            <div class="camera-controls">
+                <button class="camera-btn-secondary" id="closeCamera">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button class="camera-btn-primary" id="switchCamera">
+                    <i class="fas fa-sync-alt"></i> Cambiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para soporte -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <img id="modalImg" class="modal-img" src="" alt="Soporte">
+        </div>
+    </div>
+
+    <!-- Sonidos BIOS reales -->
+    <audio id="successSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="errorSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-warning-alarm-buzzer-2853.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Quagga2 Library -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga2@0.2.7/dist/quagga.min.js"></script>
+    
+    <script>
+        // Configuración
+        const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+        const sheetName = 'JSON_Result';
+        const range = 'A:Y';
+        const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+
+        const headers = ['DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','REFERENCIA','TIPO','PVP','PRENDA','GENERO','PROVEEDOR','CLASE','FUENTE','NIT','CLIENTE','CANT','FACTURA','SOPORTE','ESTADO','FACTURA_2','FECHA_FACT','CANT_FACTURA','ESTADO','SEMANAS','KEY'];
+
+        // Estado
+        let dataCache = null;
+        let cacheTimestamp = null;
+        const CACHE_DURATION = 5 * 60 * 1000;
+        let isProcessing = false;
+        let lastCode = '';
+        let currentEstado = 'PENDIENTE';
+
+        // Referencias UI
+        const qrInput = document.getElementById('qrInput');
+        const lastScanned = document.getElementById('lastScanned');
+        const weekNumber = document.getElementById('weekNumber');
+        const resultArea = document.getElementById('resultArea');
+        const cacheCount = document.getElementById('cacheCount');
+        const cacheAge = document.getElementById('cacheAge');
+        const pillStatus = document.getElementById('pill-status');
+        const statusText = document.getElementById('status-text');
+        const pillCount = document.getElementById('pill-count');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeModal = document.querySelector('.close-modal');
+        const cameraModal = document.getElementById('cameraModal');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const scanningOverlay = document.getElementById('scanningOverlay');
+        const openCamera = document.getElementById('openCamera');
+        const closeCamera = document.getElementById('closeCamera');
+        const switchCamera = document.getElementById('switchCamera');
+
+        // Variables cámara
+        let stream = null;
+        let currentFacingMode = 'environment';
+        let isScanning = false;
+
+        // Toggles
+        const toggles = {
+            sound: {el: document.getElementById('toggle-sound'), key: 'pda_sound', default: true},
+            auto: {el: document.getElementById('toggle-auto'), key: 'pda_auto', default: true},
+            thumb: {el: document.getElementById('toggle-thumb'), key: 'pda_thumb', default: true},
+            camera: {el: document.getElementById('toggle-camera'), key: 'pda_camera', default: true}
+        };
+
+        // Actualizar estado visual
+        function updateStatus(estado) {
+            currentEstado = estado || 'PENDIENTE';
+            statusText.textContent = currentEstado;
+            
+            // Actualizar clases según el estado
+            pillStatus.className = 'pill ';
+            if (estado === 'ENTREGADO') {
+                pillStatus.classList.add('success');
+            } else if (estado === 'CANCELADO') {
+                pillStatus.classList.add('danger');
+            } else if (estado === 'PENDIENTE') {
+                pillStatus.classList.add('info');
+            } else {
+                pillStatus.classList.add('warning');
+            }
+        }
+
+        // Sonidos BIOS reales
+        function playSound(type) {
+            try {
+                if (!getSetting('pda_sound')) return;
+                const sound = document.getElementById(type === 'success' ? 'successSound' : 'errorSound');
+                sound.volume = 0.9; // Volumen alto como BIOS
+                sound.currentTime = 0;
+                sound.play().catch(() => {});
+            } catch (e) {
+                console.log('Error con audio:', e);
+            }
+        }
+
+        // Inicializar toggles
+        function initToggles() {
+            Object.values(toggles).forEach(t => {
+                const on = JSON.parse(localStorage.getItem(t.key) ?? JSON.stringify(t.default));
+                if (on) t.el.classList.add('on');
+                else t.el.classList.remove('on');
+                
+                t.el.addEventListener('click', () => {
+                    const curr = t.el.classList.toggle('on');
+                    localStorage.setItem(t.key, curr);
+                    
+                    // Actualizar UI según configuración
+                    if (t.key === 'pda_camera') {
+                        openCamera.style.display = curr ? 'flex' : 'none';
+                    }
+                });
+            });
+        }
+
+        function getSetting(k) {
+            return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(true));
+        }
+
+        function extractWeekNumber(weekText) {
+            if (!weekText) return '—';
+            const match = weekText.toString().match(/\d+/);
+            return match ? match[0] : weekText;
+        }
+
+        // Cargar datos desde Sheets
+        async function loadAllData() {
+            updateStatus('CARGANDO');
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error('Error: ' + response.status);
+                
+                const data = await response.json();
+                
+                if (!data.values || data.values.length < 2) throw new Error('Sin datos');
+                
+                const rows = data.values.slice(1);
+                dataCache = {};
+                
+                rows.forEach(row => {
+                    if (row.length > 24 && row[24]) {
+                        const key = row[24].toString().trim();
+                        const rowData = {};
+                        headers.forEach((h, i) => rowData[h] = row[i] || '');
+                        dataCache[key] = rowData;
+                    }
+                });
+                
+                cacheTimestamp = Date.now();
+                updateCacheInfo();
+                updateStatus('PENDIENTE');
+                pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
+                
+                return dataCache;
+            } catch (e) {
+                console.error('Error cargando datos:', e);
+                updateStatus('ERROR');
+                return null;
+            }
+        }
+
+        function isCacheExpired() {
+            return !cacheTimestamp || (Date.now() - cacheTimestamp) > CACHE_DURATION;
+        }
+
+        function updateCacheInfo() {
+            if (dataCache && cacheTimestamp) {
+                cacheCount.innerText = Object.keys(dataCache).length;
+                const age = Math.floor((Date.now() - cacheTimestamp) / 1000 / 60);
+                cacheAge.innerText = age + ' min';
+            }
+        }
+
+        async function searchData(val) {
+            if (isProcessing || val === lastCode) return;
+            
+            isProcessing = true;
+            lastCode = val;
+            updateStatus('BUSCANDO');
+            
+            try {
+                if (!dataCache || isCacheExpired()) {
+                    if (getSetting('pda_auto')) await loadAllData();
+                }
+                
+                const found = dataCache ? dataCache[val] : null;
+                
+                if (found) {
+                    renderResult(found);
+                    updateStatus(found.ESTADO || 'ENCONTRADO');
+                    playSound('success');
+                } else {
+                    resultArea.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">No se encontró: ${val}</div>`;
+                    updateStatus('NO ENCONTRADO');
+                    playSound('error');
+                }
+            } catch (e) {
+                console.error('Error en búsqueda:', e);
+                updateStatus('ERROR');
+            } finally {
+                isProcessing = false;
+                setTimeout(() => {
+                    qrInput.value = '';
+                    lastScanned.innerText = val;
+                }, 120);
+            }
+        }
+
+        function renderResult(row) {
+            weekNumber.innerText = extractWeekNumber(row.SEMANAS);
+            const estado = (row.ESTADO || 'PENDIENTE').toUpperCase();
+            updateStatus(estado);
+            
+            let html = `
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:900;font-size:16px;line-height:1.2">${row.DOCUMENTO || 'Sin documento'} — ${row.REFERENCIA || 'Sin referencia'}</div>
+                        <div style="color:var(--muted);font-size:13px;margin-top:6px">${row.DESCRIPCIÓN || ''}</div>
+                    </div>
+                </div>
+            `;
+
+            // Información prioritaria
+            html += '<div class="priority">';
+            const priorityFields = [
+                { label: 'CLASE', value: row.CLASE || '—' },
+                { label: 'GÉNERO', value: row.GENERO || '—' },
+                { label: 'PRENDA', value: row.PRENDA || '—' },
+                { label: 'PROVEEDOR', value: row.PROVEEDOR || '—' }
+            ];
+            
+            priorityFields.forEach(field => {
+                html += `
+                    <div class="mini">
+                        <div class="mini-label">${field.label}</div>
+                        <div class="mini-value">${field.value}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Miniatura de soporte si existe
+            if (row.SOPORTE && getSetting('pda_thumb')) {
+                html += `<img src="${row.SOPORTE}" class="support-thumb" id="supportThumb" alt="Soporte">`;
+            }
+
+            // Grid de detalles
+            html += '<div class="detail-grid">';
+            const detailFields = ['DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'TIPO', 'PVP', 'CANT', 'FACTURA', 'FECHA_FACT', 'CLIENTE'];
+            
+            detailFields.forEach(k => {
+                if (row[k]) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">${k}</div>
+                            <div class="detail-value">${row[k]}</div>
+                        </div>
+                    `;
+                }
+            });
+            html += '</div>';
+
+            resultArea.innerHTML = html;
+
+            // Agregar handler para imagen de soporte
+            const thumb = document.getElementById('supportThumb');
+            if (thumb) {
+                thumb.addEventListener('click', () => {
+                    modalImg.src = thumb.src;
+                    modal.classList.add('show');
+                });
+            }
+        }
+
+        // Funcionalidad Cámara con Quagga2
+        async function startCamera(facingMode = 'environment') {
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                cameraVideo.srcObject = stream;
+                currentFacingMode = facingMode;
+                
+                // Iniciar Quagga2 después de que el video esté listo
+                cameraVideo.onloadedmetadata = () => {
+                    startQuaggaScanning();
+                };
+                
+            } catch (err) {
+                console.error('Error accediendo a la cámara:', err);
+                alert('No se pudo acceder a la cámara. Asegúrese de permitir los permisos.');
+            }
+        }
+
+        function startQuaggaScanning() {
+            if (isScanning) return;
+            
+            isScanning = true;
+            scanningOverlay.style.display = 'flex';
+
+            const config = {
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: cameraVideo,
+                    constraints: {
+                        facingMode: currentFacingMode
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader",
+                        "2of5_reader",
+                        "code_93_reader"
+                    ]
+                },
+                locate: true,
+                numOfWorkers: 2
+            };
+
+            Quagga.init(config, function(err) {
+                if (err) {
+                    console.error('Error inicializando Quagga:', err);
+                    scanningOverlay.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error cámara';
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected(function(result) {
+                if (result && result.codeResult && result.codeResult.code) {
+                    const code = result.codeResult.code;
+                    console.log('Código detectado:', code);
+                    searchData(code);
+                    stopCamera();
+                    cameraModal.classList.remove('show');
+                }
+            });
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (isScanning) {
+                Quagga.stop();
+                isScanning = false;
+            }
+            scanningOverlay.style.display = 'none';
+        }
+
+        // Eventos
+        qrInput.addEventListener('input', function() {
+            const v = this.value.trim();
+            if (v) searchData(v);
+        });
+
+        // Mantener foco
+        document.addEventListener('click', () => qrInput.focus());
+        window.addEventListener('focus', () => qrInput.focus());
+
+        // Configuración colapsable
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsContent = document.getElementById('settingsContent');
+        
+        settingsToggle.addEventListener('click', function() {
+            const isShowing = settingsContent.classList.toggle('show');
+            const icon = settingsToggle.querySelector('i');
+            
+            if (isShowing) {
+                settingsToggle.innerHTML = 'CONFIGURACIÓN <i class="fas fa-chevron-up"></i>';
+            } else {
+                settingsToggle.innerHTML = 'CONFIGURACIÓN <i class="fas fa-chevron-down"></i>';
+            }
+        });
+
+        // Inicialmente colapsado
+        settingsContent.classList.remove('show');
+
+        // Cámara events
+        openCamera.addEventListener('click', () => {
+            if (getSetting('pda_camera')) {
+                cameraModal.classList.add('show');
+                startCamera();
+            }
+        });
+
+        closeCamera.addEventListener('click', () => {
+            stopCamera();
+            cameraModal.classList.remove('show');
+        });
+
+        switchCamera.addEventListener('click', () => {
+            const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            stopCamera();
+            startCamera(newFacingMode);
+        });
+
+        // Modal
+        closeModal.addEventListener('click', () => {
+            modal.classList.remove('show');
+            modalImg.src = '';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
+
+        // Inicialización
+        initToggles();
+        loadAllData();
+        setInterval(updateCacheInfo, 30000);
+
+        // Mostrar/ocultar botón cámara según configuración
+        openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
+
+        // Estado inicial
+        updateStatus('PENDIENTE');
+
+        // Exponer funciones globales
+        window.loadAllData = loadAllData;
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registrado con éxito:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Error registrando Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

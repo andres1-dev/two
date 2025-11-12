@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR PDA — Inventario (Minimal)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{
+            --bg: #ffffff;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --card-shadow: 0 6px 20px rgba(13, 24, 48, 0.06);
+            --radius: 12px;
+            --glass: rgba(15, 23, 42, 0.03);
+            --max-width: 900px;
+            --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
+        body{
+            font-family:var(--font-sans);
+            background:var(--bg);
+            color:#0f172a;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            padding:24px;
+            display:flex;
+            align-items:flex-start;
+            justify-content:center;
+            min-height:100vh;
+        }
+
+        .wrap{
+            width:100%;
+            max-width:var(--max-width);
+            background:linear-gradient(180deg, rgba(255,255,255,1), rgba(250,250,250,1));
+            border-radius:18px;
+            box-shadow:var(--card-shadow);
+            overflow:hidden;
+            border:1px solid rgba(15,23,42,0.04);
+        }
+
+        header{
+            padding:20px 28px;
+            border-bottom:1px solid rgba(15,23,42,0.04);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+        }
+
+        .brand{
+            display:flex;align-items:center;gap:14px;
+        }
+
+        .logo{
+            width:44px;height:44px;border-radius:10px;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--primary);box-shadow:inset 0 -1px 0 rgba(255,255,255,0.6);
+        }
+
+        h1{font-size:16px;font-weight:700;color:#0b1220}
+        .sub{font-size:13px;color:var(--muted)}
+
+        .header-actions{display:flex;align-items:center;gap:12px}
+
+        /* status pills */
+        .status-pills{display:flex;gap:8px;align-items:center}
+        .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-weight:600;font-size:13px;background:var(--glass);border:1px solid rgba(15,23,42,0.03)}
+        .pill i{font-size:14px}
+        .pill.success{background:linear-gradient(180deg, rgba(22,163,74,0.08), rgba(22,163,74,0.03));color:var(--success);border-color:rgba(22,163,74,0.12)}
+        .pill.info{background:linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02));color:var(--primary);border-color:rgba(37,99,235,0.08)}
+        .pill.warning{background:linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02));color:var(--warning);border-color:rgba(245,158,11,0.08)}
+        .pill.danger{background:linear-gradient(180deg, rgba(220,38,38,0.06), rgba(220,38,38,0.02));color:var(--danger);border-color:rgba(220,38,38,0.08)}
+
+        /* main grid */
+        .main{
+            display:grid;
+            grid-template-columns: 320px 1fr;
+            gap:22px;
+            padding:22px;
+        }
+
+        /* left column: scanner + week */
+        .left{
+            display:flex;flex-direction:column;gap:18px
+        }
+
+        .scanner-card{
+            background:transparent;border-radius:12px;padding:12px;border:1px dashed rgba(15,23,42,0.04);display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;
+        }
+
+        .scan-icon{font-size:34px;color:var(--primary)}
+        .scan-text{font-size:14px;color:var(--muted)}
+
+        /* minimal input: visually tiny but focusable and persistent */
+        .qr-input{
+            width:1px;height:1px;padding:0;border:0;opacity:0;position:absolute;left:-9999px;
+        }
+
+        /* visible focus ring for PDA users who might want it on screen */
+        .fake-focus{
+            width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);background:linear-gradient(180deg,#fff,#fbfbfb);display:flex;align-items:center;gap:10px;cursor:text;
+        }
+        .fake-focus:focus{outline:none}
+        .fake-focus .hint{color:var(--muted);font-size:13px}
+
+        /* week big */
+        .week-card{
+            background:linear-gradient(180deg,#0f172a05,#0f172a03);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;border:1px solid rgba(15,23,42,0.03);
+        }
+        .week-bubble{min-width:110px;height:110px;border-radius:14px;background:#0b1220;color:#fff;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:800;box-shadow:0 8px 30px rgba(2,6,23,0.08)}
+        .week-meta{display:flex;flex-direction:column;gap:6px}
+        .week-label{font-size:13px;color:var(--muted);font-weight:700}
+        .week-desc{font-size:14px;color:#0f172a}
+
+        /* right column: results */
+        .right{display:flex;flex-direction:column;gap:16px}
+
+        .card{
+            background:#fff;border-radius:12px;padding:14px;border:1px solid rgba(15,23,42,0.04);box-shadow:var(--card-shadow);overflow:hidden
+        }
+
+        .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .title{font-weight:700;font-size:15px}
+        .meta{font-size:13px;color:var(--muted)}
+
+        .priority-row{display:flex;gap:12px;margin-top:12px}
+        .mini-field{flex:1;background:#fafbff;border-radius:10px;padding:10px;border:1px solid rgba(15,23,42,0.03)}
+        .mini-label{font-size:11px;color:var(--muted);font-weight:700}
+        .mini-value{font-size:14px;font-weight:700;color:#0f172a;margin-top:6px}
+
+        .detail-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+        .detail-item{background:linear-gradient(180deg,#fff,#fbfbfb);padding:10px;border-radius:10px;border:1px solid rgba(15,23,42,0.03)}
+        .detail-label{font-size:11px;color:var(--muted);font-weight:700}
+        .detail-value{margin-top:6px;font-weight:600}
+
+        .empty-state{padding:28px;text-align:center;color:var(--muted)}
+
+        footer{padding:16px 22px;border-top:1px solid rgba(15,23,42,0.04);font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+
+        /* responsive */
+        @media (max-width:920px){
+            .main{grid-template-columns:1fr;}
+            .week-bubble{min-width:88px;height:88px;font-size:34px}
+        }
+
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fas fa-qrcode"></i></div>
+                <div>
+                    <h1>Sistema PDA — Inventario</h1>
+                    <div class="sub">Escanee con PDA | Campo oculto y foco persistente</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="status-pills">
+                    <div id="pill-status" class="pill info"><i class="fas fa-info-circle"></i> Esperando escaneo</div>
+                    <div id="pill-count" class="pill" style="font-weight:700"><i class="fas fa-database"></i> 0</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="left">
+                <div class="scanner-card card" role="region" aria-label="Escáner">
+                    <div class="scan-icon"><i class="fas fa-barcode"></i></div>
+                    <div class="scan-text">Apunte con el láser del PDA. El campo de entrada está oculto pero con foco persistente.</div>
+
+                    <!-- Hidden input (keeps focus) -->
+                    <input id="qrInput" class="qr-input" type="text" autocomplete="off" autofocus>
+
+                    <!-- Visible fake focus box so users see something on screen if needed -->
+                    <div class="fake-focus" tabindex="0" onclick="document.getElementById('qrInput').focus();">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <i class="fas fa-arrow-down" style="opacity:0.7"></i>
+                            <div class="hint">Escaneado: <span id="lastScanned" style="font-weight:700;color:#0b1220;margin-left:6px">—</span></div>
+                        </div>
+                        <div style="margin-left:auto;font-size:12px;color:var(--muted)">PDA: Foco permanente</div>
+                    </div>
+                </div>
+
+                <div class="week-card card">
+                    <div class="week-bubble" id="weekNumber">—</div>
+                    <div class="week-meta">
+                        <div class="week-label">Número de Semana</div>
+                        <div class="week-desc">La semana se muestra de forma clara para decisiones rápidas</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="font-weight:700;margin-bottom:8px">Atajos</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="pill info" onclick="loadAllData();"><i class="fas fa-sync-alt"></i> Actualizar</button>
+                        <button class="pill success" onclick="playSound('success')"><i class="fas fa-check"></i> Sonido OK</button>
+                        <button class="pill danger" onclick="playSound('error')"><i class="fas fa-times"></i> Sonido ERROR</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="right">
+                <div id="dataCardContainer" class="card">
+                    <div class="card-head">
+                        <div>
+                            <div class="title">Resultados</div>
+                            <div class="meta">Los detalles aparecerán aquí tras el escaneo</div>
+                        </div>
+                        <div class="meta" id="recordMeta">Hoja: JSON_Result</div>
+                    </div>
+
+                    <div id="resultArea" style="margin-top:12px">
+                        <div class="empty-state">Escanee un código QR para ver información del inventario</div>
+                    </div>
+                </div>
+
+                <div id="cacheInfo" class="card" style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
+                </div>
+
+            </div>
+        </div>
+
+        <footer>
+            <div>Conectado a Google Sheets</div>
+            <div style="color:var(--muted)">Hoja: JSON_Result | Columna: KEY</div>
+        </footer>
+    </div>
+
+    <!-- Sonidos (mismos) -->
+    <audio id="successSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
+    <audio id="errorSound" preload="auto"><source src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" type="audio/mpeg"></audio>
+
+    <script>
+        // Mantengo la lógica original (adaptada a la nueva UI)
+        (function(){
+            const qrInput = document.getElementById('qrInput');
+            const lastScanned = document.getElementById('lastScanned');
+            const weekNumber = document.getElementById('weekNumber');
+            const resultArea = document.getElementById('resultArea');
+            const cacheInfo = document.getElementById('cacheInfo');
+            const cacheCount = document.getElementById('cacheCount');
+            const cacheAge = document.getElementById('cacheAge');
+            const pillStatus = document.getElementById('pill-status');
+            const pillCount = document.getElementById('pill-count');
+
+            // Google Sheets config (no cambié)
+            const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+            const sheetName = 'JSON_Result';
+            const range = 'A:Y';
+            const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+
+            const headers = [
+                'DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','REFERENCIA','TIPO','PVP','PRENDA','GENERO','PROVEEDOR','CLASE','FUENTE','NIT','CLIENTE','CANT','FACTURA','SOPORTE','ESTADO','FACTURA_2','FECHA_FACT','CANT_FACTURA','ESTADO','SEMANAS','KEY'
+            ];
+
+            let dataCache = null; let cacheTimestamp = null; const CACHE_DURATION = 5*60*1000;
+            let isProcessing = false; let lastCode='';
+
+            function playSound(type){
+                try{const s = document.getElementById(type==='success'?'successSound':'errorSound'); s.volume=0.7; s.currentTime=0; s.play().catch(()=>{});}catch(e){}
+            }
+
+            function setPill(type,text){
+                pillStatus.className = 'pill '+(type||'info');
+                pillStatus.innerHTML = (type==='success'?'<i class="fas fa-check-circle"></i>':'') + ' ' + text;
+                if(type==='success') pillStatus.innerHTML = '<i class="fas fa-check-circle"></i> '+text;
+                if(type==='error') pillStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> '+text;
+                if(type==='warning') pillStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> '+text;
+                if(type==='info') pillStatus.innerHTML = '<i class="fas fa-info-circle"></i> '+text;
+            }
+
+            function extractWeekNumber(weekText){ if(!weekText) return '—'; const m = weekText.toString().match(/\d+/); return m?m[0]:weekText; }
+
+            async function loadAllData(){
+                setPill('info','Cargando base de datos...');
+                try{
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+                    const r = await fetch(url);
+                    if(!r.ok) throw new Error(r.status);
+                    const data = await r.json();
+                    if(!data.values || data.values.length<2) throw new Error('Sin datos');
+                    const rows = data.values.slice(1);
+                    dataCache = {};
+                    rows.forEach(row=>{
+                        if(row.length>24 && row[24]){
+                            const key = row[24].trim();
+                            const rowData = {};
+                            headers.forEach((h,i)=>rowData[h]=row[i]||'');
+                            dataCache[key]=rowData;
+                        }
+                    });
+                    cacheTimestamp = Date.now();
+                    updateCacheInfo();
+                    setPill('success',`Base cargada: ${Object.keys(dataCache).length} registros`);
+                    pillCount.textContent = ' ' + Object.keys(dataCache).length;
+                    return dataCache;
+                }catch(e){
+                    setPill('error','Error al cargar datos');
+                    resultArea.innerHTML = `<div class="empty-state">Error cargando base: ${e.message}</div>`;
+                    return null;
+                }
+            }
+
+            function isCacheExpired(){ return !cacheTimestamp || (Date.now()-cacheTimestamp)>CACHE_DURATION; }
+            function updateCacheInfo(){ if(dataCache && cacheTimestamp){ cacheCount.textContent = Object.keys(dataCache).length; const age = Math.floor((Date.now()-cacheTimestamp)/1000/60); cacheAge.textContent = age + ' min'; } }
+
+            async function searchData(val){ if(isProcessing || val===lastCode) return; isProcessing=true; lastCode=val; setPill('info',`Buscando: ${val}`);
+                try{
+                    if(!dataCache || isCacheExpired()) await loadAllData();
+                    const found = dataCache?dataCache[val]:null;
+                    if(found){ renderResult(found); setPill('success',`Datos: ${val}`); playSound('success'); }
+                    else{ resultArea.innerHTML = `<div class="empty-state">No se encontró: ${val}</div>`; setPill('error',`No encontrado: ${val}`); playSound('error'); }
+                }catch(e){ setPill('error','Error en búsqueda'); }
+                finally{ isProcessing=false; setTimeout(()=>{ qrInput.value=''; lastScanned.textContent = val; },120); }
+            }
+
+            function renderResult(row){
+                weekNumber.textContent = extractWeekNumber(row.SEMANAS);
+                const html = [];
+                html.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div style=\"font-weight:800;font-size:16px\">${row.DOCUMENTO||'Sin documento'} — ${row.REFERENCIA||'Sin referencia'}</div><div style=\"color:var(--muted);font-size:13px;margin-top:6px\">Proveedor: ${row.PROVEEDOR||'—'}</div></div><div style=\"text-align:right\"><div class=\"pill ${row.ESTADO==='ENTREGADO'?'success':(row.ESTADO==='CANCELADO'?'danger':'warning')}\">${row.ESTADO||'PENDIENTE'}</div></div></div>`);
+                html.push(`<div class=\"priority-row\">`);
+                ['CLASE','GENERO','PRENDA'].forEach(k=>{ html.push(`<div class=\"mini-field\"><div class=\"mini-label\">${k}</div><div class=\"mini-value\">${row[k]||'—'}</div></div>`); });
+                html.push(`</div>`);
+
+                // details
+                html.push('<div class="detail-grid">');
+                ['DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','TIPO','PVP','CANT','FACTURA','FECHA_FACT'].forEach(k=>{
+                    if(row[k]) html.push(`<div class="detail-item"><div class="detail-label">${k}</div><div class="detail-value">${row[k]}</div></div>`);
+                });
+                html.push('</div>');
+
+                resultArea.innerHTML = html.join('');
+            }
+
+            // events
+            qrInput.addEventListener('input',function(){ const v=this.value.trim(); if(v) searchData(v); });
+
+            // keep focus persistent
+            document.addEventListener('click',()=>qrInput.focus());
+            window.addEventListener('focus',()=>qrInput.focus());
+
+            // initial load
+            loadAllData();
+            setInterval(updateCacheInfo,30000);
+
+            // expose small helpers for UI buttons
+            window.loadAllData = loadAllData; window.playSound = playSound;
+        })();
+    </script>
+</body>
+</html>
