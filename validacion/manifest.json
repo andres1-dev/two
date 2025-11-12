@@ -1,22 +1,33 @@
 {
-  "name": "Validación",
-  "short_name": "Validación",
-  "description": "Sistema de gestión y escaneo de códigos QR para CDI",
-  "start_url": "./",
-  "scope": "./",
+  "name": "Escáner PDA Inventario",
+  "short_name": "PDA Scanner",
+  "description": "Aplicación PWA para escanear códigos QR con PDA láser o cámara",
+  "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "lang": "es-ES",
-  "dir": "ltr",
-  "categories": ["business", "productivity", "utilities"],
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-256.png", "sizes": "256x256", "type": "image/png" },
-    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
-    ]  
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%232563eb'/%3E%3Cpath fill='%23fff' d='M48 48h32v32H48zm64 0h32v32h-32zM48 112h32v32H48z'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%232563eb'/%3E%3Cpath fill='%23fff' d='M128 128h96v96h-96zm160 0h96v96h-96zM128 288h96v96h-96z'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Escanear",
+      "short_name": "Scan",
+      "description": "Abrir escáner directamente",
+      "url": "/",
+      "icons": []
+    }
+  ]
 }
