@@ -21,6 +21,7 @@ let isScanning = false;
 let scannerMode = null;
 let html5QrCode = null;
 let codeReader = null;
+let audioContext = null;
 
 // VARIABLES GLOBALES - Agregar estas al inicio del archivo
 let zxingReader = null;
@@ -59,6 +60,115 @@ const toggles = {
     focus: {el: document.getElementById('toggle-focus'), key: 'pda_focus', default: true}
 };
 
+function getAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+    return audioContext;
+}
+
+// Reemplazar todas las funciones de sonido:
+function playSuccessSound() {
+    if (!getSetting('pda_sound')) return;
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.frequency.value = 800;
+        gainNode.gain.value = 0.5;
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {
+        console.log("Error al reproducir sonido de éxito:", e);
+    }
+}
+
+function playErrorSound() {
+    if (!getSetting('pda_sound')) return;
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.frequency.value = 300;
+        gainNode.gain.value = 0.5;
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        console.log("Error al reproducir sonido de error:", e);
+    }
+}
+
+function playChimeSound() {
+    if (!getSetting('pda_sound')) return;
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        
+        // Sonido simple de carga
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // Do
+        osc.frequency.setValueAtTime(659.25, now + 0.1); // Mi
+        osc.frequency.setValueAtTime(783.99, now + 0.2); // Sol
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } catch (e) {
+        console.log("Error al reproducir sonido de carga:", e);
+    }
+}
+
+function playConfirmArpeggio() {
+    if (!getSetting('pda_sound')) return;
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // Do
+        osc.frequency.setValueAtTime(659.25, now + 0.1); // Mi  
+        osc.frequency.setValueAtTime(783.99, now + 0.2); // Sol
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } catch (e) {
+        console.log("Error al reproducir sonido de confirmación:", e);
+    }
+}
+
+/*
 // Sonidos BIOS
 function playSuccessSound() {
     if (!getSetting('pda_sound')) return;
@@ -125,7 +235,7 @@ function playChimeSound() {
     } catch (e) {
         console.log("Error al reproducir sonido de carga:", e);
     }
-}
+}*/
 
 // Agregar funcionalidad de zoom táctil al modal de imagen
 function initImageZoom() {
@@ -905,8 +1015,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Aplicación iniciada correctamente');
 });
 
-// Service Worker Registration
-if ('serviceWorker' in navigator) {
+// Service Worker Registration - Solo registrar en HTTPS o localhost
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js')
             .then(function(registration) {
@@ -916,4 +1026,6 @@ if ('serviceWorker' in navigator) {
                 console.log('Error registrando Service Worker:', error);
             });
     });
+} else {
+    console.log('Service Worker no registrado - Entorno no compatible:', location.protocol);
 }
