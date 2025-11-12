@@ -1,780 +1,560 @@
-// Configuración y constantes
-const CONFIG = {
-  VERSION: "4.0.0",
-  CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
-  MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
-  MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
+// Configuración
+const spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
+const sheetName = 'JSON_Result';
+const range = 'A:Y';
+const apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+
+const headers = ['DOCUMENTO','FECHA','LOTE','REFPROV','DESCRIPCIÓN','REFERENCIA','TIPO','PVP','PRENDA','GENERO','PROVEEDOR','CLASE','FUENTE','NIT','CLIENTE','CANT','FACTURA','SOPORTE','ESTADO','FACTURA_2','FECHA_FACT','CANT_FACTURA','ESTADO','SEMANAS','KEY'];
+
+// Estado
+let dataCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000;
+let isProcessing = false;
+let lastCode = '';
+let currentEstado = 'PENDIENTE';
+
+// Referencias UI
+const qrInput = document.getElementById('qrInput');
+const lastScanned = document.getElementById('lastScanned');
+const weekNumber = document.getElementById('weekNumber');
+const resultArea = document.getElementById('resultArea');
+const cacheCount = document.getElementById('cacheCount');
+const cacheAge = document.getElementById('cacheAge');
+const pillStatus = document.getElementById('pill-status');
+const statusText = document.getElementById('status-text');
+const pillCount = document.getElementById('pill-count');
+const modal = document.getElementById('modal');
+const modalImg = document.getElementById('modalImg');
+const closeModal = document.querySelector('.close-modal');
+const cameraModal = document.getElementById('cameraModal');
+const cameraVideo = document.getElementById('cameraVideo');
+const cameraCanvas = document.getElementById('cameraCanvas');
+const scanningOverlay = document.getElementById('scanningOverlay');
+const openCamera = document.getElementById('openCamera');
+const closeCamera = document.getElementById('closeCamera');
+const switchCamera = document.getElementById('switchCamera');
+
+// Variables cámara
+let stream = null;
+let currentFacingMode = 'environment';
+let isScanning = false;
+let html5QrCode = null;
+let codeReader = null;
+let scannerMode = 'quagga';
+
+// Toggles
+const toggles = {
+    sound: {el: document.getElementById('toggle-sound'), key: 'pda_sound', default: true},
+    auto: {el: document.getElementById('toggle-auto'), key: 'pda_auto', default: true},
+    thumb: {el: document.getElementById('toggle-thumb'), key: 'pda_thumb', default: true},
+    camera: {el: document.getElementById('toggle-camera'), key: 'pda_camera', default: true}
 };
 
-// API URLs
-const API_URL_GET = "https://script.google.com/macros/s/AKfycbzja5L4QU5qLBO0vSG2cGga18h_Mea3aJEHKyYrWx5_YssSKVLW4Q_Q6egqhel9M0dlKg/exec";  // UNIFICADO TEMPORAL
-const API_URL_POST = "https://script.google.com/macros/s/AKfycbwgnkjVCMWlWuXnVaxSBD18CGN3rXGZtQZIvX9QlBXSgbQndWC4uqQ2sc00DuNH6yrb/exec";
-
-// Variables globales
-let database = [];
-let cameraStream = null;
-let currentDocumentData = null;
-let photoBlob = null;
-let preventKeyboardTimer = null;
-let currentQRParts = null;
-let dataLoaded = false;
-
-// Constantes para la cola de carga
-const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
-const MAX_RETRIES = 3;
-
-// Elementos del DOM
-const loadingScreen = document.getElementById('loadingScreen');
-const scanner = document.getElementById('scanner');
-const barcodeInput = document.getElementById('barcode');
-const statusDiv = document.getElementById('status');
-const resultsDiv = document.getElementById('results');
-const dataStats = document.getElementById('data-stats');
-const offlineBanner = document.getElementById('offline-banner');
-const installBtn = document.getElementById('installBtn');
-
-// Inicializar la cola de carga
-const uploadQueue = new UploadQueue();
-
-// Función para convertir Blob a Base64
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// Actualizar estado visual
+function updateStatus(estado) {
+    currentEstado = estado || 'PENDIENTE';
+    statusText.textContent = currentEstado;
+    
+    pillStatus.className = 'pill ';
+    if (estado === 'ENTREGADO') {
+        pillStatus.classList.add('success');
+    } else if (estado === 'CANCELADO') {
+        pillStatus.classList.add('danger');
+    } else if (estado === 'PENDIENTE') {
+        pillStatus.classList.add('info');
+    } else {
+        pillStatus.classList.add('warning');
+    }
 }
 
-// Función para extraer datos de la UI
-function extractDataFromUI(factura) {
-  let lote = '', referencia = '', cantidad = 0;
-  
-  // Buscar contenedor de la factura
-  const facturaContainer = document.querySelector(`.siesa-item button[data-factura="${factura}"]`)?.closest('.siesa-item');
-  
-  if (facturaContainer) {
-    const rows = facturaContainer.querySelectorAll('.result-row');
-    
-    rows.forEach(row => {
-      const header = row.querySelector('.col-header')?.textContent.trim();
-      const value = row.querySelector('.json-value')?.textContent.trim();
-      
-      if (!header || !value) return;
-      
-      if (header.includes('Lote')) lote = value;
-      else if (header.includes('Referencia')) referencia = value;
-      else if (header.includes('Cantidad')) cantidad = parseFloat(value) || 0;
+// Sonidos BIOS
+function playSound(type) {
+    try {
+        if (!getSetting('pda_sound')) return;
+        const sound = document.getElementById(type === 'success' ? 'successSound' : 'errorSound');
+        sound.volume = 0.9;
+        sound.currentTime = 0;
+        sound.play().catch(() => {});
+    } catch (e) {
+        console.log('Error con audio:', e);
+    }
+}
+
+// Inicializar toggles
+function initToggles() {
+    Object.values(toggles).forEach(t => {
+        const on = JSON.parse(localStorage.getItem(t.key) ?? JSON.stringify(t.default));
+        if (on) t.el.classList.add('on');
+        else t.el.classList.remove('on');
+        
+        t.el.addEventListener('click', () => {
+            const curr = t.el.classList.toggle('on');
+            localStorage.setItem(t.key, curr);
+            
+            if (t.key === 'pda_camera') {
+                openCamera.style.display = curr ? 'flex' : 'none';
+            }
+        });
     });
-  }
-  
-  return { lote, referencia, cantidad };
 }
 
-// Funciones para sonidos de feedback
-function playSuccessSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-    const osc = ctx.createOscillator(); 
-    const gainNode = ctx.createGain(); 
-    osc.type = "sine"; 
-    osc.frequency.value = 800; 
-    gainNode.gain.value = 1; 
-    osc.connect(gainNode); 
-    gainNode.connect(ctx.destination); 
-    osc.start(); 
-    osc.stop(ctx.currentTime + 0.25);
-  } catch (e) {
-    console.log("Error al reproducir sonido de éxito:", e);
-  }
+function getSetting(k) {
+    return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(true));
 }
 
-function playErrorSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-    const osc = ctx.createOscillator(); 
-    const gainNode = ctx.createGain(); 
-    osc.type = "sawtooth"; 
-    osc.frequency.setValueAtTime(300, ctx.currentTime); 
-    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5); 
-    gainNode.gain.value = 0.8; 
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
-    osc.connect(gainNode); 
-    gainNode.connect(ctx.destination); 
-    osc.start(); 
-    osc.stop(ctx.currentTime + 0.5);
-  } catch (e) {
-    console.log("Error al reproducir sonido de error:", e);
-  }
+function extractWeekNumber(weekText) {
+    if (!weekText) return '—';
+    const match = weekText.toString().match(/\d+/);
+    return match ? match[0] : weekText;
 }
 
-// Inicialización al cargar el documento
-document.addEventListener('DOMContentLoaded', () => {
-  // Cargar datos desde el servidor
-  loadDataFromServer();
-  
-  setupEventListeners();
-  
-  // Agregar eventos para prevenir el teclado virtual en la cámara
-  document.addEventListener('focusin', function(e) {
-    if (document.getElementById('cameraModal').style.display === 'flex' && 
-        e.target.id !== 'dummyInput') {
-      e.preventDefault();
-      e.target.blur();
-    }
-  });
-  
-  // Manejar el cambio de orientación en dispositivos móviles
-  window.addEventListener('orientationchange', function() {
-    if (document.getElementById('cameraModal').style.display === 'flex') {
-      setTimeout(() => {
-        document.activeElement.blur();
-      }, 300);
-    }
-  });
-  
-  // Verificar si estamos en modo offline
-  window.addEventListener('online', function() {
-    offlineBanner.style.display = 'none';
-    statusDiv.className = 'reconnected';
-    statusDiv.innerHTML = '<i class="fas fa-wifi"></i> CONEXIÓN RESTABLECIDA';
-    // Si los datos aún no se han cargado, intentar cargarlos de nuevo
-    if (!dataLoaded) {
-      setTimeout(() => loadDataFromServer(), 1000);
-    }
-  });
-  
-  window.addEventListener('offline', function() {
-    offlineBanner.style.display = 'block';
-    statusDiv.className = 'offline';
-    statusDiv.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wifi-off" viewBox="0 0 16 16">
-          <path d="M10.706 3.294A12.6 12.6 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.52.52 0 0 0 .668.05A11.45 11.45 0 0 1 8 4q.946 0 1.852.148zM8 6c-1.905 0-3.68.56-5.166 1.526a.48.48 0 0 0-.063.745.525.525 0 0 0 .652.065 8.45 8.45 0 0 1 3.51-1.27zm2.596 1.404.785-.785q.947.362 1.785.907a.482.482 0 0 1 .063.745.525.525 0 0 1-.652.065 8.5 8.5 0 0 0-1.98-.932zM8 10l.933-.933a6.5 6.5 0 0 1 2.013.637c.285.145.326.524.1.75l-.015.015a.53.53 0 0 1-.611.09A5.5 5.5 0 0 0 8 10m4.905-4.905.747-.747q.886.451 1.685 1.03a.485.485 0 0 1 .047.737.52.52 0 0 1-.668.05 11.5 11.5 0 0 0-1.811-1.07M9.02 11.78c.238.14.236.464.04.66l-.707.706a.5.5 0 0 1-.707 0l-.707-.707c-.195-.195-.197-.518.04-.66A2 2 0 0 1 8 11.5c.374 0 .723.102 1.021.28zm4.355-9.905a.53.53 0 0 1 .75.75l-10.75 10.75a.53.53 0 0 1-.75-.75z"/>
-        </svg>
-        <span>MODO OFFLINE ACTIVO</span>
-      </div>
-    `;
-  });
-});
-
-function loadDataFromServer() {
-  statusDiv.className = 'loading';
-  statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
-  dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando con el servidor...';
-  
-  // Usamos fetch para obtener los datos del servidor
-  fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(serverData => handleDataLoadSuccess(serverData))
-    .catch(error => handleDataLoadError(error));
-}
-
-function handleDataLoadSuccess(serverData) {
-  if (serverData && serverData.success && serverData.data) {
-    database = serverData.data;  // Aquí es importante usar la variable global 'database', no redeclararla
-    dataLoaded = true;
-    cacheData(database);
-    
-    // Actualizar UI de estado
-    statusDiv.className = 'ready';
-    statusDiv.innerHTML = `
-      <i class="fas fa-check-circle"></i> SISTEMA LISTO
-    `;
-    dataStats.innerHTML = `
-      <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
-    `;
-    
-    // Mostrar contenido principal
-    resultsDiv.innerHTML = `
-      <div class="result-item" style="text-align: center; color: var(--gray);">
-        <div style="text-align: center;">
-          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-        </div>
-        <h1 style="margin: 0;">PandaDash</h1>
-        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-          <p style="margin: 2px 0;">
-            Supported by 
-            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-              GrupoTDM
-            </a>
-          </p>
-          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    hideLoadingScreen();
-    playSuccessSound();
-  } else {
-    handleDataLoadError(new Error('Formato de datos incorrecto'));
-  }
-}
-
-function handleDataLoadError(error) {
-  console.error("Error al cargar datos:", error);
-  
-  // Verificar si hay datos en caché
-  const cachedData = getCachedData();
-  if (cachedData) {
-    database = cachedData.data;
-    dataLoaded = true;
-    
-    statusDiv.innerHTML = '<i class="fas fa-database"></i> SISTEMA LISTO (DATOS CACHEADOS)';
-    dataStats.innerHTML = `${database.length} registros | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
-    
-    resultsDiv.innerHTML = `
-      <div class="result-item" style="text-align: center; color: var(--gray);">
-        <img 
-          src="https://raw.githubusercontent.com/iLogisticsCoordinator/o/main/icons/logo.png" 
-          alt="PandaDash Logo" 
-          class="logo" 
-          style="width: 4rem; height: 4rem; margin-bottom: 0.15rem;"
-        >
-        <h1 style="margin: 0;">PandaDash</h1>
-        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-          <p style="margin: 2px 0;">
-            Supported by 
-            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-              GrupoTDM
-            </a>
-          </p>
-          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    offlineBanner.style.display = 'block';
-    
-    // Ocultar pantalla de carga ya que tenemos datos en caché
-    hideLoadingScreen();
-  } else {
-    statusDiv.className = 'error';
-    statusDiv.innerHTML = '<span style="color: var(--danger)">ERROR AL CARGAR DATOS</span>';
-    dataStats.textContent = error.message || 'Error desconocido';
-    resultsDiv.innerHTML = `<div class="error"><i class="fas fa-exclamation-circle"></i> No se pudo cargar la base de datos: ${error.message || 'Error desconocido'}</div>`;
-    
-    // Mostrar mensaje de error en la pantalla de carga pero no ocultarla
-    const loadingName = document.querySelector('#loadingScreen .name');
-    if (loadingName) {
-      loadingName.innerHTML = 'Error al cargar datos. <br>Comprueba tu conexión.';
-      loadingName.style.color = '#f72585';
-    }
-    
-    playErrorSound();
-  }
-}
-
-// Función para ocultar la pantalla de carga
-function hideLoadingScreen() {
-  // Mostrar el contenido principal
-  scanner.style.display = 'flex';
-  
-  // Desvanecer la pantalla de carga
-  loadingScreen.style.opacity = '0';
-  
-  // Eliminar la pantalla de carga después de la transición
-  setTimeout(() => {
-    loadingScreen.style.display = 'none';
-    
-    // Enfocar el campo de entrada
-    if (barcodeInput) {
-      barcodeInput.focus();
-    }
-  }, 500);
-}
-
-function getCachedData() {
-  const cache = localStorage.getItem('pdaScannerCache');
-  if (!cache) return null;
-  
-  try {
-    const parsed = JSON.parse(cache);
-    if (Date.now() - parsed.timestamp > CONFIG.CACHE_TTL) return null;
-    return parsed;
-  } catch (e) {
-    console.error("Error al parsear cache:", e);
-    return null;
-  }
-}
-
-function cacheData(data) {
-  const cache = {
-    data: data,
-    timestamp: Date.now(),
-    version: CONFIG.VERSION
-  };
-  
-  try {
-    localStorage.setItem('pdaScannerCache', JSON.stringify(cache));
-  } catch (e) {
-    console.error("Error al guardar en cache:", e);
-    if (e.name === 'QuotaExceededError') {
-      clearOldCache();
-      cacheData(data);
-    }
-  }
-}
-
-function clearOldCache() {
-  const keys = Object.keys(localStorage);
-  for (const key of keys) {
-    if (key.startsWith('pdaScannerCache')) {
-      localStorage.removeItem(key);
-    }
-  }
-}
-
-function setupEventListeners() {
-  // Foco persistente excepto cuando la cámara está abierta
-  function enforceFocus() {
-    // Solo aplicar foco si la cámara no está abierta
-    if (document.activeElement !== barcodeInput && 
-        document.getElementById('cameraModal').style.display !== 'flex') {
-      barcodeInput.focus();
-    }
-    setTimeout(enforceFocus, 100);
-  }
-  enforceFocus();
-  
-  // Detector para deshabilitar el teclado virtual en dispositivos móviles
-  document.addEventListener('touchstart', function(e) {
-    if (document.getElementById('cameraModal').style.display === 'flex' && 
-        e.target.tagName !== 'BUTTON') {
-      e.preventDefault();
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
-    }
-  }, { passive: false });
-  
-  // Detectar escaneo
-  barcodeInput.addEventListener('input', function() {
-    const code = this.value.trim();
-    if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
-    
-    // Analizar el formato del código: DOCUMENTO-NIT
-    const parts = parseQRCode(code);
-    
-    if (parts) {
-      currentQRParts = parts; // Guardar las partes para uso posterior
-      const startTime = Date.now();
-      processQRCodeParts(parts);
-      const searchTime = Date.now() - startTime;
-      
-      statusDiv.className = 'processed';
-      statusDiv.textContent = `REGISTRO PROCESADO (${searchTime}ms)`;
-    } else {
-      showError(code, "Formato de código QR no válido. Use formato: DOCUMENTO-NIT");
-      playErrorSound();
-      statusDiv.textContent = `FORMATO INVÁLIDO`;
-    }
-    
-    setTimeout(() => {
-      this.value = '';
-      this.focus();
-    }, 50);
-  });
-}
-
-// Función para analizar el código QR
-function parseQRCode(code) {
-  // Buscamos un formato como "REC58101-805027653"
-  const regex = /^([A-Za-z0-9-]+)-([0-9]+)$/;
-  const match = code.match(regex);
-  
-  if (match) {
-    return {
-      documento: match[1],
-      nit: match[2]
-    };
-  }
-  
-  return null;
-}
-
-// Procesa las partes del código QR y muestra los resultados
-function processQRCodeParts(parts) {
-  const { documento, nit } = parts;
-  
-  // Buscar un registro que coincida con el documento
-  const result = database.find(item => 
-    item.documento && item.documento.toString() === documento
-  );
-  
-  if (result) {
-    // Filtramos los datosSiesa para mostrar solo los que coinciden con el NIT
-    const filteredItem = JSON.parse(JSON.stringify(result));
-    
-    if (filteredItem.datosSiesa && Array.isArray(filteredItem.datosSiesa)) {
-      // Filtramos por NIT en lugar de por cliente
-      filteredItem.datosSiesa = filteredItem.datosSiesa.filter(siesa => {
-        // Extraemos solo dígitos del NIT para comparar (por si acaso viene con formato)
-        const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
-        const scanNitDigits = nit.replace(/\D/g, '');
+// Cargar datos desde Sheets
+async function loadAllData() {
+    updateStatus('CARGANDO');
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}?key=${apiKey}`;
+        const response = await fetch(url);
         
-        return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
-      });
-      
-      displayFullResult(filteredItem, parts);
-      playSuccessSound();
-    } else {
-      displayFullResult(filteredItem, parts);
-      playSuccessSound();
-    }
-  } else {
-    showError(`${documento}-${nit}`, "Documento no encontrado en la base de datos");
-    playErrorSound();
-  }
-}
-
-function displayFullResult(item, qrParts) {
-  const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-  const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-  
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      ${filtradosRegistros < totalRegistros ? `
-        <div class="filter-info">
-          <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
-        </div>
-      ` : ''}
-      
-      ${displayItemData(item, 'Datos del Documento', qrParts)}
-    </div>
-  `;
-}
-
-function displayItemData(data, title = 'Datos', qrParts) {
-  let html = `<div class="siesa-header">${title} <span class="timestamp">${new Date().toLocaleString()}</span></div>`;
-  
-  // Asegurar que se muestra el lote en primer lugar, seguido de otras propiedades
-  // Orden de propiedades: documento, lote, referencia, y luego el resto
-  const ordenPropiedades = ['documento', 'lote', 'referencia'];
-  
-  // Mostrar primero las propiedades prioritarias en el orden deseado
-  ordenPropiedades.forEach(propKey => {
-    if (propKey in data && propKey !== 'datosSiesa') {
-      html += `
-        <div class="result-row">
-          <div class="col-header">${formatKey(propKey)}:</div>
-          <div class="json-value">${formatValue(data[propKey], propKey)}</div>
-        </div>
-      `;
-    }
-  });
-  
-  // Mostrar el resto de propiedades que no están en la lista de prioridad
-  for (const key in data) {
-    if (key === 'datosSiesa' || ordenPropiedades.includes(key)) continue;
-    
-    html += `
-      <div class="result-row">
-        <div class="col-header">${formatKey(key)}:</div>
-        <div class="json-value">${formatValue(data[key], key)}</div>
-      </div>
-    `;
-  }
-  
-  // Mostrar datosSiesa si existen
-  if (data.datosSiesa && Array.isArray(data.datosSiesa)) {
-    if (data.datosSiesa.length === 0) {
-      html += `<div class="no-data" style="padding: 15px; text-align: center;"><i class="fas fa-search"></i> No hay registros que coincidan con el NIT escaneado</div>`;
-    } else {
-      html += `<div class="siesa-header">Documentos Relacionados <span class="badge badge-success">${data.datosSiesa.length} registros</span></div>`;
-      
-      data.datosSiesa.forEach((siesa, index) => {
-        const estadoBadge = siesa.estado === 'Aprobadas' ? 'badge-success' : 'badge-warning';
+        if (!response.ok) throw new Error('Error: ' + response.status);
         
-        html += `<div class="siesa-item">`;
-        html += `<div class="siesa-header">Factura #${index + 1} <span class="badge ${estadoBadge}">${siesa.estado || 'Sin estado'}</span></div>`;
+        const data = await response.json();
         
-        // Orden preferido para propiedades de datosSiesa
-        const ordenSiesaPropiedades = ['factura', 'nit', 'lote', 'referencia', 'cantidad', 'estado', 'cliente', 'valorBruto', 'fecha', 'proovedor'];
+        if (!data.values || data.values.length < 2) throw new Error('Sin datos');
         
-        // Mostrar propiedades en el orden preferido
-        ordenSiesaPropiedades.forEach(propKey => {
-          if (propKey in siesa) {
-            html += `
-              <div class="result-row">
-                <div class="col-header">${formatKey(propKey)}:</div>
-                <div class="json-value">${formatValue(siesa[propKey], propKey)}</div>
-              </div>
-            `;
-          }
+        const rows = data.values.slice(1);
+        dataCache = {};
+        
+        rows.forEach(row => {
+            if (row.length > 24 && row[24]) {
+                const key = row[24].toString().trim();
+                const rowData = {};
+                headers.forEach((h, i) => rowData[h] = row[i] || '');
+                dataCache[key] = rowData;
+            }
         });
         
-        // Mostrar cualquier propiedad adicional que no esté en la lista ordenada
-        for (const key in siesa) {
-          if (ordenSiesaPropiedades.includes(key)) continue;
-          
-          html += `
-            <div class="result-row">
-              <div class="col-header">${formatKey(key)}:</div>
-              <div class="json-value">${formatValue(siesa[key], key)}</div>
-            </div>
-          `;
+        cacheTimestamp = Date.now();
+        updateCacheInfo();
+        updateStatus('PENDIENTE');
+        pillCount.innerHTML = `<i class="fas fa-database"></i> ${Object.keys(dataCache).length}`;
+        
+        return dataCache;
+    } catch (e) {
+        console.error('Error cargando datos:', e);
+        updateStatus('ERROR');
+        return null;
+    }
+}
+
+function isCacheExpired() {
+    return !cacheTimestamp || (Date.now() - cacheTimestamp) > CACHE_DURATION;
+}
+
+function updateCacheInfo() {
+    if (dataCache && cacheTimestamp) {
+        cacheCount.innerText = Object.keys(dataCache).length;
+        const age = Math.floor((Date.now() - cacheTimestamp) / 1000 / 60);
+        cacheAge.innerText = age + ' min';
+    }
+}
+
+async function searchData(val) {
+    if (isProcessing || val === lastCode) return;
+    
+    isProcessing = true;
+    lastCode = val;
+    updateStatus('BUSCANDO');
+    
+    try {
+        if (!dataCache || isCacheExpired()) {
+            if (getSetting('pda_auto')) await loadAllData();
         }
         
-        // Verifica el estado de confirmación
-        if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") { 
-          // Si ya está entregado, mostrar mensaje sin botón
-          html += `
-            <div class="action-buttons">
-              <div style="background-color: #28a745; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-                <i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA
-              </div>
+        const found = dataCache ? dataCache[val] : null;
+        
+        if (found) {
+            renderResult(found);
+            updateStatus(found.ESTADO || 'ENCONTRADO');
+            playSound('success');
+        } else {
+            resultArea.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">No se encontró: ${val}</div>`;
+            updateStatus('NO ENCONTRADO');
+            playSound('error');
+        }
+    } catch (e) {
+        console.error('Error en búsqueda:', e);
+        updateStatus('ERROR');
+    } finally {
+        isProcessing = false;
+        setTimeout(() => {
+            qrInput.value = '';
+            lastScanned.innerText = val;
+        }, 120);
+    }
+}
+
+function renderResult(row) {
+    weekNumber.innerText = extractWeekNumber(row.SEMANAS);
+    const estado = (row.ESTADO || 'PENDIENTE').toUpperCase();
+    updateStatus(estado);
+    
+    let html = `
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:900;font-size:16px;line-height:1.2">${row.DOCUMENTO || 'Sin documento'} — ${row.REFERENCIA || 'Sin referencia'}</div>
+                <div style="color:var(--muted);font-size:13px;margin-top:6px">${row.DESCRIPCIÓN || ''}</div>
             </div>
-          `;
-        } else if (siesa.confirmacion && siesa.confirmacion.includes("PENDIENTE FACTURA")) {
-          // Caso pendiente factura - verificar si tiene número de factura
-          const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
-          
-          if (tieneFactura) {
-            // Si tiene factura, mostrar botón para asentar
+        </div>
+    `;
+
+    html += '<div class="priority">';
+    const priorityFields = [
+        { label: 'CLASE', value: row.CLASE || '—' },
+        { label: 'GÉNERO', value: row.GENERO || '—' },
+        { label: 'PRENDA', value: row.PRENDA || '—' },
+        { label: 'PROVEEDOR', value: row.PROVEEDOR || '—' }
+    ];
+    
+    priorityFields.forEach(field => {
+        html += `
+            <div class="mini">
+                <div class="mini-label">${field.label}</div>
+                <div class="mini-value">${field.value}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    if (row.SOPORTE && getSetting('pda_thumb')) {
+        html += `<img src="${row.SOPORTE}" class="support-thumb" id="supportThumb" alt="Soporte">`;
+    }
+
+    html += '<div class="detail-grid">';
+    const detailFields = ['DOCUMENTO', 'FECHA', 'LOTE', 'REFPROV', 'TIPO', 'PVP', 'CANT', 'FACTURA', 'FECHA_FACT', 'CLIENTE'];
+    
+    detailFields.forEach(k => {
+        if (row[k]) {
             html += `
-              <div class="action-buttons">
-                <button class="delivery-btn" 
-                  data-factura="${siesa.factura}"
-                  style="background-color: #f8961e; height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
-                  onclick="asentarFactura(
-                    '${data.documento}', 
-                    '${siesa.lote || data.lote}', 
-                    '${siesa.referencia}', 
-                    '${siesa.cantidad}', 
-                    '${siesa.factura}', 
-                    '${siesa.nit || qrParts.nit}', 
-                    this
-                  )">
-                  <i class="fas fa-file-invoice"></i> ASENTAR FACTURA
-                </button>
-              </div>
-            `;
-          } else {
-            // Si no tiene factura, mostrar solo mensaje (no botón)
-            html += `
-              <div class="action-buttons">
-                <div style="background-color: #6c757d; color: white; text-align: center; padding: 12px 20px; border-radius: 8px; font-weight: 500; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-                  <i class="fas fa-clock"></i> PENDIENTE FACTURA
+                <div class="detail-item">
+                    <div class="detail-label">${k}</div>
+                    <div class="detail-value">${row[k]}</div>
                 </div>
-              </div>
             `;
-          }
-        } else {
-          // Caso normal - confirmar entrega
-          html += `
-            <div class="action-buttons">
-              <button class="delivery-btn" 
-                data-factura="${siesa.factura}"
-                style="height: 48px; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
-                onclick="procesarEntrega(
-                  '${data.documento}', 
-                  '${siesa.lote || data.lote}', 
-                  '${siesa.referencia}', 
-                  '${siesa.cantidad}', 
-                  '${siesa.factura}', 
-                  '${siesa.nit || qrParts.nit}', 
-                  this
-                )">
-                <i class="fas fa-truck"></i> CONFIRMAR ENTREGA
-              </button>
-            </div>
-          `;
+        }
+    });
+    html += '</div>';
+
+    resultArea.innerHTML = html;
+
+    const thumb = document.getElementById('supportThumb');
+    if (thumb) {
+        thumb.addEventListener('click', () => {
+            modalImg.src = thumb.src;
+            modal.classList.add('show');
+        });
+    }
+}
+
+// Funcionalidad Cámara con múltiples bibliotecas
+async function startCamera(facingMode = 'environment') {
+    try {
+        scanningOverlay.style.display = 'flex';
+        scanningOverlay.innerHTML = '<i class="fas fa-search" style="margin-right:8px"></i> Iniciando cámara...';
+        
+        if (typeof Quagga !== 'undefined') {
+            console.log('Intentando con Quagga2...');
+            await startQuaggaScanning(facingMode);
+            return;
         }
         
-        html += `</div>`;
-      });
-    }
-  }
-  
-  return html;
-}
-
-function formatKey(key) {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .replace('columna', '')
-    .trim();
-}
-
-function formatValue(value, key = '') {
-  if (value === null || value === undefined) {
-    return '<span class="no-data">N/A</span>';
-  }
-  
-  if (typeof value === 'object') {
-    return '<span class="no-data">[Datos complejos]</span>';
-  }
-  
-  if (typeof value === 'number') {
-    if (key.toLowerCase().includes('valor') || key.toLowerCase().includes('suma')) {
-      return `<span class="numeric-value">${value.toLocaleString('es-CO')}</span>`;
-    }
-    return value.toString();
-  }
-  
-  if (typeof value === 'boolean') {
-    return value ? 'Sí' : 'No';
-  }
-  
-  return value.toString();
-}
-
-function showError(barcode, message = "Código no encontrado") {
-  resultsDiv.innerHTML = `
-    <div class="error">
-      <i class="fas fa-times-circle"></i> ${message}: <strong>${barcode}</strong>
-    </div>
-  `;
-}
-
-// Bloqueo de zoom con JavaScript (para mayor seguridad)
-document.addEventListener('DOMContentLoaded', function() {
-  // Prevenir gestos de zoom
-  document.addEventListener('gesturestart', function(e) {
-    e.preventDefault();
-  });
-  
-  // Prevenir doble toque para zoom
-  let lastTouchEnd = 0;
-  document.addEventListener('touchend', function(e) {
-    const now = Date.now();
-    if (now - lastTouchEnd <= 300) e.preventDefault();
-    lastTouchEnd = now;
-  }, { passive: false });
-  
-  // Prevenir zoom con teclado (Ctrl + +/-)
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '0')) {
-      e.preventDefault();
-    }
-  });
-});
-
-// Detectar si es móvil para ajustes específicos
-function esMovil() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-// Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
-document.addEventListener('DOMContentLoaded', () => {
-  // Referencias a elementos clave
-  const statusDiv = document.getElementById('status');
-  const dataStats = document.getElementById('data-stats');
-  const resultsDiv = document.getElementById('results');
-  
-  // Variables de control
-  let startY = 0;
-  let isPulling = false;
-  
-  // Manejador para touchstart (inicio del gesto)
-  document.addEventListener('touchstart', function(e) {
-    // Solo activar si hay dos o más dedos tocando la pantalla
-    if (e.touches.length >= 2 && window.scrollY < 10) {
-      startY = e.touches[0].clientY;
-      isPulling = true;
-      e.preventDefault(); // Prevenir comportamiento por defecto
-    }
-  }, { passive: false });
-  
-  // Manejador para touchmove (movimiento durante el gesto)
-  document.addEventListener('touchmove', function(e) {
-    // Verificar si estamos en un gesto válido y hay dos dedos
-    if (!isPulling || e.touches.length < 2) return;
-    
-    // Calcular la distancia desplazada
-    const currentY = e.touches[0].clientY;
-    const pullDistance = currentY - startY;
-    
-    // Si hay un movimiento hacia abajo de al menos 20px, activar actualización
-    if (pullDistance > 20) {
-      // Desactivar el gesto para evitar múltiples actualizaciones
-      isPulling = false;
-      
-      // Iniciar la actualización inmediatamente
-      refreshData();
-      
-      // Prevenir comportamiento predeterminado
-      e.preventDefault();
-    }
-  }, { passive: false });
-  
-  // Manejador para touchend (fin del gesto)
-  document.addEventListener('touchend', function() {
-    isPulling = false;
-  });
-  
-  // Función para refrescar los datos
-  function refreshData() {
-    // Actualizar el estado para mostrar que estamos cargando
-    statusDiv.className = 'loading';
-    statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
-    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
-    
-    // Llamar a la API para obtener datos frescos
-    fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-      .then(response => {
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        return response.json();
-      })
-      .then(serverData => {
-        if (serverData && serverData.success && serverData.data) {
-          // Actualizar datos globales
-          database = serverData.data;
-          dataLoaded = true;
-          cacheData(database);
-          
-          // Actualizar interfaz
-          statusDiv.className = 'ready';
-          statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
-          dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
-          
-          // Re-procesar datos actuales si hay un QR activo
-          if (currentQRParts) {
-            processQRCodeParts(currentQRParts);
-          } else {
-            resultsDiv.innerHTML = `
-              <div class="result-item" style="text-align: center; color: var(--gray);">
-                <img src="https://raw.githubusercontent.com/iLogisticsCoordinator/o/main/icons/logo.png" alt="PandaDash Logo" class="logo" style="width: 4rem; height: 4rem; margin-bottom: 0.5rem;">
-                <h1>PandaDash</h1>
-                <div class="name">Andrés Mendoza</div>
-              </div>
-            `;
-          }
-          
-          // Efecto sonoro de éxito
-          if (typeof playSuccessSound === 'function') {
-            playSuccessSound();
-          }
-        } else {
-          throw new Error('Datos incorrectos');
+        if (typeof Html5Qrcode !== 'undefined') {
+            console.log('Quagga2 no disponible, usando Html5-QRCode...');
+            await startHtml5QrCode(facingMode);
+            return;
         }
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
         
-        // Efecto sonoro de error
-        if (typeof playErrorSound === 'function') {
-          playErrorSound();
+        if (typeof ZXing !== 'undefined') {
+            console.log('Html5-QRCode no disponible, usando ZXing...');
+            await startZXingScanning(facingMode);
+            return;
         }
-      });
-  }
+        
+        throw new Error('No hay bibliotecas de escaneo disponibles');
+        
+    } catch (err) {
+        console.error('Error accediendo a la cámara:', err);
+        scanningOverlay.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + err.message;
+        setTimeout(() => {
+            stopCamera();
+            cameraModal.classList.remove('show');
+        }, 3000);
+    }
+}
+
+async function startQuaggaScanning(facingMode) {
+    return new Promise((resolve, reject) => {
+        if (isScanning) {
+            resolve();
+            return;
+        }
+        
+        isScanning = true;
+        scannerMode = 'quagga';
+        scanningOverlay.innerHTML = '<i class="fas fa-search" style="margin-right:8px"></i> Escaneando (Quagga2)...';
+
+        const config = {
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: cameraVideo,
+                constraints: {
+                    facingMode: facingMode,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "code_39_vin_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader",
+                    "2of5_reader",
+                    "code_93_reader"
+                ]
+            },
+            locate: true,
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            frequency: 10
+        };
+
+        Quagga.init(config, function(err) {
+            if (err) {
+                console.error('Error inicializando Quagga:', err);
+                reject(err);
+                return;
+            }
+            Quagga.start();
+            resolve();
+        });
+
+        Quagga.onDetected(function(result) {
+            if (result && result.codeResult && result.codeResult.code) {
+                const code = result.codeResult.code;
+                console.log('Código detectado (Quagga2):', code);
+                handleScannedCode(code);
+            }
+        });
+    });
+}
+
+async function startHtml5QrCode(facingMode) {
+    scannerMode = 'html5qrcode';
+    isScanning = true;
+    scanningOverlay.innerHTML = '<i class="fas fa-search" style="margin-right:8px"></i> Escaneando (Html5-QRCode)...';
+    
+    cameraVideo.style.display = 'none';
+    
+    const qrReader = document.createElement('div');
+    qrReader.id = 'qr-reader';
+    qrReader.style.width = '100%';
+    cameraVideo.parentElement.appendChild(qrReader);
+    
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    try {
+        await html5QrCode.start(
+            { facingMode: facingMode },
+            config,
+            (decodedText) => {
+                console.log('Código detectado (Html5-QRCode):', decodedText);
+                handleScannedCode(decodedText);
+            }
+        );
+    } catch (err) {
+        console.error('Error con Html5-QRCode:', err);
+        throw err;
+    }
+}
+
+async function startZXingScanning(facingMode) {
+    scannerMode = 'zxing';
+    isScanning = true;
+    scanningOverlay.innerHTML = '<i class="fas fa-search" style="margin-right:8px"></i> Escaneando (ZXing)...';
+    
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    
+    try {
+        const videoInputDevices = await codeReader.listVideoInputDevices();
+        let selectedDeviceId = videoInputDevices[0].deviceId;
+        
+        if (facingMode === 'environment') {
+            const backCamera = videoInputDevices.find(device => 
+                device.label.toLowerCase().includes('back') || 
+                device.label.toLowerCase().includes('rear')
+            );
+            if (backCamera) {
+                selectedDeviceId = backCamera.deviceId;
+            }
+        }
+        
+        codeReader.decodeFromVideoDevice(selectedDeviceId, cameraVideo, (result, err) => {
+            if (result) {
+                console.log('Código detectado (ZXing):', result.text);
+                handleScannedCode(result.text);
+            }
+        });
+    } catch (err) {
+        console.error('Error con ZXing:', err);
+        throw err;
+    }
+}
+
+function handleScannedCode(code) {
+    searchData(code);
+    stopCamera();
+    cameraModal.classList.remove('show');
+}
+
+function stopCamera() {
+    console.log('Deteniendo cámara, modo:', scannerMode);
+    
+    if (scannerMode === 'quagga' && typeof Quagga !== 'undefined') {
+        try {
+            Quagga.stop();
+            Quagga.offDetected();
+        } catch (e) {
+            console.log('Error deteniendo Quagga:', e);
+        }
+    }
+    
+    if (scannerMode === 'html5qrcode' && html5QrCode) {
+        try {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                const qrReader = document.getElementById('qr-reader');
+                if (qrReader) qrReader.remove();
+                cameraVideo.style.display = 'block';
+            }).catch(e => console.log('Error deteniendo Html5-QRCode:', e));
+        } catch (e) {
+            console.log('Error deteniendo Html5-QRCode:', e);
+        }
+        html5QrCode = null;
+    }
+    
+    if (scannerMode === 'zxing' && codeReader) {
+        try {
+            codeReader.reset();
+        } catch (e) {
+            console.log('Error deteniendo ZXing:', e);
+        }
+        codeReader = null;
+    }
+    
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    isScanning = false;
+    scanningOverlay.style.display = 'none';
+    cameraVideo.srcObject = null;
+}
+
+// Eventos
+qrInput.addEventListener('input', function() {
+    const v = this.value.trim();
+    if (v) {
+        searchData(v);
+        this.value = '';
+    }
 });
+
+qrInput.addEventListener('blur', function() {
+    setTimeout(() => this.focus(), 50);
+});
+
+setInterval(() => {
+    if (document.activeElement !== qrInput && !cameraModal.classList.contains('show') && !modal.classList.contains('show')) {
+        qrInput.focus();
+    }
+}, 500);
+
+setTimeout(() => qrInput.focus(), 300);
+
+// Configuración colapsable
+const settingsCard = document.getElementById('settingsCard');
+const settingsHeader = document.getElementById('settingsHeader');
+
+const isCollapsed = localStorage.getItem('pda_settings_collapsed') === 'true';
+if (isCollapsed) {
+    settingsCard.classList.add('collapsed');
+}
+
+settingsHeader.addEventListener('click', function() {
+    const collapsed = settingsCard.classList.toggle('collapsed');
+    localStorage.setItem('pda_settings_collapsed', collapsed);
+});
+
+// Cámara events
+openCamera.addEventListener('click', () => {
+    if (getSetting('pda_camera')) {
+        cameraModal.classList.add('show');
+        startCamera();
+    }
+});
+
+closeCamera.addEventListener('click', () => {
+    stopCamera();
+    cameraModal.classList.remove('show');
+});
+
+switchCamera.addEventListener('click', () => {
+    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    currentFacingMode = newFacingMode;
+    stopCamera();
+    setTimeout(() => startCamera(newFacingMode), 300);
+});
+
+// Modal
+closeModal.addEventListener('click', () => {
+    modal.classList.remove('show');
+    modalImg.src = '';
+});
+
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.classList.remove('show');
+    }
+});
+
+// Inicialización
+initToggles();
+loadAllData();
+setInterval(updateCacheInfo, 30000);
+
+openCamera.style.display = getSetting('pda_camera') ? 'flex' : 'none';
+updateStatus('PENDIENTE');
+
+window.loadAllData = loadAllData;
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registrado:', reg.scope))
+            .catch(err => console.log('Error registrando SW:', err));
+    });
+}
