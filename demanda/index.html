@@ -3,108 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Datos - Google Sheets API</title>
+    <title>Gestión de Datos - Google Sheets</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>Gestión de Datos</h1>
-        <p class="subtitle">Integración con Google Sheets API</p>
-        
-        <!-- Panel de configuración de filtros -->
-        <div class="filters-panel">
-            <h2>Configuración de Filtros</h2>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="fechaInicio">Fecha Inicio:</label>
-                    <input type="text" id="fechaInicio" class="datepicker" placeholder="Seleccionar fecha">
-                </div>
-                
-                <div class="filter-item">
-                    <label for="fechaFin">Fecha Fin:</label>
-                    <input type="text" id="fechaFin" class="datepicker" placeholder="Seleccionar fecha">
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="tipoDocumento">Tipo de Documento:</label>
-                    <select id="tipoDocumento" multiple>
-                        <option value="FULL" selected>FULL</option>
-                        <!-- <option value="OTRO">OTRO</option> -->
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="fuenteDatos">Fuente de Datos:</label>
-                    <select id="fuenteDatos" multiple>
-                        <option value="SISPRO" selected>SISPRO</option>
-                        <option value="BUSINT" selected>BUSINT</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="clientes">Clientes:</label>
-                    <select id="clientes" multiple>
-                        <option value="900047252" selected>EL TEMPLO DE LA MODA FRESCA SAS</option>
-                        <option value="805027653" selected>EL TEMPLO DE LA MODA SAS</option>
-                        <option value="901920844">INVERSIONES URBANA SAS</option>
-                        <option value="70825517">ARISTIZABAL LOPEZ JESUS MARIA</option>
-                        <option value="1007348825">ZULUAGA GOMEZ RUBEN ESTEBAN</option>
-                        <option value="14838951">QUINTERO ORTIZ JOSE ALEXANDER</option>
-                        <option value="67006141">QUINTERO ORTIZ PATRICIA YAMILET</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="proveedores">Proveedores:</label>
-                    <select id="proveedores" multiple>
-                        <option value="ANGELES" selected>TEXTILES Y CREACIONES LOS ANGELES SAS</option>
-                        <option value="UNIVERSO" selected>TEXTILES Y CREACIONES EL UNIVERSO SAS</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="filter-group">
-                <div class="filter-item">
-                    <label for="estados">Estados:</label>
-                    <select id="estados" multiple>
-                        <option value="ENTREGADO" selected>ENTREGADO</option>
-                        <option value="PENDIENTE" selected>PENDIENTE</option>
-                        <option value="VALIDAR" selected>VALIDAR</option>
-                        <option value="SIN DATOS" selected>SIN DATOS</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <label for="clases">Clases:</label>
-                    <select id="clases" multiple>
-                        <option value="LINEA" selected>LINEA</option>
-                        <option value="MODA" selected>MODA</option>
-                        <option value="PRONTAMODA" selected>PRONTAMODA</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="filter-actions">
-                <button id="resetFiltersBtn" class="btn-secondary">Restablecer Filtros</button>
-                <button id="saveFiltersBtn" class="btn-secondary">Guardar Configuración</button>
-            </div>
-        </div>
+        <p class="subtitle">Sistema Integrado con Google Sheets</p>
         
         <div class="controls">
-            <button id="loadDataBtn">Cargar Datos</button>
-            <button id="exportCSVBtn" style="display: none;">Descargar CSV Completo</button>
-            <button id="exportSinSemanasBtn" style="display: none;" class="btn-secondary">Descargar Sin Semanas</button>
-            <button id="enviarPostBtn" style="display: none;" class="btn-secondary">Enviar a Sheets</button>
+            <button id="loadDataBtn">
+                <i class="fas fa-sync-alt"></i>
+                Cargar Datos
+            </button>
+            <button id="exportCSVBtn" style="display: none;">
+                <i class="fas fa-download"></i>
+                Descargar CSV Completo
+            </button>
+            <button id="exportSinSemanasBtn" style="display: none;" class="btn-secondary">
+                <i class="fas fa-file-excel"></i>
+                Descargar Sin Semanas
+            </button>
+            <button id="enviarPostBtn" style="display: none;" class="btn-secondary">
+                <i class="fas fa-paper-plane"></i>
+                Enviar a Sheets
+            </button>
+            <button id="asignarSemanasBtn" style="display: none;" class="btn-primary">
+                <i class="fas fa-calendar-plus"></i>
+                Asignar Semanas
+            </button>
         </div>
         
         <div id="statusMessage" class="status"></div>
@@ -115,11 +46,101 @@
         </div>
         
         <div id="summary" class="summary"></div>
+        
+        <!-- Modal para asignación de semanas -->
+        <div id="semanasModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Asignar Semanas a Registros</h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-info">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <i class="fas fa-file-excel"></i>
+                                <span>Registros sin semanas: <strong id="countSinSemanas">0</strong></span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-users"></i>
+                                <span>Clientes únicos: <strong id="countClientes">0</strong></span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-barcode"></i>
+                                <span>Referencias únicas: <strong id="countReferencias">0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="semanas-controls">
+                        <div class="filter-group">
+                            <div class="filter-item">
+                                <label for="filtroCliente"><i class="fas fa-filter"></i> Filtrar por Cliente:</label>
+                                <select id="filtroCliente">
+                                    <option value="">Todos los clientes</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-item">
+                                <label for="filtroReferencia"><i class="fas fa-filter"></i> Filtrar por Referencia:</label>
+                                <select id="filtroReferencia">
+                                    <option value="">Todas las referencias</option>
+                                </select>
+                            </div>
+                            
+                            <button id="aplicarFiltroSemanas" class="btn-secondary">
+                                <i class="fas fa-search"></i>
+                                Aplicar Filtro
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="semanas-grid">
+                        <div class="semanas-list">
+                            <h4><i class="fas fa-list"></i> Registros Filtrados</h4>
+                            <div class="list-header">
+                                <span>Cliente</span>
+                                <span>Referencia</span>
+                                <span>Cantidad</span>
+                            </div>
+                            <div id="listaRegistros" class="registros-container">
+                                <!-- Los registros se cargarán aquí dinámicamente -->
+                            </div>
+                        </div>
+                        
+                        <div class="semanas-form">
+                            <h4><i class="fas fa-edit"></i> Asignar Semanas</h4>
+                            <div class="form-group">
+                                <label for="semanasInput"><i class="fas fa-calendar-week"></i> Semanas:</label>
+                                <input type="text" id="semanasInput" placeholder="Ej: 1-4, 8, 12-16">
+                                <small>Formato: números individuales o rangos separados por comas</small>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button id="aplicarSemanas" class="btn-secondary">
+                                    <i class="fas fa-check"></i>
+                                    Aplicar a Filtrados
+                                </button>
+                                <button id="guardarSemanas" class="btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    Guardar en Sheets
+                                </button>
+                            </div>
+                            
+                            <div class="semanas-preview">
+                                <h5><i class="fas fa-eye"></i> Vista Previa:</h5>
+                                <div id="previewSemanas" class="preview-container">
+                                    <!-- Vista previa de los cambios -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script src="app.js"></script>
-   
 </body>
 </html>

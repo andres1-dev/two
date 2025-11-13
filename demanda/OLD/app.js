@@ -1,3 +1,8 @@
+
+
+
+// GET
+
 // Configuración
 const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
 const SPREADSHEET_IDS = {
@@ -7,22 +12,6 @@ const SPREADSHEET_IDS = {
     SOPORTES: "1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw",
     DESTINO: "1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE",
     SIESA: "1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM"
-};
-
-// URLs de Web Apps
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyk5SZiTTJm6GYXEe5RWvvmihHALfnKD6m95gfrZ2D-om2Tu3Hyuz-nsPMc-r46sUdg/exec';
-const WEB_APP_SEMANAS_URL = 'https://script.google.com/macros/s/AKfycbwM-E3tv2Yt2cl20k3-Ss_dQKwWo8G4YoNzLm1OfnQNTE9lY-XUsuKyflCavcN3RTg7hQ/exec'; // Reemplazar con tu URL real
-
-// Filtros predeterminados
-const DEFAULT_FILTERS = {
-    fechaInicio: '',
-    fechaFin: '',
-    tiposDocumento: ['FULL'],
-    fuentesDatos: ['SISPRO', 'BUSINT'],
-    clientes: ['900047252', '805027653'],
-    proveedores: ['ANGELES', 'UNIVERSO'],
-    estados: ['ENTREGADO', 'PENDIENTE', 'VALIDAR', 'SIN DATOS'],
-    clases: ['LINEA', 'MODA', 'PRONTAMODA']
 };
 
 // Definición de clientes
@@ -53,58 +42,293 @@ const MAPEO_NOMBRES_SIESA = {
 // Variables globales
 let currentData = [];
 let semanasData = {};
-let currentFilters = { ...DEFAULT_FILTERS };
-let registrosSinSemanas = [];
-let registrosFiltrados = [];
+let currentFilters = {};
 
 // Elementos DOM
 const loadDataBtn = document.getElementById('loadDataBtn');
 const exportCSVBtn = document.getElementById('exportCSVBtn');
 const exportSinSemanasBtn = document.getElementById('exportSinSemanasBtn');
-const enviarPostBtn = document.getElementById('enviarPostBtn');
-const asignarSemanasBtn = document.getElementById('asignarSemanasBtn');
 const statusMessage = document.getElementById('statusMessage');
 const loadingElement = document.getElementById('loading');
 const summaryElement = document.getElementById('summary');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+const saveFiltersBtn = document.getElementById('saveFiltersBtn');
+
+// Elementos de filtros
+const fechaInicioInput = document.getElementById('fechaInicio');
+const fechaFinInput = document.getElementById('fechaFin');
+const tipoDocumentoSelect = document.getElementById('tipoDocumento');
+const fuenteDatosSelect = document.getElementById('fuenteDatos');
+const clientesSelect = document.getElementById('clientes');
+const proveedoresSelect = document.getElementById('proveedores');
+const estadosSelect = document.getElementById('estados');
+const clasesSelect = document.getElementById('clases');
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar datepickers
+    flatpickr(".datepicker", {
+        locale: "es",
+        dateFormat: "Y-m-d",
+        allowInput: true
+    });
+    
     // Establecer fechas por defecto (último mes)
     const rangoFechas = calcularRangoFechas();
-    currentFilters.fechaInicio = rangoFechas.fechaInicio;
-    currentFilters.fechaFin = rangoFechas.fechaFin;
+    fechaInicioInput.value = rangoFechas.fechaInicio;
+    fechaFinInput.value = rangoFechas.fechaFin;
+    
+    // Cargar configuración guardada si existe
+    cargarConfiguracionGuardada();
     
     // Event Listeners
     loadDataBtn.addEventListener('click', loadData);
     exportCSVBtn.addEventListener('click', exportCSV);
     exportSinSemanasBtn.addEventListener('click', exportSinSemanas);
-    enviarPostBtn.addEventListener('click', enviarDatosPost);
-    asignarSemanasBtn.addEventListener('click', mostrarModalSemanas);
-    
-    // Event Listeners del modal
-    document.getElementById('aplicarFiltroSemanas').addEventListener('click', aplicarFiltroSemanas);
-    document.getElementById('aplicarSemanas').addEventListener('click', aplicarSemanasSeleccionadas);
-    document.getElementById('guardarSemanas').addEventListener('click', guardarSemanasEnSheets);
-    
-    // Cerrar modal
-    document.querySelector('.close').addEventListener('click', cerrarModal);
-    window.addEventListener('click', function(event) {
-        if (event.target === document.getElementById('semanasModal')) {
-            cerrarModal();
+    resetFiltersBtn.addEventListener('click', resetFilters);
+    saveFiltersBtn.addEventListener('click', guardarConfiguracion);
+});
+
+// Funciones de configuración
+function obtenerFiltrosActuales() {
+    return {
+        fechaInicio: fechaInicioInput.value,
+        fechaFin: fechaFinInput.value,
+        tiposDocumento: Array.from(tipoDocumentoSelect.selectedOptions).map(opt => opt.value),
+        fuentesDatos: Array.from(fuenteDatosSelect.selectedOptions).map(opt => opt.value),
+        clientes: Array.from(clientesSelect.selectedOptions).map(opt => opt.value),
+        proveedores: Array.from(proveedoresSelect.selectedOptions).map(opt => opt.value),
+        estados: Array.from(estadosSelect.selectedOptions).map(opt => opt.value),
+        clases: Array.from(clasesSelect.selectedOptions).map(opt => opt.value)
+    };
+}
+
+async function obtenerDatosSIESA() {
+            try {
+                const siesaResp = await fetchSheetData(SPREADSHEET_IDS.SIESA, "SIESA!A2:G");
+                const siesaV2Resp = await fetchSheetData(SPREADSHEET_IDS.SIESA, "SIESA_V2!A2:D");
+                
+                const siesaData = {};
+                const siesaV2Data = {};
+                
+                // Procesar SIESA principal - CALCULAR LOTE SIESA
+                (siesaResp.values || []).forEach((row) => {
+                    const nroDocumento = String(row[1] || "").trim();
+                    if (nroDocumento) {
+                        const razonSocial = String(row[3] || "").trim();
+                        const nit = normalizarNitDesdeRazonSocial(razonSocial);
+                        const fechaSiesa = normalizarFechaSiesa(String(row[2] || ""));
+                        const doctoReferencia = String(row[4] || "").trim();
+                        const notas = String(row[5] || "").trim();
+                        const compaa = String(row[6] || "").trim();
+                        
+                        const loteSiesa = calcularLoteSiesa(compaa, doctoReferencia, notas);
+                        
+                        siesaData[nroDocumento] = {
+                            estado: String(row[0] || "").trim(),
+                            nro_documento: nroDocumento,
+                            fecha: fechaSiesa,
+                            razon_social: razonSocial,
+                            nit: nit,
+                            docto_referencia: doctoReferencia,
+                            notas: notas,
+                            compaa: compaa,
+                            lote: loteSiesa
+                        };
+                    }
+                });
+                
+                // Procesar SIESA_V2 - SUMAR cantidades
+                (siesaV2Resp.values || []).forEach(row => {
+                    const nroDocumento = String(row[0] || "").trim();
+                    if (nroDocumento) {
+                        if (!siesaV2Data[nroDocumento]) {
+                            siesaV2Data[nroDocumento] = {};
+                        }
+                        
+                        const referencia = String(row[2] || "").trim();
+                        const cantidad = Number(row[3]) || 0;
+                        
+                        if (referencia) {
+                            if (!siesaV2Data[nroDocumento][referencia]) {
+                                siesaV2Data[nroDocumento][referencia] = 0;
+                            }
+                            siesaV2Data[nroDocumento][referencia] += cantidad;
+                        }
+                    }
+                });
+                
+                const datosUnificados = {};
+                
+                // Combinar datos - USAR SOLO LOTE SIESA PARA LAS CLAVES
+                for (const [nroDocumento, datosSiesa] of Object.entries(siesaData)) {
+                    const itemsV2 = siesaV2Data[nroDocumento] || {};
+                    const loteSiesa = datosSiesa.lote;
+                    
+                    for (const [referencia, cantidadTotal] of Object.entries(itemsV2)) {
+                        const nit = String(datosSiesa.nit || "").trim();
+                        
+                        if (referencia && nit && cantidadTotal > 0 && loteSiesa) {
+                            const clave = `${referencia}_${nit}_${cantidadTotal}_${loteSiesa}`;
+                            
+                            datosUnificados[clave] = {
+                                estado: datosSiesa.estado,
+                                nro_documento: datosSiesa.nro_documento,
+                                fecha: datosSiesa.fecha,
+                                cantidad_inv: cantidadTotal,
+                                referencia: referencia,
+                                nit: nit,
+                                lote: loteSiesa,
+                                docto_referencia: datosSiesa.docto_referencia,
+                                notas: datosSiesa.notas,
+                                compaa: datosSiesa.compaa
+                            };
+                        }
+                    }
+                }
+                
+                console.log(`Datos SIESA unificados: ${Object.keys(datosUnificados).length} registros`);
+                return datosUnificados;
+                
+            } catch (error) {
+                console.error("Error obteniendo datos de SIESA:", error);
+                return {};
+            }
         }
+
+
+        function buscarSiesa(siesaData, refprov, nit, cantidad, lote) {
+            const CLIENTES_FILTRADOS = ["900047252", "805027653"];
+            if (!CLIENTES_FILTRADOS.includes(nit)) {
+                return null;
+            }
+            
+            const refprovLimpio = String(refprov || "").trim();
+            const nitLimpio = String(nit || "").trim();
+            const cantidadLimpia = Number(cantidad) || 0;
+            const loteLimpio = String(lote || "").trim().replace(/\D/g, "");
+            
+            if (!refprovLimpio || !nitLimpio || cantidadLimpia <= 0 || !loteLimpio) {
+                return null;
+            }
+            
+            const clave = `${refprovLimpio}_${nitLimpio}_${cantidadLimpia}_${loteLimpio}`;
+            
+            console.log(`Buscando SIESA con clave: ${clave}`);
+            
+            if (siesaData[clave]) {
+                console.log(`✓ Encontrado en SIESA`);
+                return siesaData[clave];
+            }
+            
+            console.log(`✗ No encontrado en SIESA`);
+            return null;
+        }
+
+
+function resetFilters() {
+    // Restablecer fechas
+    const rangoFechas = calcularRangoFechas();
+    fechaInicioInput.value = rangoFechas.fechaInicio;
+    fechaFinInput.value = rangoFechas.fechaFin;
+    
+    // Restablecer selects múltiples
+    Array.from(tipoDocumentoSelect.options).forEach(opt => {
+        opt.selected = opt.value === "FULL";
     });
     
-    // Cargar datos automáticamente al iniciar
-    setTimeout(() => {
-        loadData();
-    }, 1000);
-});
+    Array.from(fuenteDatosSelect.options).forEach(opt => {
+        opt.selected = ["SISPRO", "BUSINT"].includes(opt.value);
+    });
+    
+    Array.from(clientesSelect.options).forEach(opt => {
+        opt.selected = ["900047252", "805027653"].includes(opt.value);
+    });
+    
+    Array.from(proveedoresSelect.options).forEach(opt => {
+        opt.selected = true;
+    });
+    
+    Array.from(estadosSelect.options).forEach(opt => {
+        opt.selected = true;
+    });
+    
+    Array.from(clasesSelect.options).forEach(opt => {
+        opt.selected = true;
+    });
+    
+    showStatus('success', 'Filtros restablecidos a valores por defecto');
+}
+
+function guardarConfiguracion() {
+    const configuracion = obtenerFiltrosActuales();
+    localStorage.setItem('configuracionFiltros', JSON.stringify(configuracion));
+    showStatus('success', 'Configuración guardada correctamente');
+}
+
+function cargarConfiguracionGuardada() {
+    const configuracionGuardada = localStorage.getItem('configuracionFiltros');
+    if (configuracionGuardada) {
+        try {
+            const config = JSON.parse(configuracionGuardada);
+            
+            // Aplicar configuración guardada
+            if (config.fechaInicio) fechaInicioInput.value = config.fechaInicio;
+            if (config.fechaFin) fechaFinInput.value = config.fechaFin;
+            
+            // Aplicar selects múltiples
+            if (config.tiposDocumento) {
+                Array.from(tipoDocumentoSelect.options).forEach(opt => {
+                    opt.selected = config.tiposDocumento.includes(opt.value);
+                });
+            }
+            
+            if (config.fuentesDatos) {
+                Array.from(fuenteDatosSelect.options).forEach(opt => {
+                    opt.selected = config.fuentesDatos.includes(opt.value);
+                });
+            }
+            
+            if (config.clientes) {
+                Array.from(clientesSelect.options).forEach(opt => {
+                    opt.selected = config.clientes.includes(opt.value);
+                });
+            }
+            
+            if (config.proveedores) {
+                Array.from(proveedoresSelect.options).forEach(opt => {
+                    opt.selected = config.proveedores.includes(opt.value);
+                });
+            }
+            
+            if (config.estados) {
+                Array.from(estadosSelect.options).forEach(opt => {
+                    opt.selected = config.estados.includes(opt.value);
+                });
+            }
+            
+            if (config.clases) {
+                Array.from(clasesSelect.options).forEach(opt => {
+                    opt.selected = config.clases.includes(opt.value);
+                });
+            }
+            
+            showStatus('success', 'Configuración cargada correctamente');
+        } catch (e) {
+            console.error('Error cargando configuración:', e);
+            showStatus('error', 'Error al cargar la configuración guardada');
+        }
+    }
+}
 
 // Funciones principales
 async function loadData() {
     try {
         showLoading(true);
         showStatus('info', 'Iniciando carga de datos...');
+        
+        // Obtener filtros actuales
+        currentFilters = obtenerFiltrosActuales();
         
         await cargarDatosSemanas();
         const data = await obtenerDatosConDistribucion();
@@ -113,11 +337,8 @@ async function loadData() {
         showStatus('success', `Proceso completado: ${data.registros} registros encontrados`);
         displaySummary(data);
         
-        // Mostrar botones
         exportCSVBtn.style.display = 'inline-block';
         exportSinSemanasBtn.style.display = 'inline-block';
-        enviarPostBtn.style.display = 'inline-block';
-        asignarSemanasBtn.style.display = 'inline-block';
         
     } catch (error) {
         console.error('Error:', error);
@@ -159,6 +380,67 @@ async function cargarDatosSemanas() {
     }
 }
 
+function obtenerSemanasPorReferenciaYCliente(referencia, cliente) {
+    if (!referencia || !cliente) return "";
+    
+    const refLimpia = String(referencia).trim();
+    const clienteLimpio = String(cliente).trim();
+    
+    const claveCompleta = `${refLimpia}_${clienteLimpio}`;
+    if (semanasData[claveCompleta]) {
+        return semanasData[claveCompleta];
+    }
+    
+    if (semanasData[refLimpia]) {
+        return semanasData[refLimpia];
+    }
+    
+    const refSoloNumeros = refLimpia.replace(/[^0-9]/g, '');
+    if (refSoloNumeros && refSoloNumeros !== refLimpia) {
+        const claveNumerica = `${refSoloNumeros}_${clienteLimpio}`;
+        if (semanasData[claveNumerica]) {
+            return semanasData[claveNumerica];
+        }
+        if (semanasData[refSoloNumeros]) {
+            return semanasData[refSoloNumeros];
+        }
+    }
+    
+    return "";
+}
+
+function calcularEstado(factura, siesaNroDocumento) {
+    const facturaLimpia = String(factura || "").trim();
+    const siesaLimpio = String(siesaNroDocumento || "").trim();
+    
+    if (!facturaLimpia && !siesaLimpio) {
+        return "SIN DATOS";
+    }
+    
+    if (facturaLimpia && siesaLimpio) {
+        if (facturaLimpia === siesaLimpio) {
+            return "ENTREGADO";
+        } else {
+            return "VALIDAR";
+        }
+    }
+    
+    if (siesaLimpio && !facturaLimpia) {
+        return "PENDIENTE";
+    }
+    
+    return "VALIDAR";
+}
+
+function calcularValidacion(lote, siesaLote) {
+    if (!lote || !siesaLote) return false;
+    
+    const loteLimpio = String(lote).trim().replace(/\D/g, '');
+    const siesaLoteLimpio = String(siesaLote).trim().replace(/\D/g, '');
+    
+    return loteLimpio === siesaLoteLimpio;
+}
+
 async function obtenerDatosConDistribucion() {
     const rangoFechas = {
         fechaInicio: currentFilters.fechaInicio,
@@ -170,10 +452,14 @@ async function obtenerDatosConDistribucion() {
     const soportesData = await obtenerDatosSoportes();
     const siesaData = await obtenerDatosSIESA();
     
+    const CLIENTES_FILTRADOS = currentFilters.clientes;
+    
+    const data2Resp = await fetchSheetData(SPREADSHEET_IDS.DATA2, "DATA2!S2:S");
+    const recResp = await fetchSheetData(SPREADSHEET_IDS.REC, "DataBase!A2:AF");
+
     const registros = [];
 
     // Procesar DATA2
-    const data2Resp = await fetchSheetData(SPREADSHEET_IDS.DATA2, "DATA2!S2:S");
     (data2Resp.values || []).forEach(r => {
         try {
             const j = JSON.parse(r[0]);
@@ -196,7 +482,7 @@ async function obtenerDatosConDistribucion() {
             
             if (distribucionDoc && distribucionDoc.clientes) {
                 for (const [nombreCliente, infoCliente] of Object.entries(distribucionDoc.clientes)) {
-                    if (infoCliente.cantidad_total > 0 && currentFilters.clientes.includes(infoCliente.nit)) {
+                    if (infoCliente.cantidad_total > 0 && CLIENTES_FILTRADOS.includes(infoCliente.nit)) {
                         
                         const soporteInfo = buscarSoporte(soportesData, documento, infoCliente.cantidad_total, infoCliente.nit);
                         const siesaInfo = buscarSiesa(siesaData, refprov, infoCliente.nit, infoCliente.cantidad_total, lote);
@@ -259,7 +545,6 @@ async function obtenerDatosConDistribucion() {
     });
 
     // Procesar REC
-    const recResp = await fetchSheetData(SPREADSHEET_IDS.REC, "DataBase!A2:AF");
     (recResp.values || []).forEach(row => {
         const tipo = row[27] || "";
         
@@ -283,7 +568,7 @@ async function obtenerDatosConDistribucion() {
         
         if (distribucionDoc && distribucionDoc.clientes) {
             for (const [nombreCliente, infoCliente] of Object.entries(distribucionDoc.clientes)) {
-                if (infoCliente.cantidad_total > 0 && currentFilters.clientes.includes(infoCliente.nit)) {
+                if (infoCliente.cantidad_total > 0 && CLIENTES_FILTRADOS.includes(infoCliente.nit)) {
                     
                     const soporteInfo = buscarSoporte(soportesData, documento, infoCliente.cantidad_total, infoCliente.nit);
                     const siesaInfo = buscarSiesa(siesaData, refprov, infoCliente.nit, infoCliente.cantidad_total, lote);
@@ -353,7 +638,11 @@ async function obtenerDatosConDistribucion() {
     };
 }
 
-// Funciones de exportación
+// [El resto de las funciones se mantienen igual que en el código original...]
+// Incluyendo: obtenerDatosSIESA, buscarSiesa, exportCSV, exportSinSemanas, 
+// generarYDescargarCSV, displaySummary, showLoading, showStatus, etc.
+
+// FUNCIONES DE DESCARGA
 function exportCSV() {
     if (currentData.length === 0) {
         showStatus('error', 'No hay datos para exportar');
@@ -392,6 +681,7 @@ function generarYDescargarCSV(datos, tipo) {
     ];
 
     const csvContent = [
+        // BOM para UTF-8 y headers
         '\uFEFF' + headers.join(';'),
         ...datos.map(registro => [
             registro.DOCUMENTO,
@@ -422,8 +712,9 @@ function generarYDescargarCSV(datos, tipo) {
             registro.VALIDACION ? 'VERDADERO' : 'FALSO',
             registro.SIESA_LOTE
         ].join(';'))
-    ].join('\r\n');
+    ].join('\r\n'); // Usar \r\n para compatibilidad Windows
 
+    // Crear y descargar archivo
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -445,324 +736,32 @@ function generarYDescargarCSV(datos, tipo) {
     showStatus('success', `Archivo ${tipo === 'sin_semanas' ? 'sin semanas' : 'completo'} generado correctamente`);
 }
 
-// Funciones para asignación de semanas
-function mostrarModalSemanas() {
-    if (currentData.length === 0) {
-        showStatus('error', 'No hay datos cargados');
-        return;
-    }
-    
-    // Filtrar registros sin semanas
-    registrosSinSemanas = currentData.filter(registro => 
-        !registro.SEMANAS || registro.SEMANAS === ""
-    );
-    
-    if (registrosSinSemanas.length === 0) {
-        showStatus('info', 'No hay registros sin asignación de semanas');
-        return;
-    }
-    
-    // Actualizar contadores
-    document.getElementById('countSinSemanas').textContent = registrosSinSemanas.length;
-    
-    // Obtener clientes y referencias únicos
-    const clientesUnicos = [...new Set(registrosSinSemanas.map(r => r.CLIENTE))].sort();
-    const referenciasUnicas = [...new Set(registrosSinSemanas.map(r => r.REFERENCIA))].sort();
-    
-    document.getElementById('countClientes').textContent = clientesUnicos.length;
-    document.getElementById('countReferencias').textContent = referenciasUnicas.length;
-    
-    // Llenar selects de filtro
-    const selectCliente = document.getElementById('filtroCliente');
-    const selectReferencia = document.getElementById('filtroReferencia');
-    
-    selectCliente.innerHTML = '<option value="">Todos los clientes</option>';
-    selectReferencia.innerHTML = '<option value="">Todas las referencias</option>';
-    
-    clientesUnicos.forEach(cliente => {
-        const option = document.createElement('option');
-        option.value = cliente;
-        option.textContent = cliente;
-        selectCliente.appendChild(option);
-    });
-    
-    referenciasUnicas.forEach(ref => {
-        const option = document.createElement('option');
-        option.value = ref;
-        option.textContent = ref;
-        selectReferencia.appendChild(option);
-    });
-    
-    // Mostrar todos los registros inicialmente
-    registrosFiltrados = [...registrosSinSemanas];
-    actualizarListaRegistros();
-    
-    // Mostrar modal
-    document.getElementById('semanasModal').style.display = 'block';
+// FUNCIONES AUXILIARES PARA CSV
+function limpiarTextoCSV(texto) {
+    if (!texto) return '';
+    return String(texto)
+        .replace(/"/g, '""')
+        .replace(/;/g, ',')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\t/g, ' ');
 }
 
-function aplicarFiltroSemanas() {
-    const clienteFiltro = document.getElementById('filtroCliente').value;
-    const referenciaFiltro = document.getElementById('filtroReferencia').value;
-    
-    registrosFiltrados = registrosSinSemanas.filter(registro => {
-        const coincideCliente = !clienteFiltro || registro.CLIENTE === clienteFiltro;
-        const coincideReferencia = !referenciaFiltro || registro.REFERENCIA === referenciaFiltro;
-        return coincideCliente && coincideReferencia;
-    });
-    
-    actualizarListaRegistros();
+function formatoNumeroExcel(numero) {
+    if (numero === null || numero === undefined) return '';
+    return String(numero).replace(',', '.');
 }
 
-function actualizarListaRegistros() {
-    const lista = document.getElementById('listaRegistros');
-    lista.innerHTML = '';
-    
-    registrosFiltrados.forEach((registro, index) => {
-        const item = document.createElement('div');
-        item.className = 'registro-item';
-        item.dataset.index = index;
-        
-        item.innerHTML = `
-            <div class="registro-cliente">${registro.CLIENTE}</div>
-            <div class="registro-referencia">${registro.REFERENCIA}</div>
-            <div class="registro-cantidad">${registro.CANTIDAD}</div>
-        `;
-        
-        item.addEventListener('click', function() {
-            this.classList.toggle('selected');
-        });
-        
-        lista.appendChild(item);
-    });
-}
-
-function aplicarSemanasSeleccionadas() {
-    const semanasInput = document.getElementById('semanasInput').value.trim();
-    
-    if (!semanasInput) {
-        showStatus('error', 'Por favor ingresa las semanas');
-        return;
-    }
-    
-    // Obtener registros seleccionados
-    const itemsSeleccionados = document.querySelectorAll('.registro-item.selected');
-    
-    if (itemsSeleccionados.length === 0) {
-        // Si no hay selección, aplicar a todos los filtrados
-        registrosFiltrados.forEach(registro => {
-            registro.SEMANAS_ASIGNADAS = semanasInput;
-        });
-    } else {
-        // Aplicar solo a los seleccionados
-        itemsSeleccionados.forEach(item => {
-            const index = parseInt(item.dataset.index);
-            registrosFiltrados[index].SEMANAS_ASIGNADAS = semanasInput;
-        });
-    }
-    
-    actualizarVistaPrevia();
-    showStatus('success', `Semanas aplicadas a ${itemsSeleccionados.length || registrosFiltrados.length} registros`);
-}
-
-function actualizarVistaPrevia() {
-    const preview = document.getElementById('previewSemanas');
-    preview.innerHTML = '';
-    
-    const registrosConSemanas = registrosFiltrados.filter(r => r.SEMANAS_ASIGNADAS);
-    
-    if (registrosConSemanas.length === 0) {
-        preview.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">No hay cambios para mostrar</div>';
-        return;
-    }
-    
-    registrosConSemanas.slice(0, 10).forEach(registro => {
-        const item = document.createElement('div');
-        item.className = 'preview-item';
-        item.innerHTML = `
-            <div class="preview-cliente">${registro.CLIENTE}</div>
-            <div class="preview-referencia">${registro.REFERENCIA}</div>
-            <div class="preview-semanas">${registro.SEMANAS_ASIGNADAS}</div>
-        `;
-        preview.appendChild(item);
-    });
-    
-    if (registrosConSemanas.length > 10) {
-        const mas = document.createElement('div');
-        mas.className = 'preview-item';
-        mas.style.textAlign = 'center';
-        mas.style.color = '#6b7280';
-        mas.textContent = `... y ${registrosConSemanas.length - 10} registros más`;
-        preview.appendChild(mas);
-    }
-}
-
-async function guardarSemanasEnSheets() {
-    const registrosConSemanas = registrosFiltrados.filter(r => r.SEMANAS_ASIGNADAS);
-    
-    if (registrosConSemanas.length === 0) {
-        showStatus('error', 'No hay semanas asignadas para guardar');
-        return;
-    }
-    
-    showLoading(true);
-    showStatus('info', `Guardando ${registrosConSemanas.length} registros en POSTMAN...`);
-    
-    try {
-        // Preparar datos para enviar - estructura simple y limpia
-        const datosParaEnviar = registrosConSemanas.map(registro => ({
-            CLIENTE: String(registro.CLIENTE || '').trim(),
-            REFERENCIA: String(registro.REFERENCIA || '').trim(),
-            SEMANAS: String(registro.SEMANAS_ASIGNADAS || '').trim()
-        })).filter(dato => dato.CLIENTE && dato.REFERENCIA && dato.SEMANAS);
-        
-        console.log('Datos a enviar a POSTMAN:', datosParaEnviar);
-        
-        if (datosParaEnviar.length === 0) {
-            showStatus('error', 'No hay datos válidos para guardar');
-            showLoading(false);
-            return;
-        }
-        
-        // Enviar via POST - usando el mismo formato que pegarDatos
-        const formData = new FormData();
-        formData.append('action', 'guardarSemanas');
-        formData.append('datos', JSON.stringify(datosParaEnviar));
-
-        const response = await fetch(WEB_APP_SEMANAS_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        console.log('Respuesta del servidor de semanas:', result);
-
-        if (result.success) {
-            showStatus('success', `✓ ${result.message}`);
-            
-            // Actualizar los datos locales
-            registrosConSemanas.forEach(registro => {
-                if (registro.SEMANAS_ASIGNADAS) {
-                    registro.SEMANAS = registro.SEMANAS_ASIGNADAS;
-                    delete registro.SEMANAS_ASIGNADAS;
-                }
-            });
-            
-            // También actualizar en currentData para mantener consistencia
-            currentData.forEach(registro => {
-                const registroActualizado = registrosConSemanas.find(r => 
-                    r.CLIENTE === registro.CLIENTE && 
-                    r.REFERENCIA === registro.REFERENCIA &&
-                    r.SEMANAS_ASIGNADAS
-                );
-                if (registroActualizado) {
-                    registro.SEMANAS = registroActualizado.SEMANAS_ASIGNADAS;
-                }
-            });
-            
-            // Cerrar modal
-            cerrarModal();
-            
-            // Actualizar resumen
-            displaySummary({ 
-                status: "success", 
-                registros: currentData.length, 
-                rangoFechas: currentFilters 
-            });
-            
-        } else {
-            showStatus('error', `✗ Error: ${result.message}`);
-        }
-        
-    } catch (error) {
-        console.error('Error guardando semanas:', error);
-        showStatus('error', `Error de conexión: ${error.message}`);
-    } finally {
-        showLoading(false);
-    }
-}
-
-function cerrarModal() {
-    document.getElementById('semanasModal').style.display = 'none';
-    document.getElementById('semanasInput').value = '';
-    document.getElementById('previewSemanas').innerHTML = '';
-}
-
-// Función para enviar datos via POST a Sheets
-async function enviarDatosPost() {
-    if (currentData.length === 0) {
-        showStatus('error', 'No hay datos para enviar');
-        return;
-    }
-
-    showLoading(true);
-    showStatus('info', 'Enviando datos a Google Sheets...');
-
-    try {
-        // Preparar datos para enviar
-        const datosParaEnviar = currentData.map(registro => ({
-            DOCUMENTO: registro.DOCUMENTO,
-            FECHA: registro.FECHA,
-            LOTE: registro.LOTE,
-            REFPROV: registro.REFPROV,
-            DESCRIPCION: registro.DESCRIPCION,
-            REFERENCIA: registro.REFERENCIA,
-            TIPO: registro.TIPO,
-            PVP: registro.PVP,
-            PRENDA: registro.PRENDA,
-            GENERO: registro.GENERO,
-            PROVEEDOR: registro.PROVEEDOR,
-            CLASE: registro.CLASE,
-            FUENTE: registro.FUENTE,
-            NIT: registro.NIT,
-            CLIENTE: registro.CLIENTE,
-            CANTIDAD: registro.CANTIDAD,
-            FACTURA: registro.FACTURA,
-            URL_IH3: registro.URL_IH3,
-            SIESA_ESTADO: registro.SIESA_ESTADO,
-            SIESA_NRO_DOCUMENTO: registro.SIESA_NRO_DOCUMENTO,
-            SIESA_FECHA: registro.SIESA_FECHA,
-            SIESA_CANTIDAD_INV: registro.SIESA_CANTIDAD_INV,
-            ESTADO: registro.ESTADO,
-            SEMANAS: registro.SEMANAS,
-            KEY: registro.KEY,
-            VALIDACION: registro.VALIDACION,
-            SIESA_LOTE: registro.SIESA_LOTE
-        }));
-
-        // Crear form data para el POST
-        const formData = new FormData();
-        formData.append('action', 'pegarDatos');
-        formData.append('datos', JSON.stringify(datosParaEnviar));
-
-        // Enviar via POST
-        const response = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showStatus('success', `✓ ${result.message} - ${result.data.registrosPegados} registros enviados`);
-        } else {
-            showStatus('error', `✗ Error: ${result.message}`);
-        }
-
-    } catch (error) {
-        console.error('Error enviando datos POST:', error);
-        showStatus('error', `Error de conexión: ${error.message}`);
-    } finally {
-        showLoading(false);
-    }
-}
-
-// Funciones de UI
+// FUNCIONES DE UI
 function displaySummary(data) {
     const estados = currentData.reduce((acc, registro) => {
         acc[registro.ESTADO] = (acc[registro.ESTADO] || 0) + 1;
         return acc;
     }, {});
+
+    const estadosHTML = Object.entries(estados).map(([estado, count]) => 
+        `<div style="margin: 5px 0;"><strong>${estado}:</strong> ${count}</div>`
+    ).join('');
 
     const validaciones = currentData.reduce((acc, registro) => {
         const clave = registro.VALIDACION ? 'VERDADERO' : 'FALSO';
@@ -770,67 +769,39 @@ function displaySummary(data) {
         return acc;
     }, {});
 
+    const validacionesHTML = Object.entries(validaciones).map(([validacion, count]) => 
+        `<div style="margin: 5px 0;"><strong>VALIDACIÓN ${validacion}:</strong> ${count}</div>`
+    ).join('');
+
     // Calcular estadísticas de semanas
     const conSemanas = currentData.filter(r => r.SEMANAS && r.SEMANAS !== "").length;
     const sinSemanas = currentData.length - conSemanas;
 
+    const semanasHTML = `
+        <div style="margin: 5px 0;"><strong>CON SEMANAS:</strong> ${conSemanas}</div>
+        <div style="margin: 5px 0;"><strong>SIN SEMANAS:</strong> ${sinSemanas}</div>
+    `;
+
     summaryElement.innerHTML = `
-        <h3>Resumen del Proceso</h3>
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h4><i class="fas fa-chart-bar"></i> Estadísticas Generales</h4>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Registros procesados:</span>
-                        <span class="stat-value">${data.registros}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Rango de fechas:</span>
-                        <span class="stat-value">${data.rangoFechas.descripcion}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Estado:</span>
-                        <span class="stat-value" style="color: #10b981;">${data.status}</span>
-                    </div>
-                </div>
+        <h3 style="margin-top: 0;">Resumen del Proceso</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div>
+                <div style="font-size: 1.2em; margin-bottom: 10px;"><strong>Estadísticas Generales</strong></div>
+                <div><strong>Registros procesados:</strong> ${data.registros}</div>
+                <div><strong>Rango de fechas:</strong> ${data.rangoFechas.descripcion}</div>
+                <div><strong>Estado del proceso:</strong> <span style="color: #34a853;">${data.status}</span></div>
             </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-tasks"></i> Distribución por Estado</h4>
-                <div class="stats-grid">
-                    ${Object.entries(estados).map(([estado, count]) => `
-                        <div class="stat-item">
-                            <span class="stat-label">${estado}:</span>
-                            <span class="stat-value">${count}</span>
-                        </div>
-                    `).join('')}
-                </div>
+            <div>
+                <div style="font-size: 1.2em; margin-bottom: 10px;"><strong>Distribución por Estado</strong></div>
+                ${estadosHTML}
             </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-calendar-week"></i> Asignación de Semanas</h4>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Con semanas:</span>
-                        <span class="stat-value" style="color: #10b981;">${conSemanas}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Sin semanas:</span>
-                        <span class="stat-value" style="color: #ef4444;">${sinSemanas}</span>
-                    </div>
-                </div>
+            <div>
+                <div style="font-size: 1.2em; margin-bottom: 10px;"><strong>Semanas</strong></div>
+                ${semanasHTML}
             </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-check-circle"></i> Validaciones</h4>
-                <div class="stats-grid">
-                    ${Object.entries(validaciones).map(([validacion, count]) => `
-                        <div class="stat-item">
-                            <span class="stat-label">${validacion}:</span>
-                            <span class="stat-value">${count}</span>
-                        </div>
-                    `).join('')}
-                </div>
+            <div>
+                <div style="font-size: 1.2em; margin-bottom: 10px;"><strong>Validaciones</strong></div>
+                ${validacionesHTML}
             </div>
         </div>
     `;
@@ -855,192 +826,7 @@ function showStatus(type, message) {
     }
 }
 
-// [Todas las funciones auxiliares existentes se mantienen igual...]
-// obtenerDatosSIESA, buscarSiesa, calcularEstado, etc.
-
-// Funciones auxiliares (mantener las existentes)
-async function obtenerDatosSIESA() {
-    try {
-        const siesaResp = await fetchSheetData(SPREADSHEET_IDS.SIESA, "SIESA!A2:G");
-        const siesaV2Resp = await fetchSheetData(SPREADSHEET_IDS.SIESA, "SIESA_V2!A2:D");
-        
-        const siesaData = {};
-        const siesaV2Data = {};
-        
-        // Procesar SIESA principal - CALCULAR LOTE SIESA
-        (siesaResp.values || []).forEach((row) => {
-            const nroDocumento = String(row[1] || "").trim();
-            if (nroDocumento) {
-                const razonSocial = String(row[3] || "").trim();
-                const nit = normalizarNitDesdeRazonSocial(razonSocial);
-                const fechaSiesa = normalizarFechaSiesa(String(row[2] || ""));
-                const doctoReferencia = String(row[4] || "").trim();
-                const notas = String(row[5] || "").trim();
-                const compaa = String(row[6] || "").trim();
-                
-                const loteSiesa = calcularLoteSiesa(compaa, doctoReferencia, notas);
-                
-                siesaData[nroDocumento] = {
-                    estado: String(row[0] || "").trim(),
-                    nro_documento: nroDocumento,
-                    fecha: fechaSiesa,
-                    razon_social: razonSocial,
-                    nit: nit,
-                    docto_referencia: doctoReferencia,
-                    notas: notas,
-                    compaa: compaa,
-                    lote: loteSiesa
-                };
-            }
-        });
-        
-        // Procesar SIESA_V2 - SUMAR cantidades
-        (siesaV2Resp.values || []).forEach(row => {
-            const nroDocumento = String(row[0] || "").trim();
-            if (nroDocumento) {
-                if (!siesaV2Data[nroDocumento]) {
-                    siesaV2Data[nroDocumento] = {};
-                }
-                
-                const referencia = String(row[2] || "").trim();
-                const cantidad = Number(row[3]) || 0;
-                
-                if (referencia) {
-                    if (!siesaV2Data[nroDocumento][referencia]) {
-                        siesaV2Data[nroDocumento][referencia] = 0;
-                    }
-                    siesaV2Data[nroDocumento][referencia] += cantidad;
-                }
-            }
-        });
-        
-        const datosUnificados = {};
-        
-        // Combinar datos - USAR SOLO LOTE SIESA PARA LAS CLAVES
-        for (const [nroDocumento, datosSiesa] of Object.entries(siesaData)) {
-            const itemsV2 = siesaV2Data[nroDocumento] || {};
-            const loteSiesa = datosSiesa.lote;
-            
-            for (const [referencia, cantidadTotal] of Object.entries(itemsV2)) {
-                const nit = String(datosSiesa.nit || "").trim();
-                
-                if (referencia && nit && cantidadTotal > 0 && loteSiesa) {
-                    const clave = `${referencia}_${nit}_${cantidadTotal}_${loteSiesa}`;
-                    
-                    datosUnificados[clave] = {
-                        estado: datosSiesa.estado,
-                        nro_documento: datosSiesa.nro_documento,
-                        fecha: datosSiesa.fecha,
-                        cantidad_inv: cantidadTotal,
-                        referencia: referencia,
-                        nit: nit,
-                        lote: loteSiesa,
-                        docto_referencia: datosSiesa.docto_referencia,
-                        notas: datosSiesa.notas,
-                        compaa: datosSiesa.compaa
-                    };
-                }
-            }
-        }
-        
-        console.log(`Datos SIESA unificados: ${Object.keys(datosUnificados).length} registros`);
-        return datosUnificados;
-        
-    } catch (error) {
-        console.error("Error obteniendo datos de SIESA:", error);
-        return {};
-    }
-}
-
-function buscarSiesa(siesaData, refprov, nit, cantidad, lote) {
-    const CLIENTES_FILTRADOS = ["900047252", "805027653"];
-    if (!CLIENTES_FILTRADOS.includes(nit)) {
-        return null;
-    }
-    
-    const refprovLimpio = String(refprov || "").trim();
-    const nitLimpio = String(nit || "").trim();
-    const cantidadLimpia = Number(cantidad) || 0;
-    const loteLimpio = String(lote || "").trim().replace(/\D/g, "");
-    
-    if (!refprovLimpio || !nitLimpio || cantidadLimpia <= 0 || !loteLimpio) {
-        return null;
-    }
-    
-    const clave = `${refprovLimpio}_${nitLimpio}_${cantidadLimpia}_${loteLimpio}`;
-    
-    console.log(`Buscando SIESA con clave: ${clave}`);
-    
-    if (siesaData[clave]) {
-        console.log(`✓ Encontrado en SIESA`);
-        return siesaData[clave];
-    }
-    
-    console.log(`✗ No encontrado en SIESA`);
-    return null;
-}
-
-function calcularEstado(factura, siesaNroDocumento) {
-    const facturaLimpia = String(factura || "").trim();
-    const siesaLimpio = String(siesaNroDocumento || "").trim();
-    
-    if (!facturaLimpia && !siesaLimpio) {
-        return "SIN DATOS";
-    }
-    
-    if (facturaLimpia && siesaLimpio) {
-        if (facturaLimpia === siesaLimpio) {
-            return "ENTREGADO";
-        } else {
-            return "VALIDAR";
-        }
-    }
-    
-    if (siesaLimpio && !facturaLimpia) {
-        return "PENDIENTE";
-    }
-    
-    return "VALIDAR";
-}
-
-function calcularValidacion(lote, siesaLote) {
-    if (!lote || !siesaLote) return false;
-    
-    const loteLimpio = String(lote).trim().replace(/\D/g, '');
-    const siesaLoteLimpio = String(siesaLote).trim().replace(/\D/g, '');
-    
-    return loteLimpio === siesaLoteLimpio;
-}
-
-function obtenerSemanasPorReferenciaYCliente(referencia, cliente) {
-    if (!referencia || !cliente) return "";
-    
-    const refLimpia = String(referencia).trim();
-    const clienteLimpio = String(cliente).trim();
-    
-    const claveCompleta = `${refLimpia}_${clienteLimpio}`;
-    if (semanasData[claveCompleta]) {
-        return semanasData[claveCompleta];
-    }
-    
-    if (semanasData[refLimpia]) {
-        return semanasData[refLimpia];
-    }
-    
-    const refSoloNumeros = refLimpia.replace(/[^0-9]/g, '');
-    if (refSoloNumeros && refSoloNumeros !== refLimpia) {
-        const claveNumerica = `${refSoloNumeros}_${clienteLimpio}`;
-        if (semanasData[claveNumerica]) {
-            return semanasData[claveNumerica];
-        }
-        if (semanasData[refSoloNumeros]) {
-            return semanasData[refSoloNumeros];
-        }
-    }
-    
-    return "";
-}
-
+// [Las funciones restantes se mantienen igual...]
 async function obtenerDatosDistribucion() {
     try {
         const distribucionResp = await fetchSheetData(SPREADSHEET_IDS.DISTRIBUCION, "DATA!A1:C");
@@ -1098,6 +884,21 @@ async function obtenerDatosSoportes() {
     } catch (error) {
         console.error("Error obteniendo datos de soportes:", error);
         return {};
+    }
+}
+
+async function fetchSheetData(spreadsheetId, range) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error obteniendo datos de ${spreadsheetId}:`, error);
+        throw error;
     }
 }
 
@@ -1335,32 +1136,83 @@ function extraerNumeroLote(texto) {
     return "";
 }
 
-function limpiarTextoCSV(texto) {
-    if (!texto) return '';
-    return String(texto)
-        .replace(/"/g, '""')
-        .replace(/;/g, ',')
-        .replace(/\n/g, ' ')
-        .replace(/\r/g, ' ')
-        .replace(/\t/g, ' ');
-}
+ // Variable global para la URL del Web App
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyk5SZiTTJm6GYXEe5RWvvmihHALfnKD6m95gfrZ2D-om2Tu3Hyuz-nsPMc-r46sUdg/exec'; // Reemplazar con tu URL real
 
-function formatoNumeroExcel(numero) {
-    if (numero === null || numero === undefined) return '';
-    return String(numero).replace(',', '.');
-}
+    // Event Listener para el nuevo botón
+    document.getElementById('enviarPostBtn').addEventListener('click', enviarDatosPost);
 
-async function fetchSheetData(spreadsheetId, range) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
-    
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+    // Función para enviar datos via POST
+    async function enviarDatosPost() {
+        if (currentData.length === 0) {
+            showStatus('error', 'No hay datos para enviar');
+            return;
         }
-        return await response.json();
-    } catch (error) {
-        console.error(`Error obteniendo datos de ${spreadsheetId}:`, error);
-        throw error;
+
+        showLoading(true);
+        showStatus('info', 'Enviando datos a Google Sheets...');
+
+        try {
+            // Preparar datos para enviar (sin funciones, solo datos simples)
+            const datosParaEnviar = currentData.map(registro => ({
+                DOCUMENTO: registro.DOCUMENTO,
+                FECHA: registro.FECHA,
+                LOTE: registro.LOTE,
+                REFPROV: registro.REFPROV,
+                DESCRIPCION: registro.DESCRIPCION,
+                REFERENCIA: registro.REFERENCIA,
+                TIPO: registro.TIPO,
+                PVP: registro.PVP,
+                PRENDA: registro.PRENDA,
+                GENERO: registro.GENERO,
+                PROVEEDOR: registro.PROVEEDOR,
+                CLASE: registro.CLASE,
+                FUENTE: registro.FUENTE,
+                NIT: registro.NIT,
+                CLIENTE: registro.CLIENTE,
+                CANTIDAD: registro.CANTIDAD,
+                FACTURA: registro.FACTURA,
+                URL_IH3: registro.URL_IH3,
+                SIESA_ESTADO: registro.SIESA_ESTADO,
+                SIESA_NRO_DOCUMENTO: registro.SIESA_NRO_DOCUMENTO,
+                SIESA_FECHA: registro.SIESA_FECHA,
+                SIESA_CANTIDAD_INV: registro.SIESA_CANTIDAD_INV,
+                ESTADO: registro.ESTADO,
+                SEMANAS: registro.SEMANAS,
+                KEY: registro.KEY,
+                VALIDACION: registro.VALIDACION,
+                SIESA_LOTE: registro.SIESA_LOTE
+            }));
+
+            // Crear form data para el POST
+            const formData = new FormData();
+            formData.append('action', 'pegarDatos');
+            formData.append('datos', JSON.stringify(datosParaEnviar));
+
+            // Enviar via POST
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showStatus('success', `✓ ${result.message} - ${result.data.registrosPegados} registros enviados`);
+            } else {
+                showStatus('error', `✗ Error: ${result.message}`);
+            }
+
+        } catch (error) {
+            console.error('Error enviando datos POST:', error);
+            showStatus('error', `Error de conexión: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
     }
-}
+
+    // Mostrar el botón después de cargar datos
+    // En la función loadData, agregar esta línea después de mostrar los otros botones:
+    exportCSVBtn.style.display = 'inline-block';
+    exportSinSemanasBtn.style.display = 'inline-block';
+    enviarPostBtn.style.display = 'inline-block'; // ← Esta línea nueva
