@@ -1,31 +1,28 @@
-// Service Worker optimizado para múltiples vistas
-const CACHE_NAME = 'wms-multi-view-cache-v3';
+// sw.js - Service Worker SIN CACHE DE DATOS
+const CACHE_NAME = 'wms-static-cache-v1';
 const BASE = (new URL('.', self.location)).href;
 
-// Assets críticos para caching
-const CRITICAL_ASSETS = [
+// Solo assets críticos estáticos - NO DATOS
+const STATIC_ASSETS = [
     './',
     './index.html',
-    './pda.html', 
+    './pda.html',
     './manual.html',
-    './config.html',
     './css/styles.css',
     './css/pda.css',
     './css/manual.css',
-    './css/mode-selector.css',
+    './css/index.css',
     './js/app.js',
     './js/pda.js',
     './js/manual.js',
-    './js/config.js',
-    './js/camera.js',
-    './js/mode-selector.js',
+    './js/index.js',
     './manifest.json'
 ].map(url => new URL(url, BASE).href);
 
-// Assets de iconos
+// Solo iconos - NO DATOS
 const ICON_ASSETS = [
     'icons/icon-192.png',
-    'icons/icon-256.png', 
+    'icons/icon-256.png',
     'icons/icon-384.png',
     'icons/icon-512.png',
     'icons/icon-512-maskable.png',
@@ -33,37 +30,36 @@ const ICON_ASSETS = [
     'icons/favicon.ico'
 ].map(p => new URL(p, BASE).href);
 
-// Recursos externos para cache
+// Recursos externos
 const EXTERNAL_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
     'https://unpkg.com/@zxing/library@latest'
 ];
 
-// Instalación
+// Instalación - Solo assets estáticos
 self.addEventListener('install', (event) => {
-    console.log('Service Worker instalando...');
+    console.log('🟢 Service Worker instalando (SIN CACHE DE DATOS)...');
     
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Cacheando assets críticos...');
-                return cache.addAll(CRITICAL_ASSETS)
-                    .then(() => cache.addAll(ICON_ASSETS))
+                console.log('📦 Cacheando solo assets estáticos...');
+                return cache.addAll([...STATIC_ASSETS, ...ICON_ASSETS])
                     .then(() => {
-                        console.log('✅ Assets cacheados');
+                        console.log('✅ Assets estáticos cacheados');
                         return self.skipWaiting();
                     });
             })
             .catch(err => {
-                console.log('Error cacheando assets:', err);
+                console.log('⚠️ Error cacheando assets estáticos:', err);
                 return self.skipWaiting();
             })
     );
 });
 
-// Activación
+// Activación - Limpiar caches antiguos
 self.addEventListener('activate', (event) => {
-    console.log('Service Worker activando...');
+    console.log('🔵 Service Worker activando...');
     
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -77,43 +73,36 @@ self.addEventListener('activate', (event) => {
             );
         })
         .then(() => {
-            console.log('Service Worker activado');
+            console.log('✅ Service Worker activado - SIN CACHE DE DATOS');
             return self.clients.claim();
         })
     );
 });
 
-// Estrategia de fetch
+// Estrategia de fetch - NO CACHEAR DATOS
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // Evitar cachear requests de APIs y cámara
+    // BLOQUEAR COMPLETAMENTE el cache de Google Sheets y APIs de datos
     if (request.url.includes('googleapis.com') || 
-        request.url.includes('zxing') ||
-        request.destination === 'video' ||
+        request.url.includes('spreadsheets') ||
+        request.url.includes('/data/') ||
+        request.url.includes('/api/') ||
         request.method !== 'GET') {
+        // Pasar directamente a network - SIN CACHE
+        console.log('🚫 Bloqueando cache para:', request.url);
         return;
     }
 
-    // Para navegación - Network First
+    // Para navegación - Network Only (si falla, usar cache estático)
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
-                .then(response => {
-                    if (response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return response;
-                })
                 .catch(() => {
                     return caches.match(request)
                         .then(cached => {
                             if (cached) return cached;
-                            // Fallback a index.html
                             return caches.match(new URL('./index.html', BASE).href);
                         });
                 })
@@ -122,40 +111,43 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Para recursos estáticos - Cache First
-    event.respondWith(
-        caches.match(request)
-            .then(cachedResponse => {
-                if (cachedResponse) {
-                    // Actualizar en segundo plano
-                    fetch(request).then(response => {
-                        if (response.status === 200) {
-                            caches.open(CACHE_NAME).then(cache => {
-                                cache.put(request, response);
-                            });
-                        }
-                    });
-                    return cachedResponse;
-                }
-                
-                return fetch(request)
-                    .then(response => {
-                        if (response.status === 200) {
-                            const responseClone = response.clone();
-                            caches.open(CACHE_NAME).then(cache => {
-                                cache.put(request, responseClone);
-                            });
-                        }
-                        return response;
-                    })
-                    .catch(() => {
-                        // Fallback para iconos
-                        if (request.destination === 'image') {
-                            return caches.match(new URL('icons/icon-192.png', BASE).href);
-                        }
-                        return new Response('', { status: 408 });
-                    });
-            })
-    );
+    if (request.destination === 'style' || 
+        request.destination === 'script' || 
+        request.destination === 'image' ||
+        request.destination === 'font') {
+        
+        event.respondWith(
+            caches.match(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    
+                    return fetch(request)
+                        .then(response => {
+                            // Solo cachear si es un asset estático válido
+                            if (response.status === 200) {
+                                const responseClone = response.clone();
+                                caches.open(CACHE_NAME).then(cache => {
+                                    cache.put(request, responseClone);
+                                });
+                            }
+                            return response;
+                        })
+                        .catch(() => {
+                            // Fallback para iconos
+                            if (request.destination === 'image') {
+                                return caches.match(new URL('icons/icon-192.png', BASE).href);
+                            }
+                            return new Response('', { status: 408 });
+                        });
+                })
+        );
+        return;
+    }
+
+    // Estrategia por defecto: Network Only
+    event.respondWith(fetch(request));
 });
 
 // Manejar mensajes
@@ -165,4 +157,4 @@ self.addEventListener('message', (event) => {
     }
 });
 
-console.log('Service Worker cargado - Soporte multi-vista');
+console.log('🎯 Service Worker cargado - SIN CACHE DE DATOS');

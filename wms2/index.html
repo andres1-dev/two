@@ -4,71 +4,252 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="light">
-    <title>PWA-WMS - Selección de Modo</title>
-    <meta name="theme-color" content="#ffffff">
+    <title>PWA-WMS - Sistema de Gestión</title>
+    <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="WMS">
+    <meta name="apple-mobile-web-app-title" content="WMS Sistema">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
     <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/mode-selector.css">
+    <link rel="stylesheet" href="css/index.css">
 </head>
-<body>
+<body class="index-mode">
     <div class="top-safe-area" aria-hidden="true"></div>
-    <div class="mode-selector-container">
-        <header class="mode-header">
-            <div class="logo">
-                <i class="fab fa-github"></i>
+    
+    <div class="wrap">
+        <header class="index-header">
+            <div class="brand">
+                <div class="logo"><i class="fab fa-github"></i></div>
+                <div class="brand-text">
+                    <h1>PWA-WMS</h1>
+                    <div class="sub">Sistema de Gestión de Inventarios</div>
+                </div>
             </div>
-            <h1>PWA-WMS</h1>
-            <p>Selecciona el modo de operación</p>
+            
+            <div class="header-actions">
+                <div class="pill info">
+                    <i class="fas fa-circle"></i> <span>SISTEMA</span>
+                </div>
+            </div>
         </header>
 
-        <div class="mode-cards">
-            <div class="mode-card" id="pdaMode">
-                <div class="mode-icon">
-                    <i class="fas fa-barcode"></i>
+        <div class="main">
+            <div class="welcome-section">
+                <div class="welcome-card">
+                    <div class="welcome-icon">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </div>
+                    <h2>Bienvenido al Sistema WMS</h2>
+                    <p class="welcome-description">
+                        Sistema optimizado para la gestión y control de inventarios mediante escaneo de códigos QR y seguimiento en tiempo real.
+                    </p>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <i class="fas fa-barcode"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="totalScans">0</div>
+                                <div class="stat-label">Escaneos Totales</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="cacheSize">0</div>
+                                <div class="stat-label">Registros en Cache</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h2>Modo PDA</h2>
-                <p>Optimizado para escaneo rápido con enfoque automático en el campo de entrada</p>
-                <ul class="mode-features">
-                    <li><i class="fas fa-check"></i> Vista simplificada</li>
-                    <li><i class="fas fa-check"></i> Foco persistente</li>
-                    <li><i class="fas fa-check"></i> Resultados esenciales</li>
-                </ul>
-                <button class="mode-select-btn">Seleccionar</button>
             </div>
 
-            <div class="mode-card" id="manualMode">
-                <div class="mode-icon">
-                    <i class="fas fa-mobile-alt"></i>
+            <div class="modes-section">
+                <h3 class="section-title">Seleccione Modo de Operación</h3>
+                <p class="section-subtitle">Elija la interfaz que mejor se adapte a sus necesidades</p>
+                
+                <div class="modes-grid">
+                    <!-- Modo PDA -->
+                    <div class="mode-card pda-mode-card" id="pdaMode">
+                        <div class="mode-header">
+                            <div class="mode-icon">
+                                <i class="fas fa-barcode"></i>
+                            </div>
+                            <div class="mode-badge">RÁPIDO</div>
+                        </div>
+                        
+                        <div class="mode-content">
+                            <h4>Modo PDA</h4>
+                            <p class="mode-description">
+                                Optimizado para escaneo continuo con dispositivos de mano. Interfaz minimalista y enfoque automático.
+                            </p>
+                            
+                            <ul class="mode-features">
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Foco persistente en campo de escaneo</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Vista simplificada de resultados</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Optimizado para escaneo rápido</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Navegación con teclas</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mode-footer">
+                            <button class="mode-select-btn primary" onclick="selectMode('pda')">
+                                <i class="fas fa-play"></i>
+                                Iniciar Modo PDA
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modo Manual -->
+                    <div class="mode-card manual-mode-card" id="manualMode">
+                        <div class="mode-header">
+                            <div class="mode-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="mode-badge">COMPLETO</div>
+                        </div>
+                        
+                        <div class="mode-content">
+                            <h4>Modo Manual</h4>
+                            <p class="mode-description">
+                                Interfaz completa con todas las funcionalidades. Ideal para administración y consultas detalladas.
+                            </p>
+                            
+                            <ul class="mode-features">
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Escáner por cámara integrado</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Vista completa de resultados</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Configuración avanzada</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Visualización de imágenes</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mode-footer">
+                            <button class="mode-select-btn secondary" onclick="selectMode('manual')">
+                                <i class="fas fa-play"></i>
+                                Iniciar Modo Manual
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <h2>Modo Manual</h2>
-                <p>Interfaz completa con todas las funcionalidades y opciones de cámara</p>
-                <ul class="mode-features">
-                    <li><i class="fas fa-check"></i> Vista completa</li>
-                    <li><i class="fas fa-check"></i> Cámara predeterminada</li>
-                    <li><i class="fas fa-check"></i> Todas las opciones</li>
-                </ul>
-                <button class="mode-select-btn">Seleccionar</button>
+            </div>
+
+            <div class="quick-actions-section">
+                <div class="quick-actions-card">
+                    <h4>Acciones Rápidas</h4>
+                    <div class="actions-grid">
+                        <button class="action-btn" onclick="checkSystemStatus()">
+                            <i class="fas fa-heartbeat"></i>
+                            <span>Estado del Sistema</span>
+                        </button>
+                        <button class="action-btn" onclick="clearCache()">
+                            <i class="fas fa-broom"></i>
+                            <span>Limpiar Caché</span>
+                        </button>
+                        <button class="action-btn" onclick="showSettings()">
+                            <i class="fas fa-cog"></i>
+                            <span>Configuración</span>
+                        </button>
+                        <button class="action-btn" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Ayuda</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="config-link">
-            <a href="config.html">
-                <i class="fas fa-cog"></i> Configuración avanzada
-            </a>
-        </div>
-
-        <footer class="mode-footer">
-            <div>Desarrollado por Andrés Mendoza</div>
+        <footer class="index-footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="version">v2.1.0</div>
+                    <div class="connection-status">
+                        <i class="fas fa-wifi"></i>
+                        <span>Conectado</span>
+                    </div>
+                </div>
+                <div class="developer">
+                    Desarrollado por <strong>Andrés Mendoza</strong>
+                </div>
+            </div>
         </footer>
     </div>
 
-    <script src="js/mode-selector.js"></script>
+    <!-- Modal de Estado del Sistema -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content status-modal">
+            <button class="close-modal" onclick="closeStatusModal()">
+                <i class="material-icons">close</i>
+            </button>
+            <div class="modal-header">
+                <h3>Estado del Sistema</h3>
+            </div>
+            <div class="modal-body">
+                <div class="status-grid">
+                    <div class="status-item success">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="status-info">
+                            <div class="status-title">Aplicación</div>
+                            <div class="status-value">Operativa</div>
+                        </div>
+                    </div>
+                    <div class="status-item info">
+                        <i class="fas fa-database"></i>
+                        <div class="status-info">
+                            <div class="status-title">Base de Datos</div>
+                            <div class="status-value" id="dbStatus">Conectada</div>
+                        </div>
+                    </div>
+                    <div class="status-item warning">
+                        <i class="fas fa-memory"></i>
+                        <div class="status-info">
+                            <div class="status-title">Caché</div>
+                            <div class="status-value" id="cacheStatus">0 registros</div>
+                        </div>
+                    </div>
+                    <div class="status-item success">
+                        <i class="fas fa-network-wired"></i>
+                        <div class="status-info">
+                            <div class="status-title">Conexión</div>
+                            <div class="status-value">Estable</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/index.js"></script>
 </body>
 </html>

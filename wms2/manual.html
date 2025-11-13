@@ -182,25 +182,18 @@
         </div>
     </div>
 
-<script>
-  (function() {
-    function updateStandaloneClass() {
-      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                        || window.navigator.standalone === true;
-      document.documentElement.classList.toggle('is-standalone', !!isStandalone);
-    }
-    updateStandaloneClass();
-    // también escucha cambios si el modo cambia (poco común)
-    window.matchMedia('(display-mode: standalone)').addEventListener?.('change', updateStandaloneClass);
-  })();
-</script>
-
-    
-    <!-- Quagga2 -->
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-
-    <!-- Html5-QRCode -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+    (function() {
+        function updateStandaloneClass() {
+        var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                            || window.navigator.standalone === true;
+        document.documentElement.classList.toggle('is-standalone', !!isStandalone);
+        }
+        updateStandaloneClass();
+        // también escucha cambios si el modo cambia (poco común)
+        window.matchMedia('(display-mode: standalone)').addEventListener?.('change', updateStandaloneClass);
+    })();
+    </script>
     
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 

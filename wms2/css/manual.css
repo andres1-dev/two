@@ -84,7 +84,15 @@ body {
 }
 
 /* Remove rounded corners / shadow when PWA is standalone (installed) */
-.is-standalone .wrap,
+.is-standalone .wrap {
+  border-radius: 0;
+  box-shadow: none;
+  border: 0;
+  min-height: 100svh;
+  width: 100vw;
+  max-width: 100vw;
+}
+
 @supports (display-mode: standalone) and (pointer: coarse) {
   .wrap {
     border-radius: 0;
@@ -98,7 +106,12 @@ body {
 
 /* Cuando estamos en standalone, forzamos que el body no tenga padding
    (esto evita ver "marco" alrededor de la app que podría mostrar la isla en gris) */
-.is-standalone body,
+.is-standalone body {
+  padding: 0;
+  margin: 0;
+  min-height: 100svh;
+}
+
 @supports (display-mode: standalone) and (pointer: coarse) {
   body {
     padding: 0;
@@ -106,6 +119,7 @@ body {
     min-height: 100svh;
   }
 }
+
 
 /* Si por alguna razón iOS no reconoce display-mode, este selector JS ayuda
    porque el script añade la clase .is-standalone al <html> */
