@@ -1,3 +1,8 @@
+
+
+
+// GET
+
 // Configuración
 const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
 const SPREADSHEET_IDS = {
@@ -1131,3 +1136,84 @@ function extraerNumeroLote(texto) {
     
     return "";
 }
+
+ // Variable global para la URL del Web App
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyk5SZiTTJm6GYXEe5RWvvmihHALfnKD6m95gfrZ2D-om2Tu3Hyuz-nsPMc-r46sUdg/exec'; // Reemplazar con tu URL real
+
+    // Event Listener para el nuevo botón
+    document.getElementById('enviarPostBtn').addEventListener('click', enviarDatosPost);
+
+    // Función para enviar datos via POST
+    async function enviarDatosPost() {
+        if (currentData.length === 0) {
+            showStatus('error', 'No hay datos para enviar');
+            return;
+        }
+
+        showLoading(true);
+        showStatus('info', 'Enviando datos a Google Sheets...');
+
+        try {
+            // Preparar datos para enviar (sin funciones, solo datos simples)
+            const datosParaEnviar = currentData.map(registro => ({
+                DOCUMENTO: registro.DOCUMENTO,
+                FECHA: registro.FECHA,
+                LOTE: registro.LOTE,
+                REFPROV: registro.REFPROV,
+                DESCRIPCION: registro.DESCRIPCION,
+                REFERENCIA: registro.REFERENCIA,
+                TIPO: registro.TIPO,
+                PVP: registro.PVP,
+                PRENDA: registro.PRENDA,
+                GENERO: registro.GENERO,
+                PROVEEDOR: registro.PROVEEDOR,
+                CLASE: registro.CLASE,
+                FUENTE: registro.FUENTE,
+                NIT: registro.NIT,
+                CLIENTE: registro.CLIENTE,
+                CANTIDAD: registro.CANTIDAD,
+                FACTURA: registro.FACTURA,
+                URL_IH3: registro.URL_IH3,
+                SIESA_ESTADO: registro.SIESA_ESTADO,
+                SIESA_NRO_DOCUMENTO: registro.SIESA_NRO_DOCUMENTO,
+                SIESA_FECHA: registro.SIESA_FECHA,
+                SIESA_CANTIDAD_INV: registro.SIESA_CANTIDAD_INV,
+                ESTADO: registro.ESTADO,
+                SEMANAS: registro.SEMANAS,
+                KEY: registro.KEY,
+                VALIDACION: registro.VALIDACION,
+                SIESA_LOTE: registro.SIESA_LOTE
+            }));
+
+            // Crear form data para el POST
+            const formData = new FormData();
+            formData.append('action', 'pegarDatos');
+            formData.append('datos', JSON.stringify(datosParaEnviar));
+
+            // Enviar via POST
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showStatus('success', `✓ ${result.message} - ${result.data.registrosPegados} registros enviados`);
+            } else {
+                showStatus('error', `✗ Error: ${result.message}`);
+            }
+
+        } catch (error) {
+            console.error('Error enviando datos POST:', error);
+            showStatus('error', `Error de conexión: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Mostrar el botón después de cargar datos
+    // En la función loadData, agregar esta línea después de mostrar los otros botones:
+    exportCSVBtn.style.display = 'inline-block';
+    exportSinSemanasBtn.style.display = 'inline-block';
+    enviarPostBtn.style.display = 'inline-block'; // ← Esta línea nueva
