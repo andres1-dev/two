@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>PWA-WMS - Modo PDA</title>
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WMS PDA">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pda.css">
+</head>
+<body class="pda-mode">
+    <div class="top-safe-area" aria-hidden="true"></div>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo"><i class="fab fa-github"></i></div>
+                <div class="brand-text">
+                    <h1>PWA-WMS</h1>
+                    <div class="sub">Modo PDA - Escaneo rápido</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div id="pill-status" class="pill info">
+                    <i class="fas fa-circle"></i> <span id="status-text">LISTO</span>
+                </div>
+                <div id="pill-count" class="pill"><i class="fas fa-database"></i> 0</div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="left">
+                <div class="card scanner" aria-label="Escáner PDA">
+                    <div class="scan-qr">
+                        <i class="fas fa-qrcode" id="scannerIcon"></i>
+                    </div>
+
+                    <div class="scan-text">Apunte con el láser del PDA o escriba el código</div>
+
+                    <!-- Input para PDA -->
+                    <input type="text" 
+                           id="qrInput" 
+                           class="qr-input" 
+                           placeholder="Escanee con láser o escriba el código..."
+                           autocomplete="off" 
+                           autofocus />
+
+                    <div class="fake-focus">
+                        <div class="fake-left">
+                            <i class="fas fa-key" style="opacity:.7"></i>
+                            <div class="hint"><strong id="lastScanned">—</strong></div>
+                        </div>
+                        <div style="font-size:11px;color:var(--muted)">CDI</div>
+                    </div>
+                </div>
+
+                <div class="card week">
+                    <div class="week-bubble" id="weekNumber">—</div>
+                    <div class="week-meta">
+                        <div class="week-label">SEMANA ACTUAL</div>
+                        <div class="week-desc">Información de inventario por semana</div>
+                    </div>
+                </div>
+
+                <div class="card quick-actions">
+                    <div class="action-buttons">
+                        <button class="action-btn" id="refreshData">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Actualizar Datos</span>
+                        </button>
+                        <button class="action-btn" id="goHome">
+                            <i class="fas fa-home"></i>
+                            <span>Volver al Inicio</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="card">
+                    <div class="result-head">
+                        <div>
+                            <div class="title">Resultados Esenciales</div>
+                            <div class="meta">Solo información crítica</div>
+                        </div>
+                    </div>
+
+                    <!-- En la sección de resultados, actualizar el empty state: -->
+                    <div id="resultArea">
+                        <div class="pda-empty-state">
+                            <i class="material-icons">qr_code_2</i>
+                            <div>Escanee un código QR para ver los detalles</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Y en el card de caché al final: -->
+                <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding: 12px 16px;">
+                    <div style="font-size:13px;color:var(--muted)">Caché: <span id="cacheCount">0</span> registros</div>
+                    <div style="font-size:13px;color:var(--muted)" id="cacheAge">— min</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div>Modo PDA - Escaneo rápido</div>
+            <div>Desarrollado por Andrés Mendoza</div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pda.js"></script>
+</body>
+</html>

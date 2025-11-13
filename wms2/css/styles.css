@@ -1,0 +1,27 @@
+/* Agregar al final del archivo styles.css existente */
+
+/* Mejoras para modo PDA */
+.pda-mode .qr-input {
+    background: #fbfdff !important;
+    border: 2px solid var(--primary) !important;
+}
+
+.pda-mode .qr-input:focus {
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Ocultar elementos no necesarios en PDA */
+.pda-mode .camera-btn,
+.pda-mode #configCard {
+    display: none !important;
+}
+
+/* Asegurar que el diseño se mantenga igual */
+.pda-mode .wrap {
+    background: #ffffff;
+}
+
+.pda-mode .card {
+    background: #ffffff;
+}
