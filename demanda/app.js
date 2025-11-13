@@ -1035,15 +1035,6 @@ function getProveedorByLinea(linea) {
         : "TEXTILES Y CREACIONES EL UNIVERSO SAS";
 }
 
-/*function getClaseByPVP(pvp) {
-    const valor = parseFloat(pvp);
-    if (isNaN(valor)) return "NO DEFINIDO";
-    if (valor <= 39900) return "LINEA";
-    if (valor > 39900 && valor <= 59900) return "MODA";
-    if (valor > 59900) return "PRONTAMODA";
-    return "NO DEFINIDO";
-}*/
-
 function getClaseByPVP(pvp) {
     const valor = parseFloat(pvp);
     if (isNaN(valor)) return;
