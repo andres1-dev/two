@@ -69,6 +69,9 @@ const summaryElement = document.getElementById('summary');
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
+    // Ocultar botón de cargar datos inicialmente
+    loadDataBtn.style.display = 'none';
+    
     // Establecer fechas por defecto (último mes)
     const rangoFechas = calcularRangoFechas();
     currentFilters.fechaInicio = rangoFechas.fechaInicio;
@@ -82,12 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
     asignarSemanasBtn.addEventListener('click', mostrarModalSemanas);
     
     // Event Listeners del modal
-    document.getElementById('aplicarFiltroSemanas').addEventListener('click', aplicarFiltroSemanas);
-    document.getElementById('aplicarSemanas').addEventListener('click', aplicarSemanasSeleccionadas);
-    document.getElementById('guardarSemanas').addEventListener('click', guardarSemanasEnSheets);
-    
-    // Cerrar modal
     document.querySelector('.close').addEventListener('click', cerrarModal);
+    
+    // Cerrar modal al hacer click fuera
     window.addEventListener('click', function(event) {
         if (event.target === document.getElementById('semanasModal')) {
             cerrarModal();
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar datos automáticamente al iniciar
     setTimeout(() => {
         loadData();
-    }, 1000);
+    }, 0);
 });
 
 // Funciones principales
@@ -113,7 +113,8 @@ async function loadData() {
         showStatus('success', `Proceso completado: ${data.registros} registros encontrados`);
         displaySummary(data);
         
-        // Mostrar botones
+        // Mostrar botones incluyendo el de recargar datos
+        loadDataBtn.style.display = 'inline-block';
         exportCSVBtn.style.display = 'inline-block';
         exportSinSemanasBtn.style.display = 'inline-block';
         enviarPostBtn.style.display = 'inline-block';
@@ -124,6 +125,163 @@ async function loadData() {
         showStatus('error', `Error: ${error.message}`);
     } finally {
         showLoading(false);
+    }
+}
+
+function mostrarModalSemanas() {
+    if (currentData.length === 0) {
+        showStatus('error', 'No hay datos cargados');
+        return;
+    }
+    
+    // Filtrar registros sin semanas DESDE CURRENTDATA ACTUALIZADO
+    registrosSinSemanas = currentData.filter(registro => 
+        !registro.SEMANAS || registro.SEMANAS === ""
+    );
+    
+    if (registrosSinSemanas.length === 0) {
+        showStatus('info', 'No hay registros sin asignación de semanas');
+        return;
+    }
+    
+    // Actualizar contadores
+    document.getElementById('countSinSemanas').textContent = registrosSinSemanas.length;
+    
+    // Obtener clientes únicos
+    const clientesUnicos = [...new Set(registrosSinSemanas.map(r => r.CLIENTE))].sort();
+    
+    document.getElementById('countClientes').textContent = clientesUnicos.length;
+    
+    // Llenar select de filtro de cliente
+    const selectCliente = document.getElementById('filtroCliente');
+    selectCliente.innerHTML = '<option value="">Todos los clientes</option>';
+    
+    clientesUnicos.forEach(cliente => {
+        const option = document.createElement('option');
+        option.value = cliente;
+        option.textContent = cliente;
+        selectCliente.appendChild(option);
+    });
+    
+    // Configurar event listeners del modal
+    configurarEventListenersModal();
+    
+    // Mostrar todos los registros inicialmente
+    registrosFiltrados = [...registrosSinSemanas];
+    actualizarListaRegistros();
+    
+    // Mostrar modal
+    document.getElementById('semanasModal').style.display = 'block';
+}
+
+function configurarEventListenersModal() {
+    // Limpiar event listeners anteriores
+    const selectCliente = document.getElementById('filtroCliente');
+    const nuevoSelect = selectCliente.cloneNode(true);
+    selectCliente.parentNode.replaceChild(nuevoSelect, selectCliente);
+    
+    const guardarBtn = document.getElementById('guardarSemanas');
+    const nuevoGuardarBtn = guardarBtn.cloneNode(true);
+    guardarBtn.parentNode.replaceChild(nuevoGuardarBtn, guardarBtn);
+    
+    // Configurar nuevos event listeners
+    document.getElementById('filtroCliente').addEventListener('change', aplicarFiltroSemanas);
+    document.getElementById('guardarSemanas').addEventListener('click', guardarSemanasEnSheets);
+    // Agregar nuevos event listeners
+    document.getElementById('descargarPlantilla').addEventListener('click', descargarPlantillaXLSX);
+    document.getElementById('subirPlantilla').addEventListener('click', () => {
+        document.getElementById('archivoPlantilla').click();
+    });
+    document.getElementById('archivoPlantilla').addEventListener('change', subirPlantillaXLSX);
+}
+
+function aplicarFiltroSemanas() {
+    const clienteFiltro = document.getElementById('filtroCliente').value;
+    
+    // Usar la variable actualizada registrosSinSemanas
+    registrosFiltrados = registrosSinSemanas.filter(registro => {
+        return !clienteFiltro || registro.CLIENTE === clienteFiltro;
+    });
+    
+    actualizarListaRegistros();
+}
+
+function aplicarSemanasMasivas() {
+    const semanasInput = document.getElementById('semanasBulkInput').value.trim();
+    
+    if (!semanasInput) {
+        showStatus('error', 'Por favor ingresa las semanas para asignación masiva');
+        return;
+    }
+    
+    if (registrosFiltrados.length === 0) {
+        showStatus('error', 'No hay registros filtrados para asignar semanas');
+        return;
+    }
+    
+    // Aplicar a todos los registros filtrados
+    registrosFiltrados.forEach(registro => {
+        registro.SEMANAS_ASIGNADAS = semanasInput;
+    });
+    
+    // Actualizar la vista
+    actualizarListaRegistros();
+    
+    showStatus('success', `Semanas aplicadas a ${registrosFiltrados.length} registros`);
+    
+    // Limpiar el input
+    document.getElementById('semanasBulkInput').value = '';
+}
+
+function actualizarListaRegistros() {
+    const lista = document.getElementById('listaRegistros');
+    lista.innerHTML = '';
+    
+    if (registrosFiltrados.length === 0) {
+        lista.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px;"></i>
+                <p>No hay registros que coincidan con el filtro</p>
+            </div>
+        `;
+        return;
+    }
+    
+    registrosFiltrados.forEach((registro, index) => {
+        const item = document.createElement('div');
+        item.className = 'registro-item';
+        item.dataset.index = index;
+        
+        item.innerHTML = `
+            <div class="registro-cliente">${registro.CLIENTE}</div>
+            <div class="registro-referencia">${registro.REFERENCIA}</div>
+            <div class="registro-cantidad">${registro.CANTIDAD}</div>
+            <div class="registro-semanas">
+                <input type="number" 
+                       class="registro-semanas-input" 
+                       placeholder="1-52"
+                       min="1"
+                       max="52"
+                       value="${registro.SEMANAS_ASIGNADAS || ''}"
+                       onchange="actualizarSemanasRegistro(${index}, this.value)"
+                       onblur="actualizarSemanasRegistro(${index}, this.value)">
+            </div>
+        `;
+        
+        lista.appendChild(item);
+    });
+}
+
+function validarInputSemanas(input) {
+    // Permitir solo números, guiones, comas y espacios
+    input.value = input.value.replace(/[^\d\-, ]/g, '');
+    
+    // Obtener el índice del registro
+    const registroItem = input.closest('.registro-item');
+    if (registroItem) {
+        const index = parseInt(registroItem.dataset.index);
+        // Actualizar automáticamente al escribir
+        actualizarSemanasRegistro(index, input.value);
     }
 }
 
@@ -445,172 +603,55 @@ function generarYDescargarCSV(datos, tipo) {
     showStatus('success', `Archivo ${tipo === 'sin_semanas' ? 'sin semanas' : 'completo'} generado correctamente`);
 }
 
-// Funciones para asignación de semanas
-function mostrarModalSemanas() {
-    if (currentData.length === 0) {
-        showStatus('error', 'No hay datos cargados');
-        return;
-    }
-    
-    // Filtrar registros sin semanas
-    registrosSinSemanas = currentData.filter(registro => 
-        !registro.SEMANAS || registro.SEMANAS === ""
-    );
-    
-    if (registrosSinSemanas.length === 0) {
-        showStatus('info', 'No hay registros sin asignación de semanas');
-        return;
-    }
-    
-    // Actualizar contadores
-    document.getElementById('countSinSemanas').textContent = registrosSinSemanas.length;
-    
-    // Obtener clientes y referencias únicos
-    const clientesUnicos = [...new Set(registrosSinSemanas.map(r => r.CLIENTE))].sort();
-    const referenciasUnicas = [...new Set(registrosSinSemanas.map(r => r.REFERENCIA))].sort();
-    
-    document.getElementById('countClientes').textContent = clientesUnicos.length;
-    document.getElementById('countReferencias').textContent = referenciasUnicas.length;
-    
-    // Llenar selects de filtro
-    const selectCliente = document.getElementById('filtroCliente');
-    const selectReferencia = document.getElementById('filtroReferencia');
-    
-    selectCliente.innerHTML = '<option value="">Todos los clientes</option>';
-    selectReferencia.innerHTML = '<option value="">Todas las referencias</option>';
-    
-    clientesUnicos.forEach(cliente => {
-        const option = document.createElement('option');
-        option.value = cliente;
-        option.textContent = cliente;
-        selectCliente.appendChild(option);
-    });
-    
-    referenciasUnicas.forEach(ref => {
-        const option = document.createElement('option');
-        option.value = ref;
-        option.textContent = ref;
-        selectReferencia.appendChild(option);
-    });
-    
-    // Mostrar todos los registros inicialmente
-    registrosFiltrados = [...registrosSinSemanas];
-    actualizarListaRegistros();
-    
-    // Mostrar modal
-    document.getElementById('semanasModal').style.display = 'block';
-}
-
-function aplicarFiltroSemanas() {
-    const clienteFiltro = document.getElementById('filtroCliente').value;
-    const referenciaFiltro = document.getElementById('filtroReferencia').value;
-    
-    registrosFiltrados = registrosSinSemanas.filter(registro => {
-        const coincideCliente = !clienteFiltro || registro.CLIENTE === clienteFiltro;
-        const coincideReferencia = !referenciaFiltro || registro.REFERENCIA === referenciaFiltro;
-        return coincideCliente && coincideReferencia;
-    });
-    
-    actualizarListaRegistros();
-}
-
-function actualizarListaRegistros() {
-    const lista = document.getElementById('listaRegistros');
-    lista.innerHTML = '';
-    
-    registrosFiltrados.forEach((registro, index) => {
-        const item = document.createElement('div');
-        item.className = 'registro-item';
-        item.dataset.index = index;
+function actualizarSemanasRegistro(index, semanas) {
+    if (registrosFiltrados[index]) {
+        // Convertir a número y validar
+        const numeroSemanas = parseInt(semanas);
         
-        item.innerHTML = `
-            <div class="registro-cliente">${registro.CLIENTE}</div>
-            <div class="registro-referencia">${registro.REFERENCIA}</div>
-            <div class="registro-cantidad">${registro.CANTIDAD}</div>
-        `;
+        // Asignar automáticamente si es un número válido entre 1 y 52
+        if (!isNaN(numeroSemanas) && numeroSemanas >= 1 && numeroSemanas <= 52) {
+            registrosFiltrados[index].SEMANAS_ASIGNADAS = numeroSemanas.toString();
+        } else {
+            // Si no es válido, eliminar la asignación
+            delete registrosFiltrados[index].SEMANAS_ASIGNADAS;
+        }
         
-        item.addEventListener('click', function() {
-            this.classList.toggle('selected');
-        });
-        
-        lista.appendChild(item);
-    });
-}
-
-function aplicarSemanasSeleccionadas() {
-    const semanasInput = document.getElementById('semanasInput').value.trim();
-    
-    if (!semanasInput) {
-        showStatus('error', 'Por favor ingresa las semanas');
-        return;
-    }
-    
-    // Obtener registros seleccionados
-    const itemsSeleccionados = document.querySelectorAll('.registro-item.selected');
-    
-    if (itemsSeleccionados.length === 0) {
-        // Si no hay selección, aplicar a todos los filtrados
-        registrosFiltrados.forEach(registro => {
-            registro.SEMANAS_ASIGNADAS = semanasInput;
-        });
-    } else {
-        // Aplicar solo a los seleccionados
-        itemsSeleccionados.forEach(item => {
-            const index = parseInt(item.dataset.index);
-            registrosFiltrados[index].SEMANAS_ASIGNADAS = semanasInput;
-        });
-    }
-    
-    actualizarVistaPrevia();
-    showStatus('success', `Semanas aplicadas a ${itemsSeleccionados.length || registrosFiltrados.length} registros`);
-}
-
-function actualizarVistaPrevia() {
-    const preview = document.getElementById('previewSemanas');
-    preview.innerHTML = '';
-    
-    const registrosConSemanas = registrosFiltrados.filter(r => r.SEMANAS_ASIGNADAS);
-    
-    if (registrosConSemanas.length === 0) {
-        preview.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">No hay cambios para mostrar</div>';
-        return;
-    }
-    
-    registrosConSemanas.slice(0, 10).forEach(registro => {
-        const item = document.createElement('div');
-        item.className = 'preview-item';
-        item.innerHTML = `
-            <div class="preview-cliente">${registro.CLIENTE}</div>
-            <div class="preview-referencia">${registro.REFERENCIA}</div>
-            <div class="preview-semanas">${registro.SEMANAS_ASIGNADAS}</div>
-        `;
-        preview.appendChild(item);
-    });
-    
-    if (registrosConSemanas.length > 10) {
-        const mas = document.createElement('div');
-        mas.className = 'preview-item';
-        mas.style.textAlign = 'center';
-        mas.style.color = '#6b7280';
-        mas.textContent = `... y ${registrosConSemanas.length - 10} registros más`;
-        preview.appendChild(mas);
+        // Actualizar visualmente el input
+        const input = document.querySelector(`.registro-item[data-index="${index}"] .registro-semanas-input`);
+        if (input) {
+            if (registrosFiltrados[index].SEMANAS_ASIGNADAS) {
+                input.classList.add('assigned');
+                input.value = registrosFiltrados[index].SEMANAS_ASIGNADAS;
+            } else {
+                input.classList.remove('assigned');
+                input.value = ''; // Limpiar completamente si no es válido
+            }
+        }
     }
 }
 
 async function guardarSemanasEnSheets() {
-    const registrosConSemanas = registrosFiltrados.filter(r => r.SEMANAS_ASIGNADAS);
+    // Recolectar todos los registros que tienen semanas asignadas
+    const todosRegistrosConSemanas = [];
     
-    if (registrosConSemanas.length === 0) {
+    // Revisar todos los registros sin semanas (no solo los filtrados)
+    registrosSinSemanas.forEach(registro => {
+        if (registro.SEMANAS_ASIGNADAS && registro.SEMANAS_ASIGNADAS.trim()) {
+            todosRegistrosConSemanas.push(registro);
+        }
+    });
+    
+    if (todosRegistrosConSemanas.length === 0) {
         showStatus('error', 'No hay semanas asignadas para guardar');
         return;
     }
     
     showLoading(true);
-    showStatus('info', `Guardando ${registrosConSemanas.length} registros en POSTMAN...`);
+    showStatus('info', `Guardando ${todosRegistrosConSemanas.length} registros en Sheets...`);
     
     try {
-        // Preparar datos para enviar - estructura simple y limpia
-        const datosParaEnviar = registrosConSemanas.map(registro => ({
+        // Preparar datos para enviar
+        const datosParaEnviar = todosRegistrosConSemanas.map(registro => ({
             CLIENTE: String(registro.CLIENTE || '').trim(),
             REFERENCIA: String(registro.REFERENCIA || '').trim(),
             SEMANAS: String(registro.SEMANAS_ASIGNADAS || '').trim()
@@ -624,7 +665,7 @@ async function guardarSemanasEnSheets() {
             return;
         }
         
-        // Enviar via POST - usando el mismo formato que pegarDatos
+        // Enviar via POST
         const formData = new FormData();
         formData.append('action', 'guardarSemanas');
         formData.append('datos', JSON.stringify(datosParaEnviar));
@@ -640,35 +681,8 @@ async function guardarSemanasEnSheets() {
         if (result.success) {
             showStatus('success', `✓ ${result.message}`);
             
-            // Actualizar los datos locales
-            registrosConSemanas.forEach(registro => {
-                if (registro.SEMANAS_ASIGNADAS) {
-                    registro.SEMANAS = registro.SEMANAS_ASIGNADAS;
-                    delete registro.SEMANAS_ASIGNADAS;
-                }
-            });
-            
-            // También actualizar en currentData para mantener consistencia
-            currentData.forEach(registro => {
-                const registroActualizado = registrosConSemanas.find(r => 
-                    r.CLIENTE === registro.CLIENTE && 
-                    r.REFERENCIA === registro.REFERENCIA &&
-                    r.SEMANAS_ASIGNADAS
-                );
-                if (registroActualizado) {
-                    registro.SEMANAS = registroActualizado.SEMANAS_ASIGNADAS;
-                }
-            });
-            
-            // Cerrar modal
-            cerrarModal();
-            
-            // Actualizar resumen
-            displaySummary({ 
-                status: "success", 
-                registros: currentData.length, 
-                rangoFechas: currentFilters 
-            });
+            // ACTUALIZACIÓN EN TIEMPO REAL - SIN CERRAR MODAL
+            await actualizarDatosEnTiempoReal(todosRegistrosConSemanas);
             
         } else {
             showStatus('error', `✗ Error: ${result.message}`);
@@ -682,13 +696,81 @@ async function guardarSemanasEnSheets() {
     }
 }
 
-function cerrarModal() {
-    document.getElementById('semanasModal').style.display = 'none';
-    document.getElementById('semanasInput').value = '';
-    document.getElementById('previewSemanas').innerHTML = '';
+// Nueva función para actualizar datos en tiempo real
+async function actualizarDatosEnTiempoReal(registrosActualizados) {
+    try {
+        // 1. Recargar datos de semanas desde Sheets para obtener los más recientes
+        await cargarDatosSemanas();
+        
+        // 2. Actualizar currentData con las semanas asignadas
+        registrosActualizados.forEach(registroActualizado => {
+            // Buscar y actualizar en currentData
+            const indexInCurrentData = currentData.findIndex(r => 
+                r.CLIENTE === registroActualizado.CLIENTE && 
+                r.REFERENCIA === registroActualizado.REFERENCIA
+            );
+            
+            if (indexInCurrentData !== -1 && registroActualizado.SEMANAS_ASIGNADAS) {
+                currentData[indexInCurrentData].SEMANAS = registroActualizado.SEMANAS_ASIGNADAS;
+            }
+        });
+        
+        // 3. Re-filtrar los registros sin semanas desde currentData
+        registrosSinSemanas = currentData.filter(registro => 
+            !registro.SEMANAS || registro.SEMANAS === ""
+        );
+        
+        console.log(`Registros actualizados. Quedan ${registrosSinSemanas.length} sin semanas`);
+        
+        // 4. Actualizar contadores en tiempo real
+        document.getElementById('countSinSemanas').textContent = registrosSinSemanas.length;
+        
+        // 5. Actualizar clientes únicos
+        const clientesUnicos = [...new Set(registrosSinSemanas.map(r => r.CLIENTE))].sort();
+        document.getElementById('countClientes').textContent = clientesUnicos.length;
+        
+        // 6. Actualizar select de filtro de cliente
+        const selectCliente = document.getElementById('filtroCliente');
+        const clienteSeleccionado = selectCliente.value;
+        selectCliente.innerHTML = '<option value="">Todos los clientes</option>';
+        
+        clientesUnicos.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente;
+            option.textContent = cliente;
+            if (cliente === clienteSeleccionado) {
+                option.selected = true;
+            }
+            selectCliente.appendChild(option);
+        });
+        
+        // 7. Re-aplicar filtros y actualizar vista
+        aplicarFiltroSemanas();
+        
+        // 8. Actualizar resumen principal
+        displaySummary({ 
+            status: "success", 
+            registros: currentData.length, 
+            rangoFechas: currentFilters 
+        });
+        
+        showStatus('success', `✓ Datos actualizados automáticamente. Quedan ${registrosSinSemanas.length} registros sin semanas.`);
+        
+    } catch (error) {
+        console.error('Error en actualización en tiempo real:', error);
+        showStatus('error', 'Error al actualizar datos en tiempo real');
+    } finally {
+        showLoading(false);
+    }
 }
 
-// Función para enviar datos via POST a Sheets
+function cerrarModal() {
+    document.getElementById('semanasModal').style.display = 'none';
+    // Limpiar inputs
+    document.getElementById('semanasBulkInput').value = '';
+}
+
+// Modificar la función de enviar datos POST para que también actualice en tiempo real
 async function enviarDatosPost() {
     if (currentData.length === 0) {
         showStatus('error', 'No hay datos para enviar');
@@ -745,6 +827,12 @@ async function enviarDatosPost() {
 
         if (result.success) {
             showStatus('success', `✓ ${result.message} - ${result.data.registrosPegados} registros enviados`);
+            
+            // Recargar datos para mantener consistencia
+            setTimeout(() => {
+                loadData();
+            }, 1000);
+            
         } else {
             showStatus('error', `✗ Error: ${result.message}`);
         }
@@ -757,10 +845,10 @@ async function enviarDatosPost() {
     }
 }
 
-// Funciones de UI
 function displaySummary(data) {
     const estados = currentData.reduce((acc, registro) => {
-        acc[registro.ESTADO] = (acc[registro.ESTADO] || 0) + 1;
+        const estado = registro.ESTADO || 'SIN DATOS';
+        acc[estado] = (acc[estado] || 0) + 1;
         return acc;
     }, {});
 
@@ -774,39 +862,164 @@ function displaySummary(data) {
     const conSemanas = currentData.filter(r => r.SEMANAS && r.SEMANAS !== "").length;
     const sinSemanas = currentData.length - conSemanas;
 
+    // Calcular estadísticas por proveedor
+    const proveedores = currentData.reduce((acc, registro) => {
+        const proveedor = registro.PROVEEDOR || 'Sin proveedor';
+        const proveedorCorto = proveedor.includes('ANGELES') ? 'LOS ANGELES' : 
+                              proveedor.includes('UNIVERSO') ? 'EL UNIVERSO' : proveedor;
+        acc[proveedorCorto] = (acc[proveedorCorto] || 0) + 1;
+        return acc;
+    }, {});
+
+    // Calcular estadísticas por clase
+    const clases = currentData.reduce((acc, registro) => {
+        const clase = registro.CLASE || 'Sin clase';
+        acc[clase] = (acc[clase] || 0) + 1;
+        return acc;
+    }, {});
+
+    // Calcular estadísticas por fuente
+    const fuentes = currentData.reduce((acc, registro) => {
+        const fuente = registro.FUENTE || 'Sin fuente';
+        acc[fuente] = (acc[fuente] || 0) + 1;
+        return acc;
+    }, {});
+
+    // NUEVAS MÉTRICAS DE PRECIOS Y VALORES
+    const totalCantidad = currentData.reduce((acc, registro) => acc + (registro.CANTIDAD || 0), 0);
+    
+    // Calcular valor total de inventario (PVP * CANTIDAD)
+    const valorTotalInventario = currentData.reduce((acc, registro) => {
+        const pvp = parseFloat(registro.PVP) || 0;
+        const cantidad = registro.CANTIDAD || 0;
+        return acc + (pvp * cantidad);
+    }, 0);
+
+    // Valor promedio por unidad
+    const valorPromedioUnidad = totalCantidad > 0 ? valorTotalInventario / totalCantidad : 0;
+
+    // Valor por estado
+    const valorPorEstado = currentData.reduce((acc, registro) => {
+        const estado = registro.ESTADO || 'SIN DATOS';
+        const pvp = parseFloat(registro.PVP) || 0;
+        const cantidad = registro.CANTIDAD || 0;
+        const valor = pvp * cantidad;
+        
+        if (!acc[estado]) {
+            acc[estado] = { valor: 0, cantidad: 0 };
+        }
+        acc[estado].valor += valor;
+        acc[estado].cantidad += cantidad;
+        return acc;
+    }, {});
+
+    // Valor por clase
+    const valorPorClase = currentData.reduce((acc, registro) => {
+        const clase = registro.CLASE || 'Sin clase';
+        const pvp = parseFloat(registro.PVP) || 0;
+        const cantidad = registro.CANTIDAD || 0;
+        const valor = pvp * cantidad;
+        
+        if (!acc[clase]) {
+            acc[clase] = { valor: 0, cantidad: 0 };
+        }
+        acc[clase].valor += valor;
+        acc[clase].cantidad += cantidad;
+        return acc;
+    }, {});
+    
+    // Valor por proveedor
+    const valorPorProveedor = currentData.reduce((acc, registro) => {
+        const proveedor = registro.PROVEEDOR || 'Sin proveedor';
+        const proveedorCorto = proveedor.includes('ANGELES') ? 'LOS ANGELES' : 
+                              proveedor.includes('UNIVERSO') ? 'EL UNIVERSO' : proveedor;
+        const pvp = parseFloat(registro.PVP) || 0;
+        const cantidad = registro.CANTIDAD || 0;
+        const valor = pvp * cantidad;
+        
+        if (!acc[proveedorCorto]) {
+            acc[proveedorCorto] = { valor: 0, cantidad: 0 };
+        }
+        acc[proveedorCorto].valor += valor;
+        acc[proveedorCorto].cantidad += cantidad;
+        return acc;
+    }, {});
+
+    // Estadísticas de PVP
+    const precios = currentData.map(r => parseFloat(r.PVP) || 0).filter(p => p > 0);
+    const pvpMin = precios.length > 0 ? Math.min(...precios) : 0;
+    const pvpMax = precios.length > 0 ? Math.max(...precios) : 0;
+    const pvpPromedio = precios.length > 0 ? precios.reduce((a, b) => a + b, 0) / precios.length : 0;
+
+    // Calcular porcentajes
+    function calculatePercentage(part, total) {
+        if (total === 0) return 0;
+        return Math.round((part / total) * 100);
+    }
+
+    // Formatear números
+    function formatNumber(num) {
+        return new Intl.NumberFormat('es-ES').format(Math.round(num));
+    }
+
+    // Formatear moneda
+    function formatCurrency(num) {
+        return new Intl.NumberFormat('es-CO', { 
+            style: 'currency', 
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(num);
+    }
+
     summaryElement.innerHTML = `
-        <h3>Resumen del Proceso</h3>
+        <h3><i class="fas fa-chart-bar"></i> Resumen del Proceso</h3>
+        
         <div class="summary-grid">
+            <!-- ESTADOS CON ESTILO DE TARJETA DE INVENTARIO -->
+            <div class="summary-card highlight-card">
+                <h4><i class="fas fa-clipboard-list"></i> Distribución por Estado</h4>
+                <div class="metrics-grid">
+                    ${Object.entries(valorPorEstado)
+                        .sort((a, b) => b[1].valor - a[1].valor)
+                        .map(([estado, info]) => {
+                            const estadoFormateado = estado.split(' ').map(word => 
+                                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                            ).join(' ');
+                            return `
+                                <div class="metric-card">
+                                    <div class="metric-value">${formatCurrency(info.valor)}</div>
+                                    <div class="metric-label">${estadoFormateado}</div>
+                                    <div class="metric-sublabel">${formatNumber(info.cantidad)} unidades</div>
+                                </div>
+                            `;
+                        }).join('')}
+                </div>
+            </div>
+
+            <!-- VALOR POR PROVEEDOR -->
             <div class="summary-card">
-                <h4><i class="fas fa-chart-bar"></i> Estadísticas Generales</h4>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Registros procesados:</span>
-                        <span class="stat-value">${data.registros}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Rango de fechas:</span>
-                        <span class="stat-value">${data.rangoFechas.descripcion}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Estado:</span>
-                        <span class="stat-value" style="color: #10b981;">${data.status}</span>
-                    </div>
+                <h4><i class="fas fa-truck"></i> Valor por Proveedor</h4>
+                <div class="chart-container">
+                    ${Object.entries(valorPorProveedor)
+                        .sort((a, b) => b[1].valor - a[1].valor)
+                        .map(([proveedor, info]) => {
+                            const porcentaje = calculatePercentage(info.valor, valorTotalInventario);
+                            return `
+                                <div class="chart">
+                                    <div class="chart-circle" style="background: conic-gradient(#3b82f6 0% ${porcentaje}%, #e5e7eb ${porcentaje}% 100%);">
+                                        <div class="chart-value">${porcentaje}%</div>
+                                    </div>
+                                    <div class="chart-label">${proveedor}</div>
+                                    <div class="chart-sublabel">${formatCurrency(info.valor)}</div>
+                                    <div class="chart-sublabel">${formatNumber(info.cantidad)} unidades</div>
+                                </div>
+                            `;
+                        }).join('')}
                 </div>
             </div>
             
-            <div class="summary-card">
-                <h4><i class="fas fa-tasks"></i> Distribución por Estado</h4>
-                <div class="stats-grid">
-                    ${Object.entries(estados).map(([estado, count]) => `
-                        <div class="stat-item">
-                            <span class="stat-label">${estado}:</span>
-                            <span class="stat-value">${count}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
+            <!-- ASIGNACIÓN DE SEMANAS -->
             <div class="summary-card">
                 <h4><i class="fas fa-calendar-week"></i> Asignación de Semanas</h4>
                 <div class="stats-grid">
@@ -818,18 +1031,55 @@ function displaySummary(data) {
                         <span class="stat-label">Sin semanas:</span>
                         <span class="stat-value" style="color: #ef4444;">${sinSemanas}</span>
                     </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Porcentaje completado:</span>
+                        <span class="stat-value" style="color: #3b82f6;">${calculatePercentage(conSemanas, currentData.length)}%</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart">
+                        <div class="chart-circle" style="background: conic-gradient(#10b981 0% ${calculatePercentage(conSemanas, currentData.length)}%, #e5e7eb ${calculatePercentage(conSemanas, currentData.length)}% 100%);">
+                            <div class="chart-value">${calculatePercentage(conSemanas, currentData.length)}%</div>
+                        </div>
+                        <div class="chart-label">Con semanas</div>
+                    </div>
+                    <div class="chart">
+                        <div class="chart-circle" style="background: conic-gradient(#ef4444 0% ${calculatePercentage(sinSemanas, currentData.length)}%, #e5e7eb ${calculatePercentage(sinSemanas, currentData.length)}% 100%);">
+                            <div class="chart-value">${calculatePercentage(sinSemanas, currentData.length)}%</div>
+                        </div>
+                        <div class="chart-label">Sin semanas</div>
+                    </div>
                 </div>
             </div>
             
+            <!-- VALIDACIONES -->
             <div class="summary-card">
                 <h4><i class="fas fa-check-circle"></i> Validaciones</h4>
                 <div class="stats-grid">
-                    ${Object.entries(validaciones).map(([validacion, count]) => `
-                        <div class="stat-item">
-                            <span class="stat-label">${validacion}:</span>
-                            <span class="stat-value">${count}</span>
+                    ${Object.entries(validaciones).map(([validacion, count]) => {
+                        const porcentaje = calculatePercentage(count, currentData.length);
+                        const label = validacion === 'VERDADERO' ? 'Validados' : 'No validados';
+                        return `
+                            <div class="stat-item">
+                                <span class="stat-label">${label}:</span>
+                                <span class="stat-value">${count} (${porcentaje}%)</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="chart-container">
+                    <div class="chart">
+                        <div class="chart-circle" style="background: conic-gradient(#10b981 0% ${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}%, #e5e7eb ${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}% 100%);">
+                            <div class="chart-value">${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}%</div>
                         </div>
-                    `).join('')}
+                        <div class="chart-label">Validados</div>
+                    </div>
+                    <div class="chart">
+                        <div class="chart-circle" style="background: conic-gradient(#ef4444 0% ${calculatePercentage(validaciones.FALSO || 0, currentData.length)}%, #e5e7eb ${calculatePercentage(validaciones.FALSO || 0, currentData.length)}% 100%);">
+                            <div class="chart-value">${calculatePercentage(validaciones.FALSO || 0, currentData.length)}%</div>
+                        </div>
+                        <div class="chart-label">No validados</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1362,5 +1612,221 @@ async function fetchSheetData(spreadsheetId, range) {
     } catch (error) {
         console.error(`Error obteniendo datos de ${spreadsheetId}:`, error);
         throw error;
+    }
+}
+
+
+// Funciones para manejo de archivos XLSX
+function descargarPlantillaXLSX() {
+    if (registrosFiltrados.length === 0) {
+        showStatus('error', 'No hay registros filtrados para descargar');
+        return;
+    }
+
+    showLoading(true);
+    showStatus('info', 'Generando archivo XLSX...');
+
+    try {
+        // Crear workbook
+        const wb = XLSX.utils.book_new();
+
+        // Hoja 1: Datos completos filtrados
+        const datosCompletos = registrosFiltrados.map(registro => ({
+            'DOCUMENTO': registro.DOCUMENTO,
+            'FECHA': registro.FECHA,
+            'LOTE': registro.LOTE,
+            'REFPROV': registro.REFPROV,
+            'DESCRIPCION': registro.DESCRIPCION,
+            'REFERENCIA': registro.REFERENCIA,
+            'TIPO': registro.TIPO,
+            'PVP': registro.PVP,
+            'PRENDA': registro.PRENDA,
+            'GENERO': registro.GENERO,
+            'PROVEEDOR': registro.PROVEEDOR,
+            'CLASE': registro.CLASE,
+            'FUENTE': registro.FUENTE,
+            'NIT': registro.NIT,
+            'CLIENTE': registro.CLIENTE,
+            'CANTIDAD': registro.CANTIDAD,
+            'FACTURA': registro.FACTURA,
+            'URL_IH3': registro.URL_IH3,
+            'SIESA_ESTADO': registro.SIESA_ESTADO,
+            'SIESA_NRO_DOCUMENTO': registro.SIESA_NRO_DOCUMENTO,
+            'SIESA_FECHA': registro.SIESA_FECHA,
+            'SIESA_CANTIDAD_INV': registro.SIESA_CANTIDAD_INV,
+            'ESTADO': registro.ESTADO,
+            'SEMANAS': registro.SEMANAS_ASIGNADAS || '',
+            'KEY': registro.KEY,
+            'VALIDACION': registro.VALIDACION,
+            'SIESA_LOTE': registro.SIESA_LOTE
+        }));
+
+        const ws1 = XLSX.utils.json_to_sheet(datosCompletos);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Datos Completos');
+
+        // Hoja 2: Solo cliente, referencia y semanas
+        const datosSemanas = registrosFiltrados.map(registro => ({
+            'CLIENTE': registro.CLIENTE,
+            'REFERENCIA': registro.REFERENCIA,
+            'SEMANAS': registro.SEMANAS_ASIGNADAS || ''
+        }));
+
+        const ws2 = XLSX.utils.json_to_sheet(datosSemanas);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Asignacion Semanas');
+
+        // Generar y descargar archivo
+        const fecha = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `plantilla_semanas_${fecha}.xlsx`);
+
+        showStatus('success', 'Archivo XLSX generado correctamente');
+        
+    } catch (error) {
+        console.error('Error generando XLSX:', error);
+        showStatus('error', `Error generando archivo: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function subirPlantillaXLSX(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.name.endsWith('.xlsx')) {
+        showStatus('error', 'Por favor selecciona un archivo XLSX válido');
+        return;
+    }
+
+    showLoading(true);
+    showStatus('info', 'Procesando archivo XLSX...');
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Leer hoja de asignación de semanas
+            const worksheet = workbook.Sheets['Asignacion Semanas'];
+            if (!worksheet) {
+                throw new Error('No se encontró la hoja "Asignacion Semanas"');
+            }
+            
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            if (jsonData.length === 0) {
+                throw new Error('El archivo no contiene datos');
+            }
+
+            // Procesar datos y guardar automáticamente
+            await procesarDatosSubidos(jsonData);
+            
+        } catch (error) {
+            console.error('Error procesando archivo:', error);
+            showStatus('error', `Error procesando archivo: ${error.message}`);
+            showLoading(false);
+        }
+    };
+    
+    reader.onerror = function() {
+        showStatus('error', 'Error leyendo el archivo');
+        showLoading(false);
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+async function procesarDatosSubidos(datos) {
+    let registrosActualizados = 0;
+    const registrosParaGuardar = [];
+    
+    datos.forEach(dato => {
+        const cliente = String(dato.CLIENTE || '').trim();
+        const referencia = String(dato.REFERENCIA || '').trim();
+        const semanas = String(dato.SEMANAS || '').trim();
+        
+        if (cliente && referencia && semanas) {
+            // Buscar en registros filtrados
+            const registro = registrosFiltrados.find(r => 
+                r.CLIENTE === cliente && r.REFERENCIA === referencia
+            );
+            
+            if (registro) {
+                registro.SEMANAS_ASIGNADAS = semanas;
+                registrosActualizados++;
+                
+                // Agregar a la lista para guardar
+                registrosParaGuardar.push({
+                    CLIENTE: cliente,
+                    REFERENCIA: referencia,
+                    SEMANAS: semanas
+                });
+            }
+            
+            // También actualizar en currentData para consistencia
+            const registroGlobal = currentData.find(r => 
+                r.CLIENTE === cliente && r.REFERENCIA === referencia
+            );
+            
+            if (registroGlobal) {
+                registroGlobal.SEMANAS = semanas;
+            }
+        }
+    });
+    
+    if (registrosParaGuardar.length > 0) {
+        // Guardar automáticamente en Google Sheets
+        await guardarSemanasDesdeExcel(registrosParaGuardar);
+    } else {
+        // Solo actualizar vista si no hay nada que guardar
+        actualizarListaRegistros();
+        showStatus('info', 'No se encontraron registros válidos para guardar');
+        showLoading(false);
+    }
+}
+
+async function guardarSemanasDesdeExcel(datosParaGuardar) {
+    try {
+        showStatus('info', `Guardando ${datosParaGuardar.length} registros en Sheets...`);
+        
+        console.log('Datos a guardar desde Excel:', datosParaGuardar);
+        
+        // Enviar via POST
+        const formData = new FormData();
+        formData.append('action', 'guardarSemanas');
+        formData.append('datos', JSON.stringify(datosParaGuardar));
+
+        const response = await fetch(WEB_APP_SEMANAS_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        console.log('Respuesta del servidor:', result);
+
+        if (result.success) {
+            showStatus('success', `✓ ${result.message}`);
+            
+            // Actualizar en tiempo real
+            await actualizarDatosEnTiempoReal(datosParaGuardar.map(dato => ({
+                CLIENTE: dato.CLIENTE,
+                REFERENCIA: dato.REFERENCIA,
+                SEMANAS_ASIGNADAS: dato.SEMANAS
+            })));
+            
+        } else {
+            showStatus('error', `✗ Error: ${result.message}`);
+            // Aún así actualizar la vista localmente
+            actualizarListaRegistros();
+            showLoading(false);
+        }
+        
+    } catch (error) {
+        console.error('Error guardando semanas desde Excel:', error);
+        showStatus('error', `Error de conexión: ${error.message}`);
+        // Aún así actualizar la vista localmente
+        actualizarListaRegistros();
+        showLoading(false);
     }
 }

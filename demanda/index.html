@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Datos - Google Sheets</title>
+    <title>Demanda - Dashboard Profesional</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,8 +12,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Gestión de Datos</h1>
-        <p class="subtitle">Sistema Integrado con Google Sheets</p>
+        <h1>Gestión de Prioridades</h1>
+        <p class="subtitle">Dashboard Profesional - Conectado a GitHub</p>
         
         <div class="controls">
             <button id="loadDataBtn">
@@ -65,82 +65,54 @@
                                 <i class="fas fa-users"></i>
                                 <span>Clientes únicos: <strong id="countClientes">0</strong></span>
                             </div>
-                            <div class="info-item">
-                                <i class="fas fa-barcode"></i>
-                                <span>Referencias únicas: <strong id="countReferencias">0</strong></span>
-                            </div>
                         </div>
                     </div>
                     
-                    <div class="semanas-controls">
-                        <div class="filter-group">
-                            <div class="filter-item">
-                                <label for="filtroCliente"><i class="fas fa-filter"></i> Filtrar por Cliente:</label>
-                                <select id="filtroCliente">
-                                    <option value="">Todos los clientes</option>
-                                </select>
-                            </div>
-                            
-                            <div class="filter-item">
-                                <label for="filtroReferencia"><i class="fas fa-filter"></i> Filtrar por Referencia:</label>
-                                <select id="filtroReferencia">
-                                    <option value="">Todas las referencias</option>
-                                </select>
-                            </div>
-                            
-                            <button id="aplicarFiltroSemanas" class="btn-secondary">
-                                <i class="fas fa-search"></i>
-                                Aplicar Filtro
-                            </button>
-                        </div>
-                    </div>
+<!-- En la sección semanas-controls, reemplazar el contenido actual -->
+<div class="semanas-controls">
+    <div class="filter-group">
+        <div class="filter-item">
+            <label for="filtroCliente"><i class="fas fa-filter"></i> Filtrar por Cliente:</label>
+            <select id="filtroCliente">
+                <option value="">Todos los clientes</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button id="guardarSemanas" class="btn-primary">
+                <i class="fas fa-save"></i>
+                Asentar Registro
+            </button>
+            <button id="descargarPlantilla" class="btn-secondary">
+                <i class="fas fa-download"></i>
+                Descargar Plantilla
+            </button>
+            <button id="subirPlantilla" class="btn-secondary">
+                <i class="fas fa-upload"></i>
+                Subir Plantilla
+            </button>
+            <input type="file" id="archivoPlantilla" accept=".xlsx" style="display: none;">
+        </div>
+    </div>
+</div>
                     
-                    <div class="semanas-grid">
-                        <div class="semanas-list">
-                            <h4><i class="fas fa-list"></i> Registros Filtrados</h4>
-                            <div class="list-header">
-                                <span>Cliente</span>
-                                <span>Referencia</span>
-                                <span>Cantidad</span>
-                            </div>
-                            <div id="listaRegistros" class="registros-container">
-                                <!-- Los registros se cargarán aquí dinámicamente -->
-                            </div>
+                    <div class="semanas-list-full">
+                        <div class="list-header">
+                            <span>Cliente</span>
+                            <span>Referencia</span>
+                            <span>Cantidad</span>
+                            <span>Semanas</span>
                         </div>
-                        
-                        <div class="semanas-form">
-                            <h4><i class="fas fa-edit"></i> Asignar Semanas</h4>
-                            <div class="form-group">
-                                <label for="semanasInput"><i class="fas fa-calendar-week"></i> Semanas:</label>
-                                <input type="text" id="semanasInput" placeholder="Ej: 1-4, 8, 12-16">
-                                <small>Formato: números individuales o rangos separados por comas</small>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button id="aplicarSemanas" class="btn-secondary">
-                                    <i class="fas fa-check"></i>
-                                    Aplicar a Filtrados
-                                </button>
-                                <button id="guardarSemanas" class="btn-primary">
-                                    <i class="fas fa-save"></i>
-                                    Guardar en Sheets
-                                </button>
-                            </div>
-                            
-                            <div class="semanas-preview">
-                                <h5><i class="fas fa-eye"></i> Vista Previa:</h5>
-                                <div id="previewSemanas" class="preview-container">
-                                    <!-- Vista previa de los cambios -->
-                                </div>
-                            </div>
+                        <div id="listaRegistros" class="registros-container">
+                            <!-- Los registros se cargarán aquí dinámicamente -->
                         </div>
-                        
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
+    
 </body>
 </html>
