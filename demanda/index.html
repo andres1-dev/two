@@ -13,7 +13,7 @@
 <body>
     <div class="container">
         <h1>Gestión de Prioridades</h1>
-        <p class="subtitle">Dashboard Profesional - Conectado a GitHub</p>
+        <p class="subtitle">Dashboard - Conectado a GitHub</p>
         
         <div class="controls">
             <button id="loadDataBtn">
@@ -68,32 +68,32 @@
                         </div>
                     </div>
                     
-<!-- En la sección semanas-controls, reemplazar el contenido actual -->
-<div class="semanas-controls">
-    <div class="filter-group">
-        <div class="filter-item">
-            <label for="filtroCliente"><i class="fas fa-filter"></i> Filtrar por Cliente:</label>
-            <select id="filtroCliente">
-                <option value="">Todos los clientes</option>
-            </select>
-        </div>
-        <div class="filter-actions">
-            <button id="guardarSemanas" class="btn-primary">
-                <i class="fas fa-save"></i>
-                Asentar Registro
-            </button>
-            <button id="descargarPlantilla" class="btn-secondary">
-                <i class="fas fa-download"></i>
-                Descargar Plantilla
-            </button>
-            <button id="subirPlantilla" class="btn-secondary">
-                <i class="fas fa-upload"></i>
-                Subir Plantilla
-            </button>
-            <input type="file" id="archivoPlantilla" accept=".xlsx" style="display: none;">
-        </div>
-    </div>
-</div>
+                    <!-- En la sección semanas-controls, reemplazar el contenido actual -->
+                    <div class="semanas-controls">
+                        <div class="filter-group">
+                            <div class="filter-item">
+                                <label for="filtroCliente"><i class="fas fa-filter"></i> Filtrar por Cliente:</label>
+                                <select id="filtroCliente">
+                                    <option value="">Todos los clientes</option>
+                                </select>
+                            </div>
+                            <div class="filter-actions">
+                                <button id="guardarSemanas" class="btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    Asentar Registro
+                                </button>
+                                <button id="descargarPlantilla" class="btn-secondary">
+                                    <i class="fas fa-download"></i>
+                                    Descargar Plantilla
+                                </button>
+                                <button id="subirPlantilla" class="btn-secondary">
+                                    <i class="fas fa-upload"></i>
+                                    Subir Plantilla
+                                </button>
+                                <input type="file" id="archivoPlantilla" accept=".xlsx" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="semanas-list-full">
                         <div class="list-header">
@@ -111,8 +111,7 @@
             </div>
         </div>
     </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="app.js"></script>
-    
 </body>
 </html>
