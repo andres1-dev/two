@@ -3,7 +3,7 @@ class WMSApp {
     constructor() {
         // Configuración
         this.spreadsheetId = '1EDZ3uRjIDe2oi9F88qBNjHxuy5_S1Se4IwIDlS4EsZE';
-        this.sheetName = 'JSON_Result';
+        this.sheetName = 'POST';
         this.range = 'A:Y';
         this.apiKey = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
         
