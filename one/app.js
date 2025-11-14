@@ -187,6 +187,12 @@ function configurarEventListenersModal() {
     // Configurar nuevos event listeners
     document.getElementById('filtroCliente').addEventListener('change', aplicarFiltroSemanas);
     document.getElementById('guardarSemanas').addEventListener('click', guardarSemanasEnSheets);
+    // Agregar nuevos event listeners
+    document.getElementById('descargarPlantilla').addEventListener('click', descargarPlantillaXLSX);
+    document.getElementById('subirPlantilla').addEventListener('click', () => {
+        document.getElementById('archivoPlantilla').click();
+    });
+    document.getElementById('archivoPlantilla').addEventListener('change', subirPlantillaXLSX);
 }
 
 function aplicarFiltroSemanas() {
@@ -701,8 +707,7 @@ async function actualizarDatosEnTiempoReal(registrosActualizados) {
             // Buscar y actualizar en currentData
             const indexInCurrentData = currentData.findIndex(r => 
                 r.CLIENTE === registroActualizado.CLIENTE && 
-                r.REFERENCIA === registroActualizado.REFERENCIA &&
-                r.DOCUMENTO === registroActualizado.DOCUMENTO
+                r.REFERENCIA === registroActualizado.REFERENCIA
             );
             
             if (indexInCurrentData !== -1 && registroActualizado.SEMANAS_ASIGNADAS) {
@@ -710,7 +715,7 @@ async function actualizarDatosEnTiempoReal(registrosActualizados) {
             }
         });
         
-        // 3. ACTUALIZAR CRÍTICO: Re-filtrar los registros sin semanas desde currentData
+        // 3. Re-filtrar los registros sin semanas desde currentData
         registrosSinSemanas = currentData.filter(registro => 
             !registro.SEMANAS || registro.SEMANAS === ""
         );
@@ -749,11 +754,13 @@ async function actualizarDatosEnTiempoReal(registrosActualizados) {
             rangoFechas: currentFilters 
         });
         
-        showStatus('success', `Datos actualizados en tiempo real. Quedan ${registrosSinSemanas.length} registros sin semanas.`);
+        showStatus('success', `✓ Datos actualizados automáticamente. Quedan ${registrosSinSemanas.length} registros sin semanas.`);
         
     } catch (error) {
         console.error('Error en actualización en tiempo real:', error);
         showStatus('error', 'Error al actualizar datos en tiempo real');
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -837,318 +844,6 @@ async function enviarDatosPost() {
         showLoading(false);
     }
 }
-
-/*
-function displaySummary(data) {
-    const estados = currentData.reduce((acc, registro) => {
-        const estado = registro.ESTADO || 'SIN DATOS';
-        acc[estado] = (acc[estado] || 0) + 1;
-        return acc;
-    }, {});
-
-    const validaciones = currentData.reduce((acc, registro) => {
-        const clave = registro.VALIDACION ? 'VERDADERO' : 'FALSO';
-        acc[clave] = (acc[clave] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas de semanas
-    const conSemanas = currentData.filter(r => r.SEMANAS && r.SEMANAS !== "").length;
-    const sinSemanas = currentData.length - conSemanas;
-
-    // Calcular estadísticas por proveedor
-    const proveedores = currentData.reduce((acc, registro) => {
-        const proveedor = registro.PROVEEDOR || 'Sin proveedor';
-        // Acortar nombres largos de proveedores
-        const proveedorCorto = proveedor.includes('ANGELES') ? 'LOS ANGELES' : 
-                              proveedor.includes('UNIVERSO') ? 'EL UNIVERSO' : proveedor;
-        acc[proveedorCorto] = (acc[proveedorCorto] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas por clase
-    const clases = currentData.reduce((acc, registro) => {
-        const clase = registro.CLASE || 'Sin clase';
-        acc[clase] = (acc[clase] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas por fuente
-    const fuentes = currentData.reduce((acc, registro) => {
-        const fuente = registro.FUENTE || 'Sin fuente';
-        acc[fuente] = (acc[fuente] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular total de cantidad
-    const totalCantidad = currentData.reduce((acc, registro) => acc + (registro.CANTIDAD || 0), 0);
-
-    // Calcular porcentajes
-    function calculatePercentage(part, total) {
-        if (total === 0) return 0;
-        return Math.round((part / total) * 100);
-    }
-
-    // Formatear números grandes
-    function formatNumber(num) {
-        return new Intl.NumberFormat('es-ES').format(num);
-    }
-
-    summaryElement.innerHTML = `
-        <h3><i class="fas fa-chart-bar"></i> Resumen del Proceso</h3>
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h4><i class="fas fa-chart-pie"></i> Distribución por Estado</h4>
-                <div class="stats-grid">
-                    ${Object.entries(estados).map(([estado, count]) => {
-                        const porcentaje = calculatePercentage(count, currentData.length);
-                        const estadoFormateado = estado.split(' ').map(word => 
-                            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-                        ).join(' ');
-                        return `
-                            <div class="stat-item">
-                                <span class="stat-label">${estadoFormateado}:</span>
-                                <span class="stat-value">${count} (${porcentaje}%)</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="progress-container">
-                    ${Object.entries(estados).map(([estado, count]) => {
-                        const porcentaje = calculatePercentage(count, currentData.length);
-                        const claseEstado = estado.toLowerCase().replace(/\s+/g, '-');
-                        return `
-                            <div class="progress-item">
-                                <div class="progress-label">
-                                    <span>${estado}</span>
-                                    <span>${porcentaje}%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-estado-${claseEstado}" style="width: ${porcentaje}%"></div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-calendar-week"></i> Asignación de Semanas</h4>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Con semanas:</span>
-                        <span class="stat-value" style="color: #10b981;">${conSemanas}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Sin semanas:</span>
-                        <span class="stat-value" style="color: #ef4444;">${sinSemanas}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Porcentaje completado:</span>
-                        <span class="stat-value" style="color: #3b82f6;">${calculatePercentage(conSemanas, currentData.length)}%</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart">
-                        <div class="chart-circle" style="background: conic-gradient(#10b981 0% ${calculatePercentage(conSemanas, currentData.length)}%, #e5e7eb ${calculatePercentage(conSemanas, currentData.length)}% 100%);">
-                            <div class="chart-value">${calculatePercentage(conSemanas, currentData.length)}%</div>
-                        </div>
-                        <div class="chart-label">Con semanas</div>
-                    </div>
-                    <div class="chart">
-                        <div class="chart-circle" style="background: conic-gradient(#ef4444 0% ${calculatePercentage(sinSemanas, currentData.length)}%, #e5e7eb ${calculatePercentage(sinSemanas, currentData.length)}% 100%);">
-                            <div class="chart-value">${calculatePercentage(sinSemanas, currentData.length)}%</div>
-                        </div>
-                        <div class="chart-label">Sin semanas</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-check-circle"></i> Validaciones</h4>
-                <div class="stats-grid">
-                    ${Object.entries(validaciones).map(([validacion, count]) => {
-                        const porcentaje = calculatePercentage(count, currentData.length);
-                        const label = validacion === 'VERDADERO' ? 'Validados' : 'No validados';
-                        return `
-                            <div class="stat-item">
-                                <span class="stat-label">${label}:</span>
-                                <span class="stat-value">${count} (${porcentaje}%)</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="chart-container">
-                    <div class="chart">
-                        <div class="chart-circle" style="background: conic-gradient(#10b981 0% ${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}%, #e5e7eb ${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}% 100%);">
-                            <div class="chart-value">${calculatePercentage(validaciones.VERDADERO || 0, currentData.length)}%</div>
-                        </div>
-                        <div class="chart-label">Validados</div>
-                    </div>
-                    <div class="chart">
-                        <div class="chart-circle" style="background: conic-gradient(#ef4444 0% ${calculatePercentage(validaciones.FALSO || 0, currentData.length)}%, #e5e7eb ${calculatePercentage(validaciones.FALSO || 0, currentData.length)}% 100%);">
-                            <div class="chart-value">${calculatePercentage(validaciones.FALSO || 0, currentData.length)}%</div>
-                        </div>
-                        <div class="chart-label">No validados</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="summary-card">
-                <h4><i class="fas fa-tachometer-alt"></i> Métricas Generales</h4>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value">${formatNumber(currentData.length)}</div>
-                        <div class="metric-label">Total Registros</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${formatNumber(totalCantidad)}</div>
-                        <div class="metric-label">Total Cantidad</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${Object.keys(proveedores).length}</div>
-                        <div class="metric-label">Proveedores</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${Object.keys(clases).length}</div>
-                        <div class="metric-label">Clases</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    summaryElement.style.display = 'block';
-} */
-/*
-function displaySummary(data) {
-    const estados = currentData.reduce((acc, registro) => {
-        const estado = registro.ESTADO || 'SIN DATOS';
-        acc[estado] = (acc[estado] || 0) + 1;
-        return acc;
-    }, {});
-
-    const validaciones = currentData.reduce((acc, registro) => {
-        const clave = registro.VALIDACION ? 'VERDADERO' : 'FALSO';
-        acc[clave] = (acc[clave] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas de semanas
-    const conSemanas = currentData.filter(r => r.SEMANAS && r.SEMANAS !== "").length;
-    const sinSemanas = currentData.length - conSemanas;
-
-    // Calcular estadísticas por proveedor
-    const proveedores = currentData.reduce((acc, registro) => {
-        const proveedor = registro.PROVEEDOR || 'Sin proveedor';
-        const proveedorCorto = proveedor.includes('ANGELES') ? 'LOS ANGELES' : 
-                              proveedor.includes('UNIVERSO') ? 'EL UNIVERSO' : proveedor;
-        acc[proveedorCorto] = (acc[proveedorCorto] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas por clase
-    const clases = currentData.reduce((acc, registro) => {
-        const clase = registro.CLASE || 'Sin clase';
-        acc[clase] = (acc[clase] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calcular estadísticas por fuente
-    const fuentes = currentData.reduce((acc, registro) => {
-        const fuente = registro.FUENTE || 'Sin fuente';
-        acc[fuente] = (acc[fuente] || 0) + 1;
-        return acc;
-    }, {});
-
-    // NUEVAS MÉTRICAS DE PRECIOS Y VALORES
-    const totalCantidad = currentData.reduce((acc, registro) => acc + (registro.CANTIDAD || 0), 0);
-    
-    // Calcular valor total de inventario (PVP * CANTIDAD)
-    const valorTotalInventario = currentData.reduce((acc, registro) => {
-        const pvp = parseFloat(registro.PVP) || 0;
-        const cantidad = registro.CANTIDAD || 0;
-        return acc + (pvp * cantidad);
-    }, 0);
-
-    // Valor promedio por unidad
-    const valorPromedioUnidad = totalCantidad > 0 ? valorTotalInventario / totalCantidad : 0;
-
-    // Valor por estado
-    const valorPorEstado = currentData.reduce((acc, registro) => {
-        const estado = registro.ESTADO || 'SIN DATOS';
-        const pvp = parseFloat(registro.PVP) || 0;
-        const cantidad = registro.CANTIDAD || 0;
-        const valor = pvp * cantidad;
-        
-        if (!acc[estado]) {
-            acc[estado] = { valor: 0, cantidad: 0 };
-        }
-        acc[estado].valor += valor;
-        acc[estado].cantidad += cantidad;
-        return acc;
-    }, {});
-
-    // Valor por clase
-    const valorPorClase = currentData.reduce((acc, registro) => {
-        const clase = registro.CLASE || 'Sin clase';
-        const pvp = parseFloat(registro.PVP) || 0;
-        const cantidad = registro.CANTIDAD || 0;
-        const valor = pvp * cantidad;
-        
-        if (!acc[clase]) {
-            acc[clase] = { valor: 0, cantidad: 0 };
-        }
-        acc[clase].valor += valor;
-        acc[clase].cantidad += cantidad;
-        return acc;
-    }, {});
-
-    // Valor por proveedor
-    const valorPorProveedor = currentData.reduce((acc, registro) => {
-        const proveedor = registro.PROVEEDOR || 'Sin proveedor';
-        const proveedorCorto = proveedor.includes('ANGELES') ? 'LOS ANGELES' : 
-                              proveedor.includes('UNIVERSO') ? 'EL UNIVERSO' : proveedor;
-        const pvp = parseFloat(registro.PVP) || 0;
-        const cantidad = registro.CANTIDAD || 0;
-        const valor = pvp * cantidad;
-        
-        if (!acc[proveedorCorto]) {
-            acc[proveedorCorto] = { valor: 0, cantidad: 0 };
-        }
-        acc[proveedorCorto].valor += valor;
-        acc[proveedorCorto].cantidad += cantidad;
-        return acc;
-    }, {});
-
-    // Estadísticas de PVP
-    const precios = currentData.map(r => parseFloat(r.PVP) || 0).filter(p => p > 0);
-    const pvpMin = precios.length > 0 ? Math.min(...precios) : 0;
-    const pvpMax = precios.length > 0 ? Math.max(...precios) : 0;
-    const pvpPromedio = precios.length > 0 ? precios.reduce((a, b) => a + b, 0) / precios.length : 0;
-
-    // Calcular porcentajes
-    function calculatePercentage(part, total) {
-        if (total === 0) return 0;
-        return Math.round((part / total) * 100);
-    }
-
-    // Formatear números
-    function formatNumber(num) {
-        return new Intl.NumberFormat('es-ES').format(Math.round(num));
-    }
-
-    // Formatear moneda
-    function formatCurrency(num) {
-        return new Intl.NumberFormat('es-CO', { 
-            style: 'currency', 
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(num);
-    }
-*/
-
 
 function displaySummary(data) {
     const estados = currentData.reduce((acc, registro) => {
@@ -1917,5 +1612,221 @@ async function fetchSheetData(spreadsheetId, range) {
     } catch (error) {
         console.error(`Error obteniendo datos de ${spreadsheetId}:`, error);
         throw error;
+    }
+}
+
+
+// Funciones para manejo de archivos XLSX
+function descargarPlantillaXLSX() {
+    if (registrosFiltrados.length === 0) {
+        showStatus('error', 'No hay registros filtrados para descargar');
+        return;
+    }
+
+    showLoading(true);
+    showStatus('info', 'Generando archivo XLSX...');
+
+    try {
+        // Crear workbook
+        const wb = XLSX.utils.book_new();
+
+        // Hoja 1: Datos completos filtrados
+        const datosCompletos = registrosFiltrados.map(registro => ({
+            'DOCUMENTO': registro.DOCUMENTO,
+            'FECHA': registro.FECHA,
+            'LOTE': registro.LOTE,
+            'REFPROV': registro.REFPROV,
+            'DESCRIPCION': registro.DESCRIPCION,
+            'REFERENCIA': registro.REFERENCIA,
+            'TIPO': registro.TIPO,
+            'PVP': registro.PVP,
+            'PRENDA': registro.PRENDA,
+            'GENERO': registro.GENERO,
+            'PROVEEDOR': registro.PROVEEDOR,
+            'CLASE': registro.CLASE,
+            'FUENTE': registro.FUENTE,
+            'NIT': registro.NIT,
+            'CLIENTE': registro.CLIENTE,
+            'CANTIDAD': registro.CANTIDAD,
+            'FACTURA': registro.FACTURA,
+            'URL_IH3': registro.URL_IH3,
+            'SIESA_ESTADO': registro.SIESA_ESTADO,
+            'SIESA_NRO_DOCUMENTO': registro.SIESA_NRO_DOCUMENTO,
+            'SIESA_FECHA': registro.SIESA_FECHA,
+            'SIESA_CANTIDAD_INV': registro.SIESA_CANTIDAD_INV,
+            'ESTADO': registro.ESTADO,
+            'SEMANAS': registro.SEMANAS_ASIGNADAS || '',
+            'KEY': registro.KEY,
+            'VALIDACION': registro.VALIDACION,
+            'SIESA_LOTE': registro.SIESA_LOTE
+        }));
+
+        const ws1 = XLSX.utils.json_to_sheet(datosCompletos);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Datos Completos');
+
+        // Hoja 2: Solo cliente, referencia y semanas
+        const datosSemanas = registrosFiltrados.map(registro => ({
+            'CLIENTE': registro.CLIENTE,
+            'REFERENCIA': registro.REFERENCIA,
+            'SEMANAS': registro.SEMANAS_ASIGNADAS || ''
+        }));
+
+        const ws2 = XLSX.utils.json_to_sheet(datosSemanas);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Asignacion Semanas');
+
+        // Generar y descargar archivo
+        const fecha = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `plantilla_semanas_${fecha}.xlsx`);
+
+        showStatus('success', 'Archivo XLSX generado correctamente');
+        
+    } catch (error) {
+        console.error('Error generando XLSX:', error);
+        showStatus('error', `Error generando archivo: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function subirPlantillaXLSX(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.name.endsWith('.xlsx')) {
+        showStatus('error', 'Por favor selecciona un archivo XLSX válido');
+        return;
+    }
+
+    showLoading(true);
+    showStatus('info', 'Procesando archivo XLSX...');
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Leer hoja de asignación de semanas
+            const worksheet = workbook.Sheets['Asignacion Semanas'];
+            if (!worksheet) {
+                throw new Error('No se encontró la hoja "Asignacion Semanas"');
+            }
+            
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            if (jsonData.length === 0) {
+                throw new Error('El archivo no contiene datos');
+            }
+
+            // Procesar datos y guardar automáticamente
+            await procesarDatosSubidos(jsonData);
+            
+        } catch (error) {
+            console.error('Error procesando archivo:', error);
+            showStatus('error', `Error procesando archivo: ${error.message}`);
+            showLoading(false);
+        }
+    };
+    
+    reader.onerror = function() {
+        showStatus('error', 'Error leyendo el archivo');
+        showLoading(false);
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+async function procesarDatosSubidos(datos) {
+    let registrosActualizados = 0;
+    const registrosParaGuardar = [];
+    
+    datos.forEach(dato => {
+        const cliente = String(dato.CLIENTE || '').trim();
+        const referencia = String(dato.REFERENCIA || '').trim();
+        const semanas = String(dato.SEMANAS || '').trim();
+        
+        if (cliente && referencia && semanas) {
+            // Buscar en registros filtrados
+            const registro = registrosFiltrados.find(r => 
+                r.CLIENTE === cliente && r.REFERENCIA === referencia
+            );
+            
+            if (registro) {
+                registro.SEMANAS_ASIGNADAS = semanas;
+                registrosActualizados++;
+                
+                // Agregar a la lista para guardar
+                registrosParaGuardar.push({
+                    CLIENTE: cliente,
+                    REFERENCIA: referencia,
+                    SEMANAS: semanas
+                });
+            }
+            
+            // También actualizar en currentData para consistencia
+            const registroGlobal = currentData.find(r => 
+                r.CLIENTE === cliente && r.REFERENCIA === referencia
+            );
+            
+            if (registroGlobal) {
+                registroGlobal.SEMANAS = semanas;
+            }
+        }
+    });
+    
+    if (registrosParaGuardar.length > 0) {
+        // Guardar automáticamente en Google Sheets
+        await guardarSemanasDesdeExcel(registrosParaGuardar);
+    } else {
+        // Solo actualizar vista si no hay nada que guardar
+        actualizarListaRegistros();
+        showStatus('info', 'No se encontraron registros válidos para guardar');
+        showLoading(false);
+    }
+}
+
+async function guardarSemanasDesdeExcel(datosParaGuardar) {
+    try {
+        showStatus('info', `Guardando ${datosParaGuardar.length} registros en Sheets...`);
+        
+        console.log('Datos a guardar desde Excel:', datosParaGuardar);
+        
+        // Enviar via POST
+        const formData = new FormData();
+        formData.append('action', 'guardarSemanas');
+        formData.append('datos', JSON.stringify(datosParaGuardar));
+
+        const response = await fetch(WEB_APP_SEMANAS_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        console.log('Respuesta del servidor:', result);
+
+        if (result.success) {
+            showStatus('success', `✓ ${result.message}`);
+            
+            // Actualizar en tiempo real
+            await actualizarDatosEnTiempoReal(datosParaGuardar.map(dato => ({
+                CLIENTE: dato.CLIENTE,
+                REFERENCIA: dato.REFERENCIA,
+                SEMANAS_ASIGNADAS: dato.SEMANAS
+            })));
+            
+        } else {
+            showStatus('error', `✗ Error: ${result.message}`);
+            // Aún así actualizar la vista localmente
+            actualizarListaRegistros();
+            showLoading(false);
+        }
+        
+    } catch (error) {
+        console.error('Error guardando semanas desde Excel:', error);
+        showStatus('error', `Error de conexión: ${error.message}`);
+        // Aún así actualizar la vista localmente
+        actualizarListaRegistros();
+        showLoading(false);
     }
 }
