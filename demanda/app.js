@@ -288,8 +288,8 @@ function validarInputSemanas(input) {
 async function cargarDatosSemanas() {
     try {
         showStatus('info', 'Cargando datos de semanas...');
-        /*const semanasResp = await fetchSheetData(SPREADSHEET_IDS.DESTINO, "PW!A:D");*/
-        const semanasResp = await fetchSheetData(SPREADSHEET_IDS.DESTINO, "POSTMAN!A:D");
+        const semanasResp = await fetchSheetData(SPREADSHEET_IDS.DESTINO, "PW!A:D");
+        /*const semanasResp = await fetchSheetData(SPREADSHEET_IDS.DESTINO, "POSTMAN2_!A:D");*/
         
         semanasData = {};
         
