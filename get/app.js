@@ -159,7 +159,7 @@ async function obtenerDatosConDistribucion() {
                     const referenciasUnicas = [...new Set(promos.map(promo => promo.DOCUMENTO || documento))];
                     
                     if (referenciasUnicas.length > 1) {
-                        console.log(`📦 Documento ${documento} tiene ${referenciasUnicas.length} referencias PROMO:`, referenciasUnicas);
+                        //console.log(`📦 Documento ${documento} tiene ${referenciasUnicas.length} referencias PROMO:`, referenciasUnicas);
                         
                         // AGRUPAR PARA MÚLTIPLES REFERENCIAS
                         if (!promosMultiplesPorDocumento[documento]) {
@@ -197,7 +197,7 @@ async function obtenerDatosConDistribucion() {
                             }
                         });
                         
-                        console.log(`✅ Agrupado documento ${documento}:`, promosMultiplesPorDocumento[documento]);
+                        //console.log(`✅ Agrupado documento ${documento}:`, promosMultiplesPorDocumento[documento]);
                         
                     } else {
                         // UNA SOLA REFERENCIA - PROCESAR INDIVIDUALMENTE
@@ -263,7 +263,6 @@ async function obtenerDatosConDistribucion() {
                             };
                             
                             registros.push(registroPromo);
-                            console.log(`✅ PROMO individual agregada: ${documento} - ${refPromoUnica} - ${cantidadTotalUnica}`);
                         }
                     }
                 }
@@ -340,14 +339,14 @@ async function obtenerDatosConDistribucion() {
     });
 
     // PROCESAR PROMOS MÚLTIPLES AGRUPADAS DE DATA2
-    console.log(`🔍 Procesando ${Object.keys(promosMultiplesPorDocumento).length} documentos con promos múltiples:`, Object.keys(promosMultiplesPorDocumento));
+    //console.log(`🔍 Procesando ${Object.keys(promosMultiplesPorDocumento).length} documentos con promos múltiples:`, Object.keys(promosMultiplesPorDocumento));
     
     for (const [documento, promoAgrupada] of Object.entries(promosMultiplesPorDocumento)) {
         const referenciasConcatenadas = Object.entries(promoAgrupada.referencias)
             .map(([ref, cant]) => `${ref}-${cant}`)
             .join(',');
         
-        console.log(`📊 Procesando promo múltiple ${documento}:`, promoAgrupada.referencias, `-> ${referenciasConcatenadas}`);
+        //console.log(`📊 Procesando promo múltiple ${documento}:`, promoAgrupada.referencias, `-> ${referenciasConcatenadas}`);
         
         const soporteInfo = buscarSoporte(soportesData, documento, promoAgrupada.cantidadTotal, promoAgrupada.datosBase.nitPromo);
         
@@ -417,7 +416,6 @@ async function obtenerDatosConDistribucion() {
         };
         
         registros.push(registroPromoAgrupada);
-        console.log(`✅ PROMO MÚLTIPLE AGREGADA: ${documento} - RefVar - ${referenciasConcatenadas} - ${promoAgrupada.cantidadTotal}`);
     }
 
     // Procesar REC (DataBase) - COMPLETO CON FULL Y PROMO
@@ -588,10 +586,7 @@ async function obtenerDatosConDistribucion() {
             }
         }
     });
-
-    console.log(`📈 Total registros procesados: ${registros.length} (Promos múltiples agrupadas: ${Object.keys(promosMultiplesPorDocumento).length})`);
-    console.log(`📋 Desglose promos múltiples:`, Object.keys(promosMultiplesPorDocumento));
-    
+   
     return {
         status: "success",
         registros: registros.length,
@@ -711,37 +706,49 @@ async function obtenerDatosSIESA() {
             }
         });
         
-        // Procesar SIESA_V2 - SUMAR cantidades
+        // Procesar SIESA_V2 - SUMAR cantidades por referencia
         (siesaV2Resp.values || []).forEach(row => {
-            const nroDocumento = String(row[0] || "").trim();
-            if (nroDocumento) {
-                if (!siesaV2Data[nroDocumento]) {
-                    siesaV2Data[nroDocumento] = {};
-                }
-                
-                const referencia = String(row[2] || "").trim();
-                const cantidad = Number(row[3]) || 0;
-                
-                if (referencia) {
-                    if (!siesaV2Data[nroDocumento][referencia]) {
-                        siesaV2Data[nroDocumento][referencia] = 0;
-                    }
-                    siesaV2Data[nroDocumento][referencia] += cantidad;
-                }
+    const nroDocumento = String(row[0] || "").trim();
+    if (nroDocumento) {
+        if (!siesaV2Data[nroDocumento]) {
+            siesaV2Data[nroDocumento] = {};
+        }
+        
+        const referencia = normalizarReferencia(row[2]); // NORMALIZAR REFERENCIA SIESA
+        const cantidad = Number(row[3]) || 0;
+        
+        if (referencia) {
+            if (!siesaV2Data[nroDocumento][referencia]) {
+                siesaV2Data[nroDocumento][referencia] = 0;
             }
-        });
+            siesaV2Data[nroDocumento][referencia] += cantidad;
+        }
+    }
+});
         
         const datosUnificados = {};
         
-        // Combinar datos - USAR SOLO LOTE SIESA PARA LAS CLAVES
+        // NUEVA LÓGICA: Agrupar múltiples referencias bajo "RefVar"
         for (const [nroDocumento, datosSiesa] of Object.entries(siesaData)) {
             const itemsV2 = siesaV2Data[nroDocumento] || {};
             const loteSiesa = datosSiesa.lote;
+            const nit = String(datosSiesa.nit || "").trim();
             
-            for (const [referencia, cantidadTotal] of Object.entries(itemsV2)) {
-                const nit = String(datosSiesa.nit || "").trim();
+            if (!nit || !loteSiesa) continue;
+            
+            // Contar cuántas referencias diferentes tiene este documento
+            const referencias = Object.keys(itemsV2);
+            const cantidadReferencias = referencias.length;
+            
+            if (cantidadReferencias === 0) {
+                continue; // No hay referencias, saltar
+            }
+            else if (cantidadReferencias === 1) {
+                // UNA SOLA REFERENCIA - mantener referencia original
+                const referencia = referencias[0];
+                const cantidadTotal = itemsV2[referencia];
                 
-                if (referencia && nit && cantidadTotal > 0 && loteSiesa) {
+                if (cantidadTotal > 0) {
                     const clave = `${referencia}_${nit}_${cantidadTotal}_${loteSiesa}`;
                     
                     datosUnificados[clave] = {
@@ -749,18 +756,49 @@ async function obtenerDatosSIESA() {
                         nro_documento: datosSiesa.nro_documento,
                         fecha: datosSiesa.fecha,
                         cantidad_inv: cantidadTotal,
-                        referencia: referencia,
+                        referencia: referencia, // REFERENCIA ORIGINAL
                         nit: nit,
                         lote: loteSiesa,
                         docto_referencia: datosSiesa.docto_referencia,
                         notas: datosSiesa.notas,
-                        compaa: datosSiesa.compaa
+                        compaa: datosSiesa.compaa,
+                        es_refvar: false // INDICADOR NUEVO
+                    };
+                }
+            }
+            else {
+                // MÚLTIPLES REFERENCIAS - usar "RefVar" y sumar cantidades
+                const cantidadTotal = Object.values(itemsV2).reduce((sum, cant) => sum + cant, 0);
+                
+                if (cantidadTotal > 0) {
+                    const clave = `RefVar_${nit}_${cantidadTotal}_${loteSiesa}`;
+                    
+                    // Crear string con referencias concatenadas para referencia
+                    const referenciasConcatenadas = referencias
+                        .map(ref => `${ref}-${itemsV2[ref]}`)
+                        .join(',');
+                    
+                    datosUnificados[clave] = {
+                        estado: datosSiesa.estado,
+                        nro_documento: datosSiesa.nro_documento,
+                        fecha: datosSiesa.fecha,
+                        cantidad_inv: cantidadTotal,
+                        referencia: "RefVar", // REFERENCIA AGRUPADA
+                        referencias_detalle: referenciasConcatenadas, // DETALLE DE REFERENCIAS
+                        nit: nit,
+                        lote: loteSiesa,
+                        docto_referencia: datosSiesa.docto_referencia,
+                        notas: datosSiesa.notas,
+                        compaa: datosSiesa.compaa,
+                        es_refvar: true, // INDICADOR NUEVO
+                        cantidad_referencias: cantidadReferencias // CONTADOR DE REFERENCIAS
                     };
                 }
             }
         }
         
         console.log(`Datos SIESA unificados: ${Object.keys(datosUnificados).length} registros`);
+        
         return datosUnificados;
         
     } catch (error) {
@@ -775,7 +813,7 @@ function buscarSiesa(siesaData, refprov, nit, cantidad, lote) {
         return null;
     }
     
-    const refprovLimpio = String(refprov || "").trim();
+    const refprovLimpio = normalizarReferencia(refprov); // NORMALIZAR REFERENCIA
     const nitLimpio = String(nit || "").trim();
     const cantidadLimpia = Number(cantidad) || 0;
     const loteLimpio = String(lote || "").trim().replace(/\D/g, "");
@@ -783,11 +821,23 @@ function buscarSiesa(siesaData, refprov, nit, cantidad, lote) {
     if (!refprovLimpio || !nitLimpio || cantidadLimpia <= 0 || !loteLimpio) {
         return null;
     }
+
+    if (refprov !== refprovLimpio) {
+    refprov = refprovLimpio;
+    }
     
-    const clave = `${refprovLimpio}_${nitLimpio}_${cantidadLimpia}_${loteLimpio}`;
+    // BUSCAR PRIMERO CON REFERENCIA ORIGINAL NORMALIZADA
+    const claveOriginal = `${refprovLimpio}_${nitLimpio}_${cantidadLimpia}_${loteLimpio}`;
     
-    if (siesaData[clave]) {
-        return siesaData[clave];
+    if (siesaData[claveOriginal]) {
+        return siesaData[claveOriginal];
+    }
+    
+    // SI NO ENCUENTRA, BUSCAR CON "RefVar" (para casos de múltiples referencias)
+    const claveRefVar = `RefVar_${nitLimpio}_${cantidadLimpia}_${loteLimpio}`;
+    
+    if (siesaData[claveRefVar]) {
+        return siesaData[claveRefVar];
     }
     
     return null;
@@ -1164,4 +1214,24 @@ function showStatus(type, message) {
             statusMessage.style.display = 'none';
         }, 5000);
     }
+}
+
+function normalizarReferencia(ref) {
+    if (!ref) return "";
+    
+    const refString = String(ref).trim();
+    
+    // Si la referencia es puramente numérica o comienza con números, eliminar ceros a la izquierda
+    if (/^\d+[A-Za-z]*$/.test(refString)) {
+        // Encontrar la parte numérica al inicio
+        const parteNumerica = refString.match(/^\d+/);
+        if (parteNumerica) {
+            const numerosSinCeros = String(Number(parteNumerica[0])); // Elimina ceros a la izquierda
+            const parteLetras = refString.substring(parteNumerica[0].length);
+            return numerosSinCeros + parteLetras;
+        }
+    }
+    
+    // Si tiene letras y números mezclados de otra forma, mantener original
+    return refString;
 }
