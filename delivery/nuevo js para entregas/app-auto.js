@@ -371,10 +371,10 @@ async function obtenerDatosSiesaCompletosConPromos(documento, refprov, referenci
         }
     });
     
-    // PROCESAR PROMOCIONES - UNIFICAR POR REFERENCIA
+    // PROCESAR PROMOCIONES - UNIFICAR POR REFERENCIA (DE AMBAS FUENTES)
     const promosUnificadas = await unificarPromociones(
         documento, refprov, referencia, lote, soportesData, siesaData,
-        proveedor, pvp, anexosData2, rowRec, tipo
+        proveedor, pvp, anexosData2, rowRec, tipo, fuente
     );
     
     // AGREGAR PROMOCIONES UNIFICADAS AL ARRAY PRINCIPAL
@@ -395,12 +395,12 @@ async function obtenerDatosSiesaCompletosConPromos(documento, refprov, referenci
     return datosSiesaArray;
 }
 
-// NUEVA FUNCIÓN PARA UNIFICAR PROMOCIONES
-async function unificarPromociones(documento, refprov, referencia, lote, soportesData, siesaData, proveedor, pvp, anexosData2, rowRec, tipo) {
+async function unificarPromociones(documento, refprov, referencia, lote, soportesData, siesaData, proveedor, pvp, anexosData2, rowRec, tipo, fuente) {
     const promosUnificadas = [];
     const promosPorReferencia = {}; // AGRUPAR POR REFERENCIA
-    
-    // PROCESAR PROMOCIONES DE DATA2
+    let cantidadTotalGlobal = 0;
+
+    // PROCESAR PROMOCIONES DE DATA2 (ANEXOS)
     if (anexosData2 && Array.isArray(anexosData2)) {
         const promosData2 = anexosData2.filter(anexo => anexo.TIPO === "PROMO");
         
@@ -411,66 +411,193 @@ async function unificarPromociones(documento, refprov, referencia, lote, soporte
             if (cantidadPromo <= 0) return;
             
             // AGRUPAR POR REFERENCIA
-            if (!promosPorReferencia[refPromo]) {
-                promosPorReferencia[refPromo] = {
+            const claveReferencia = refPromo;
+            if (!promosPorReferencia[claveReferencia]) {
+                promosPorReferencia[claveReferencia] = {
                     referencia: refPromo,
                     cantidadTotal: 0,
-                    promosIndividuales: []
+                    promosIndividuales: [],
+                    fuentes: new Set()
                 };
             }
             
-            promosPorReferencia[refPromo].cantidadTotal += cantidadPromo;
-            promosPorReferencia[refPromo].promosIndividuales.push({
+            promosPorReferencia[claveReferencia].cantidadTotal += cantidadPromo;
+            cantidadTotalGlobal += cantidadPromo;
+            promosPorReferencia[claveReferencia].promosIndividuales.push({
                 cantidad: cantidadPromo,
-                fuente: "DATA2"
+                fuente: "DATA2",
+                tipo: "ANEXO"
             });
+            promosPorReferencia[claveReferencia].fuentes.add("DATA2");
         });
     }
     
-    // PROCESAR PROMOCIONES DE REC (DATABASE)
-    if (rowRec && tipo.toUpperCase() === "PROMO") {
-        const cantidad = Number(rowRec[18]) || 0;
+    // PROCESAR PROMOCIONES DE REC (DATABASE) - REGISTROS CON TIPO "PROMO"
+    if (rowRec) {
+        const tipoRec = String(rowRec[27] || "").toUpperCase();
+        const cantidadRec = Number(rowRec[18]) || 0;
         
-        if (cantidad > 0) {
-            // AGRUPAR POR REFERENCIA (usar refprov para REC)
-            if (!promosPorReferencia[refprov]) {
-                promosPorReferencia[refprov] = {
-                    referencia: refprov,
+        // SI ES REGISTRO PROMO EN REC
+        if (tipoRec === "PROMO" && cantidadRec > 0) {
+            const refPromoRec = String(rowRec[6] || ""); // REFPROV de REC
+            
+            // AGRUPAR POR REFERENCIA
+            const claveReferencia = refPromoRec;
+            if (!promosPorReferencia[claveReferencia]) {
+                promosPorReferencia[claveReferencia] = {
+                    referencia: refPromoRec,
                     cantidadTotal: 0,
-                    promosIndividuales: []
+                    promosIndividuales: [],
+                    fuentes: new Set()
                 };
             }
             
-            promosPorReferencia[refprov].cantidadTotal += cantidad;
-            promosPorReferencia[refprov].promosIndividuales.push({
-                cantidad: cantidad,
-                fuente: "REC"
+            promosPorReferencia[claveReferencia].cantidadTotal += cantidadRec;
+            cantidadTotalGlobal += cantidadRec;
+            promosPorReferencia[claveReferencia].promosIndividuales.push({
+                cantidad: cantidadRec,
+                fuente: "REC",
+                tipo: "REGISTRO"
             });
+            promosPorReferencia[claveReferencia].fuentes.add("REC");
         }
     }
     
-    // PROCESAR CADA GRUPO DE PROMOCIONES UNIFICADAS
-    for (const [refPromo, grupo] of Object.entries(promosPorReferencia)) {
-        if (grupo.cantidadTotal <= 0) continue;
+    // TAMBIÉN PROCESAR SI EL DOCUMENTO ACTUAL ES PROMO (PARA DATA2)
+    if (tipo && tipo.toUpperCase() === "PROMO" && !rowRec) {
+        // ESTO ES PARA CUANDO DATA2 TIENE REGISTROS PROMO DIRECTOS
+        const cantidadData2 = 1; // O LA CANTIDAD APROPIADA DE DATA2
         
-        // DETERMINAR SI HAY MÚLTIPLES REFERENCIAS DIFERENTES
-        const referenciasUnicas = Object.keys(promosPorReferencia);
-        let referenciaFinal = refPromo;
-        let esRefVar = false;
-        
-        // SI HAY MÁS DE UNA REFERENCIA ÚNICA, USAR "RefVar"
-        if (referenciasUnicas.length > 1) {
-            referenciaFinal = "RefVar";
-            esRefVar = true;
+        // AGRUPAR POR REFERENCIA
+        const claveReferencia = refprov;
+        if (!promosPorReferencia[claveReferencia]) {
+            promosPorReferencia[claveReferencia] = {
+                referencia: refprov,
+                cantidadTotal: 0,
+                promosIndividuales: [],
+                fuentes: new Set()
+            };
         }
         
-        // BUSCAR DATOS SIESA Y SOPORTE PARA LA PROMO UNIFICADA
-        const nombreCliente = "EL TEMPLO DE LA MODA SAS";
-        const nit = "805027653";
+        promosPorReferencia[claveReferencia].cantidadTotal += cantidadData2;
+        cantidadTotalGlobal += cantidadData2;
+        promosPorReferencia[claveReferencia].promosIndividuales.push({
+            cantidad: cantidadData2,
+            fuente: "DATA2",
+            tipo: "REGISTRO"
+        });
+        promosPorReferencia[claveReferencia].fuentes.add("DATA2");
+    }
+    
+    // SI NO HAY PROMOCIONES, RETORNAR ARRAY VACÍO
+    if (Object.keys(promosPorReferencia).length === 0) {
+        return promosUnificadas;
+    }
+    
+    console.log(`📦 Procesando ${Object.keys(promosPorReferencia).length} grupos de promociones para documento ${documento}:`, promosPorReferencia);
+    console.log(`🔢 Cantidad total global de promociones: ${cantidadTotalGlobal}`);
+    
+    // DETERMINAR SI HAY MÚLTIPLES REFERENCIAS DIFERENTES
+    const referenciasUnicas = Object.keys(promosPorReferencia);
+    let tieneMultiplesReferencias = referenciasUnicas.length > 1;
+    
+    // SI HAY MÚLTIPLES REFERENCIAS, CREAR UN SOLO REGISTRO RefVar
+    if (tieneMultiplesReferencias) {
+        await procesarRefVar(promosUnificadas, documento, lote, soportesData, siesaData, proveedor, pvp, referencia, promosPorReferencia, cantidadTotalGlobal);
+    } else {
+        // PROCESAR REFERENCIAS INDIVIDUALES
+        await procesarReferenciasIndividuales(promosUnificadas, documento, lote, soportesData, siesaData, proveedor, pvp, referencia, promosPorReferencia);
+    }
+    
+    console.log(`✅ Promociones unificadas para ${documento}: ${promosUnificadas.length} registros`);
+    return promosUnificadas;
+}
+
+// NUEVA FUNCIÓN PARA PROCESAR RefVar (MÚLTIPLES REFERENCIAS)
+async function procesarRefVar(promosUnificadas, documento, lote, soportesData, siesaData, proveedor, pvp, referencia, promosPorReferencia, cantidadTotalGlobal) {
+    const nombreCliente = "EL TEMPLO DE LA MODA SAS";
+    const nit = "805027653";
+    
+    // CALCULAR CANTIDAD TOTAL CORRECTA
+    const cantidadTotalCalculada = Object.values(promosPorReferencia).reduce((total, grupo) => total + grupo.cantidadTotal, 0);
+    
+    console.log(`🔢 RefVar - Cantidad total calculada: ${cantidadTotalCalculada} (global: ${cantidadTotalGlobal})`);
+    
+    // BUSCAR EN SIESA CON RefVar Y CANTIDAD TOTAL
+    const siesaInfo = buscarSiesa(siesaData, "RefVar", nit, cantidadTotalCalculada, lote);
+    
+    // BUSCAR SOPORTE
+    const soporteInfo = buscarSoporte(soportesData, documento, cantidadTotalCalculada, nit);
+    
+    // BUSCAR SEMANA PW
+    const semanaPW = obtenerSemanaPW(nombreCliente, referencia);
+    
+    // DETERMINAR ESTADO
+    let estado, factura, fecha, soporte, confirmacion;
+    
+    if (siesaInfo && soporteInfo && soporteInfo.factura) {
+        estado = siesaInfo.estado || "Aprobadas";
+        factura = siesaInfo.nro_documento || "";
+        fecha = formatearFechaDDMMYYYY(siesaInfo.fecha);
+        soporte = soporteInfo.url_ih3 || "";
+        confirmacion = calcularEstado(soporteInfo.factura, siesaInfo.nro_documento);
+    } else if (siesaInfo && !soporteInfo) {
+        estado = siesaInfo.estado || "Aprobadas";
+        factura = siesaInfo.nro_documento || "";
+        fecha = formatearFechaDDMMYYYY(siesaInfo.fecha);
+        soporte = "";
+        confirmacion = "PENDIENTE";
+    } else {
+        estado = "Elaboración";
+        factura = "";
+        fecha = "";
+        soporte = "";
+        confirmacion = "ELABORACION";
+    }
+    
+    // VERIFICAR FILTRO DE ESTADOS
+    if (!currentFilters.estados.includes(confirmacion)) return;
+    
+    // CALCULAR VALOR BRUTO CORRECTO
+    const valorBruto = confirmacion !== "ELABORACION" ? Math.round(pvp * cantidadTotalCalculada) : 0;
+    
+    // CREAR REGISTRO RefVar UNIFICADO
+    const registroRefVar = {
+        estado: estado,
+        factura: factura,
+        fecha: fecha,
+        lote: lote.toString(),
+        proovedor: proveedor,
+        cliente: nombreCliente,
+        valorBruto: valorBruto,
+        referencia: "RefVar",
+        cantidad: cantidadTotalCalculada, // CANTIDAD TOTAL CORRECTA
+        nit: nit,
+        soporte: soporte,
+        confirmacion: confirmacion,
+        semana: semanaPW,
+        tipo: "PROMO",
+        esRefVar: true,
+        fuentes: Array.from(new Set(Object.values(promosPorReferencia).flatMap(grupo => Array.from(grupo.fuentes)))),
+        detalleReferencias: Object.entries(promosPorReferencia)
+            .map(([clave, datos]) => `${datos.referencia}-${datos.cantidadTotal}`)
+            .join(',')
+    };
+    
+    promosUnificadas.push(registroRefVar);
+    console.log(`🎯 RefVar creado: ${cantidadTotalCalculada} unidades, valor bruto: ${valorBruto}`);
+}
+
+// NUEVA FUNCIÓN PARA PROCESAR REFERENCIAS INDIVIDUALES
+async function procesarReferenciasIndividuales(promosUnificadas, documento, lote, soportesData, siesaData, proveedor, pvp, referencia, promosPorReferencia) {
+    const nombreCliente = "EL TEMPLO DE LA MODA SAS";
+    const nit = "805027653";
+    
+    for (const [claveReferencia, grupo] of Object.entries(promosPorReferencia)) {
+        if (grupo.cantidadTotal <= 0) continue;
         
-        // PARA BUSQUEDA EN SIESA, USAR LA PRIMERA REFERENCIA DEL GRUPO
-        const primeraRef = referenciasUnicas[0];
-        const siesaInfo = buscarSiesa(siesaData, primeraRef, nit, grupo.cantidadTotal, lote);
+        // BUSCAR EN SIESA CON LA REFERENCIA ESPECÍFICA
+        const siesaInfo = buscarSiesa(siesaData, grupo.referencia, nit, grupo.cantidadTotal, lote);
         
         // BUSCAR SOPORTE
         const soporteInfo = buscarSoporte(soportesData, documento, grupo.cantidadTotal, nit);
@@ -504,11 +631,11 @@ async function unificarPromociones(documento, refprov, referencia, lote, soporte
         // VERIFICAR FILTRO DE ESTADOS
         if (!currentFilters.estados.includes(confirmacion)) continue;
         
-        // CALCULAR VALOR BRUTO (solo si no es elaboración)
+        // CALCULAR VALOR BRUTO
         const valorBruto = confirmacion !== "ELABORACION" ? Math.round(pvp * grupo.cantidadTotal) : 0;
         
-        // CREAR REGISTRO UNIFICADO
-        const registroUnificado = {
+        // CREAR REGISTRO INDIVIDUAL
+        const registroIndividual = {
             estado: estado,
             factura: factura,
             fecha: fecha,
@@ -516,32 +643,23 @@ async function unificarPromociones(documento, refprov, referencia, lote, soporte
             proovedor: proveedor,
             cliente: nombreCliente,
             valorBruto: valorBruto,
-            referencia: referenciaFinal,
+            referencia: grupo.referencia,
             cantidad: grupo.cantidadTotal,
             nit: nit,
             soporte: soporte,
             confirmacion: confirmacion,
             semana: semanaPW,
             tipo: "PROMO",
-            esRefVar: esRefVar
+            esRefVar: false,
+            fuentes: Array.from(grupo.fuentes),
+            detallePromos: grupo.promosIndividuales.map(promo => 
+                `${promo.fuente}-${promo.tipo}-${promo.cantidad}`
+            ).join(',')
         };
         
-        // SI ES RefVar, AGREGAR DETALLE DE REFERENCIAS
-        if (esRefVar) {
-            registroUnificado.detalleReferencias = Object.entries(promosPorReferencia)
-                .map(([ref, datos]) => `${ref}-${datos.cantidadTotal}`)
-                .join(',');
-        }
-        
-        promosUnificadas.push(registroUnificado);
-        
-        // SI HAY MÚLTIPLES REFERENCIAS, SOLO GENERAR UN REGISTRO RefVar
-        if (esRefVar) {
-            break;
-        }
+        promosUnificadas.push(registroIndividual);
+        console.log(`🎯 Promo individual ${grupo.referencia}: ${grupo.cantidadTotal} unidades, valor bruto: ${valorBruto}`);
     }
-    
-    return promosUnificadas;
 }
 
 // FUNCIÓN PARA PROCESAR UN CLIENTE/PROMO INDIVIDUAL (MANTENIDA)
