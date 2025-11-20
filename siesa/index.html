@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador SIESA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .loading {
+            background-color: #fff9c4;
+            color: #f57c00;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .json-view {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de Datos SIESA</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <button id="downloadJson" disabled>Descargar JSON</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="jsonView" class="json-view"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadJsonBtn = document.getElementById('downloadJson');
+            const statusDiv = document.getElementById('status');
+            const jsonViewDiv = document.getElementById('jsonView');
+            
+            let startTime = 0;
+            
+            // Configuración optimizada
+            const CONFIG = {
+                apiKey: 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM',
+                spreadsheetIds: {
+                    siesa: '1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM',
+                    soportes: '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw'
+                },
+                sheets: ['SIESA', 'SIESA_V2', 'SOPORTES']
+            };
+            
+            // Mapeos predefinidos para máximo rendimiento
+            const MAPEO_NOMBRES_SIESA = new Map([
+                ["ARISTIZABAL LOPEZ JESUS MARIA", "70825517"],
+                ["EL TEMPLO DE LA MODA FRESCA S.A.S.", "900047252"],
+                ["EL TEMPLO DE LA MODA FRESCA SAS", "900047252"],
+                ["EL TEMPLO DE LA MODA S.A.S.", "805027653"],
+                ["EL TEMPLO DE LA MODA SAS", "805027653"],
+                ["INVERSIONES URBANA S.A.S", "901920844"],
+                ["INVERSIONES URBANA SAS", "901920844"],
+                ["QUINTERO ORTIZ JOSE ALEXANDER", "14838951"],
+                ["QUINTERO ORTIZ PATRICIA YAMILET", "67006141"],
+                ["ZULUAGA GOMEZ RUBEN ESTEBAN", "1007348825"]
+            ]);
+            
+            const MAPEO_PREFIJOS_TIPO = new Map([
+                ["017", "REMISIONES"],
+                ["029", "REMISIONES"],
+                ["008", "DEVOLUCIONES"],
+                ["034", "DEVOLUCIONES"],
+                ["FEV", "OFICIALES"],
+                ["FVE", "OFICIALES"],
+                ["NEC", "NOTA_CREDITO"]
+            ]);
+            
+            const TIPOS_PERMITIDOS = new Set(["OFICIALES", "REMISIONES"]);
+            
+            // Función para mostrar estado
+            function showStatus(message, type) {
+                statusDiv.textContent = message;
+                statusDiv.className = 'status ' + type;
+            }
+            
+            // Funciones optimizadas
+            const normalizarFecha = (fechaStr) => {
+                if (!fechaStr) return null;
+                const [mes, dia, año] = fechaStr.split('/');
+                return año && mes && dia ? `${año}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}` : fechaStr;
+            };
+            
+            const normalizarNumero = (numeroStr) => {
+                if (!numeroStr) return null;
+                const numero = parseFloat(numeroStr.toString().replace(/\s+/g, '').replace(/[^\d.-]/g, ''));
+                return isNaN(numero) ? null : numero;
+            };
+            
+            const obtenerTipoDocumento = (nroDocumento) => {
+                if (!nroDocumento) return null;
+                const prefijo = nroDocumento.split('-')[0]?.toUpperCase();
+                return MAPEO_PREFIJOS_TIPO.get(prefijo) || null;
+            };
+            
+            const obtenerClienteUnificado = (razonSocial) => {
+                const nombreUpper = razonSocial.toUpperCase().trim();
+                for (const [nombreMapeado, nit] of MAPEO_NOMBRES_SIESA) {
+                    if (nombreUpper === nombreMapeado.toUpperCase()) {
+                        return { razonSocial: nombreMapeado, nit: nit };
+                    }
+                }
+                return null;
+            };
+            
+            const obtenerNombreCompania = (codigoCompania) => {
+                return codigoCompania === '3' ? "TEXTILES Y CREACIONES LOS ANGELES SAS" :
+                       codigoCompania === '5' ? "TEXTILES Y CREACIONES EL UNIVERSO SAS" : null;
+            };
+            
+            const obtenerLote = (compania, fila) => {
+                return compania === '5' ? normalizarNumero(fila[4]) :
+                       compania === '3' ? normalizarNumero(fila[5]) : null;
+            };
+            
+            // Carga paralela optimizada
+            async function cargarDatosParalelos() {
+                const requests = [
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetIds.siesa}/values/SIESA?key=${CONFIG.apiKey}`),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetIds.siesa}/values/SIESA_V2?key=${CONFIG.apiKey}`),
+                    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetIds.soportes}/values/SOPORTES?key=${CONFIG.apiKey}`)
+                ];
+                
+                const [resSiesa, resSiesaV2, resSoportes] = await Promise.all(requests);
+                
+                if (!resSiesa.ok) throw new Error('Error cargando SIESA');
+                
+                const [dataSiesa, dataSiesaV2, dataSoportes] = await Promise.all([
+                    resSiesa.json(),
+                    resSiesaV2.ok ? resSiesaV2.json() : Promise.resolve({values: []}),
+                    resSoportes.ok ? resSoportes.json() : Promise.resolve({values: []})
+                ]);
+                
+                return {
+                    siesa: dataSiesa.values || [],
+                    siesaV2: dataSiesaV2.values || [],
+                    soportes: dataSoportes.values || []
+                };
+            }
+            
+            // Procesamiento optimizado
+            function procesarDatosV2(datosV2) {
+                const datosAgrupados = new Map();
+                
+                if (!datosV2 || datosV2.length < 2) return datosAgrupados;
+                
+                for (let i = 1; i < datosV2.length; i++) {
+                    const fila = datosV2[i];
+                    if (fila.length < 4) continue;
+                    
+                    const [documento, valorSubtotal, referencia, cantidad] = fila;
+                    if (!documento) continue;
+                    
+                    if (!datosAgrupados.has(documento)) {
+                        datosAgrupados.set(documento, {
+                            valorSubtotal: 0,
+                            cantidad: 0,
+                            referencias: new Set()
+                        });
+                    }
+                    
+                    const datos = datosAgrupados.get(documento);
+                    const valorNum = normalizarNumero(valorSubtotal);
+                    const cantidadNum = normalizarNumero(cantidad);
+                    
+                    if (valorNum !== null) datos.valorSubtotal += valorNum;
+                    if (cantidadNum !== null) datos.cantidad += cantidadNum;
+                    if (referencia) datos.referencias.add(referencia);
+                }
+                
+                return datosAgrupados;
+            }
+            
+            function procesarDatosSoportes(datosSoportes) {
+                const datosSoportesMap = new Map();
+                
+                if (!datosSoportes || datosSoportes.length < 2) return datosSoportesMap;
+                
+                for (let i = 1; i < datosSoportes.length; i++) {
+                    const fila = datosSoportes[i];
+                    if (fila.length < 9) continue;
+                    
+                    const factura = fila[5];
+                    const urlIh3 = fila[8];
+                    
+                    if (factura) {
+                        datosSoportesMap.set(factura, urlIh3 || '');
+                    }
+                }
+                
+                return datosSoportesMap;
+            }
+            
+            function procesarDatosSiesa(datosSiesa, datosV2Procesados, datosSoportesProcesados) {
+                if (datosSiesa.length < 2) return [];
+                
+                const processedData = [];
+                
+                // Pre-calcular índices una sola vez
+                const [estadoIdx, docIdx, fechaIdx, razonIdx, doctoRefIdx, notasIdx, companiaIdx] = [0, 1, 2, 3, 4, 5, 6];
+                
+                for (let i = 1; i < datosSiesa.length; i++) {
+                    const fila = datosSiesa[i];
+                    if (fila.length < 7) continue;
+                    
+                    if (fila[estadoIdx] === 'Aprobadas') {
+                        const clienteUnificado = obtenerClienteUnificado(fila[razonIdx]);
+                        
+                        if (clienteUnificado) {
+                            const nroDocumento = fila[docIdx] || '';
+                            const compania = fila[companiaIdx] || '';
+                            const lote = obtenerLote(compania, fila);
+                            
+                            if (lote !== null) {
+                                const datosV2 = datosV2Procesados.get(nroDocumento);
+                                const referencias = datosV2 ? Array.from(datosV2.referencias) : [];
+                                const refprov = referencias.length === 1 ? referencias[0] : 
+                                              referencias.length > 1 ? 'RefVar' : null;
+                                
+                                const soporte = datosSoportesProcesados.get(nroDocumento) || '';
+                                
+                                processedData.push({
+                                    estado: 'Aprobadas',
+                                    factura: nroDocumento,
+                                    fecha: normalizarFecha(fila[fechaIdx]),
+                                    cliente: clienteUnificado.razonSocial,
+                                    proveedor: obtenerNombreCompania(compania),
+                                    nit: clienteUnificado.nit,
+                                    lote: lote,
+                                    tipo: obtenerTipoDocumento(nroDocumento),
+                                    valor: datosV2?.valorSubtotal || null,
+                                    cantidad: datosV2?.cantidad || null,
+                                    refprov: refprov,
+                                    soporte: soporte,
+                                    confirmacion: soporte ? "ENTREGADO" : "PENDIENTE"
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                return processedData.filter(item => TIPOS_PERMITIDOS.has(item.tipo));
+            }
+            
+            function agruparPorLote(datos) {
+                const agrupados = new Map();
+                
+                for (const item of datos) {
+                    const lote = item.lote;
+                    if (!lote) continue;
+                    
+                    if (!agrupados.has(lote)) {
+                        agrupados.set(lote, {
+                            documento: "REC" + lote,
+                            referencia: "",
+                            lote: lote,
+                            datosSiesa: []
+                        });
+                    }
+                    
+                    agrupados.get(lote).datosSiesa.push({
+                        estado: item.estado,
+                        factura: item.factura,
+                        fecha: item.fecha,
+                        lote: item.lote.toString(),
+                        proovedor: item.proveedor,
+                        cliente: item.cliente,
+                        valorBruto: item.valor,
+                        refprov: item.refprov,
+                        cantidad: item.cantidad,
+                        nit: item.nit,
+                        confirmacion: item.confirmacion,
+                        soporte: item.soporte
+                    });
+                }
+                
+                return Array.from(agrupados.values());
+            }
+            
+            // Función principal optimizada
+            async function cargarDatos() {
+                startTime = Date.now();
+                showStatus('Cargando datos...', 'loading');
+                
+                try {
+                    // Carga paralela de todos los datos
+                    const { siesa, siesaV2, soportes } = await cargarDatosParalelos();
+                    
+                    if (!siesa || siesa.length === 0) {
+                        throw new Error('No hay datos en SIESA');
+                    }
+                    
+                    // Procesamiento paralelo
+                    const [datosV2Procesados, datosSoportesProcesados] = await Promise.all([
+                        Promise.resolve(procesarDatosV2(siesaV2)),
+                        Promise.resolve(procesarDatosSoportes(soportes))
+                    ]);
+                    
+                    // Procesamiento final
+                    const filteredData = procesarDatosSiesa(siesa, datosV2Procesados, datosSoportesProcesados);
+                    const groupedData = agruparPorLote(filteredData);
+                    
+                    const endTime = Date.now();
+                    const tiempoTotal = ((endTime - startTime) / 1000).toFixed(2);
+                    
+                    mostrarJSON(groupedData);
+                    showStatus(`Datos Cargados en ${tiempoTotal} segundos | ${groupedData.length} lotes | ${filteredData.length} documentos`, 'success');
+                    downloadJsonBtn.disabled = false;
+                    
+                } catch (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                }
+            }
+            
+            // Función para mostrar JSON
+            function mostrarJSON(datos) {
+                jsonViewDiv.textContent = JSON.stringify(datos, null, 2);
+            }
+            
+            // Función para descargar JSON
+            function descargarJSON() {
+                const jsonStr = jsonViewDiv.textContent;
+                if (!jsonStr || jsonStr === '') {
+                    showStatus('No hay datos para descargar', 'error');
+                    return;
+                }
+                
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'datos_siesa_agrupados.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showStatus('JSON descargado', 'success');
+            }
+            
+            // Event listeners
+            downloadJsonBtn.addEventListener('click', descargarJSON);
+            
+            // Cargar datos automáticamente
+            cargarDatos();
+        });
+    </script>
+</body>
+</html>
