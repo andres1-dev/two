@@ -18,7 +18,7 @@
             --light-bg: #f5f7fa;
             --card-bg: #fff;
             --border-radius: 12px;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             --spacing-sm: 10px;
             --spacing-md: 20px;
             --spacing-lg: 30px;
@@ -28,14 +28,19 @@
             box-sizing: border-box;
         }
         
+        html {
+            zoom: 0.8;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: var(--spacing-md);
             background-color: var(--light-bg);
             color: var(--text-color);
-            font-size: 16px;
+            font-size: 15px;
             line-height: 1.5;
+            transform-origin: top center;
         }
         
         .container {
@@ -52,132 +57,232 @@
             text-align: center;
             color: #2c3e50;
             margin-bottom: var(--spacing-lg);
-            font-size: 1.5rem;
+            font-size: 1.6rem;
+            font-weight: 600;
         }
         
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 380px;
             margin-bottom: var(--spacing-lg);
-        }
-        
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-lg);
+            background: white;
+            border-radius: var(--border-radius);
             padding: var(--spacing-md);
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            box-shadow: var(--box-shadow);
         }
-        
-        .summary-item {
-            text-align: center;
-            padding: var(--spacing-sm);
-            flex: 1 1 150px;
-            min-width: 150px;
-        }
-        
-        .summary-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: var(--spacing-sm) 0;
-        }
-        
-        .ingresos { color: var(--primary-color); }
-        .despachos { color: var(--secondary-color); }
-        .meta { color: var(--accent-color); }
-        .cumplimiento { color: var(--highlight-color); }
         
         .consolidated {
             display: flex;
-            flex-wrap: wrap;
             gap: var(--spacing-md);
             margin: var(--spacing-lg) 0;
         }
         
         .consolidated-card {
-            flex: 1 1 300px;
+            flex: 1;
             background: linear-gradient(135deg, #3498db, #2980b9);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-            text-align: center;
             color: white;
             position: relative;
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+            min-width: 0;
+            cursor: pointer;
         }
         
         .consolidated-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
         }
         
         .consolidated-card.despachos-card {
             background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.2);
+        }
+        
+        .consolidated-card.despachos-card:hover {
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.25);
+        }
+        
+        .card-bg-icon {
+            position: absolute;
+            font-size: 12rem;
+            right: -40px;
+            bottom: -40px;
+            opacity: 0.08;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            position: relative;
+            z-index: 1;
         }
         
         .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: var(--spacing-sm);
+            font-size: 1.8rem;
+            margin-right: var(--spacing-sm);
             opacity: 0.9;
         }
         
-        .consolidated-title {
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .main-metric {
+            text-align: center;
+            margin: var(--spacing-md) 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .main-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+        
+        .main-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .secondary-metrics {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            gap: 8px;
+        }
+        
+        .secondary-metric {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .secondary-value {
             font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: var(--spacing-sm);
-            opacity: 0.9;
+            margin: 4px 0;
+            white-space: nowrap;
         }
         
-        .consolidated-value {
-            font-size: 2.2rem;
-            font-weight: bold;
-            margin: var(--spacing-sm) 0;
+        .secondary-label {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            white-space: nowrap;
         }
         
-        .card-footer {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: var(--spacing-sm);
+        .details-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
         }
         
-        .card-decoration {
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            width: 100px;
-            height: 100px;
+        .details-container.active {
+            display: flex;
+        }
+        
+        .details-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .details-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .details-title i {
+            margin-right: var(--spacing-sm);
+            font-size: 1.6rem;
+        }
+        
+        .details-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #7f8c8d;
+            cursor: pointer;
+            padding: 5px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.3s ease;
         }
         
-        .data-table-container {
-            overflow-x: auto;
-            margin-top: var(--spacing-lg);
+        .details-close:hover {
+            background: #f0f0f0;
+            color: #e74c3c;
         }
         
-        .data-table {
+        .details-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            margin-top: var(--spacing-md);
         }
         
-        .data-table th, .data-table td {
+        .details-table th, .details-table td {
             padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e1e1e1;
         }
         
-        .data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+        .details-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            white-space: nowrap;
         }
         
-        .data-table tr:hover {
-            background-color: #f5f5f5;
+        .details-table tr:hover {
+            background-color: #f5f7fa;
         }
         
         .no-despacho {
@@ -189,11 +294,22 @@
             text-align: center;
             margin-top: var(--spacing-lg);
             color: #7f8c8d;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            padding: var(--spacing-md);
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
         }
         
-        /* Media Queries para dispositivos móviles */
+        .footer i {
+            margin-right: 5px;
+        }
+        
+        /* Media Queries mejoradas */
         @media (max-width: 768px) {
+            html {
+                zoom: 1;
+            }
+            
             body {
                 padding: var(--spacing-sm);
                 font-size: 14px;
@@ -204,68 +320,98 @@
             }
             
             h1 {
-                font-size: 1.3rem;
+                font-size: 1.4rem;
                 margin-bottom: var(--spacing-md);
             }
             
             .chart-container {
-                height: 300px;
+                height: 320px;
                 margin-bottom: var(--spacing-md);
-            }
-            
-            .summary {
                 padding: var(--spacing-sm);
-                gap: var(--spacing-sm);
-            }
-            
-            .summary-item {
-                flex: 1 1 120px;
-                min-width: 120px;
-                padding: 8px;
-            }
-            
-            .summary-value {
-                font-size: 1.2rem;
             }
             
             .consolidated {
                 gap: var(--spacing-sm);
+                flex-wrap: nowrap;
             }
             
             .consolidated-card {
-                flex: 1 1 100%;
                 padding: var(--spacing-sm);
+                min-width: 0;
             }
             
-            .consolidated-value {
+            .main-value {
                 font-size: 1.8rem;
             }
             
-            .card-icon {
-                font-size: 2rem;
+            .secondary-value {
+                font-size: 0.95rem;
             }
             
-            .data-table th, .data-table td {
+            .secondary-label {
+                font-size: 0.7rem;
+            }
+            
+            .card-icon {
+                font-size: 1.5rem;
+            }
+            
+            .card-bg-icon {
+                font-size: 8rem;
+                right: -25px;
+                bottom: -25px;
+            }
+            
+            .details-card {
+                padding: var(--spacing-md);
+                max-width: 95%;
+            }
+            
+            .details-table th, .details-table td {
                 padding: 8px 10px;
+                font-size: 0.9rem;
             }
         }
         
         @media (max-width: 480px) {
-            .summary {
-                flex-direction: column;
-            }
-            
-            .summary-item {
-                flex: 1 1 auto;
-                min-width: auto;
-            }
-            
             .chart-container {
-                height: 250px;
+                height: 280px;
             }
             
-            .consolidated-value {
+            .main-value {
                 font-size: 1.6rem;
+            }
+            
+            .card-title {
+                font-size: 1.1rem;
+            }
+            
+            .consolidated-card {
+                padding: 10px;
+            }
+            
+            .card-bg-icon {
+                font-size: 6rem;
+                right: -15px;
+                bottom: -15px;
+            }
+            
+            .secondary-metrics {
+                padding: 8px;
+                gap: 5px;
+            }
+            
+            .secondary-value {
+                font-size: 0.9rem;
+            }
+            
+            .secondary-label {
+                font-size: 0.65rem;
+            }
+            
+            .details-table th, .details-table td {
+                padding: 6px 8px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -279,65 +425,125 @@
         </div>
         
         <div class="consolidated">
-            <div class="consolidated-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
+            <div class="consolidated-card" id="ingresosCard">
+                <div class="card-bg-icon">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="consolidated-title">Total Ingresos</div>
-                <div class="consolidated-value" id="totalIngresos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="card-title">Ingresos</div>
+                </div>
+                <div class="main-metric">
+                    <div class="main-value" id="totalIngresos">0</div>
+                    <div class="main-label">Total Acumulado</div>
+                </div>
+                <div class="secondary-metrics">
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="avgIngresos">0</div>
+                        <div class="secondary-label">Promedio</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="metaIngresos">0</div>
+                        <div class="secondary-label">Meta</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="complianceIngresos">0%</div>
+                        <div class="secondary-label">Cumplimiento</div>
+                    </div>
+                </div>
             </div>
-            <div class="consolidated-card despachos-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
+            
+            <div class="consolidated-card despachos-card" id="despachosCard">
+                <div class="card-bg-icon">
                     <i class="fas fa-shipping-fast"></i>
                 </div>
-                <div class="consolidated-title">Total Despachos</div>
-                <div class="consolidated-value" id="totalDespachos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-shipping-fast"></i>
+                    </div>
+                    <div class="card-title">Despachos</div>
+                </div>
+                <div class="main-metric">
+                    <div class="main-value" id="totalDespachos">0</div>
+                    <div class="main-label">Total Acumulado</div>
+                </div>
+                <div class="secondary-metrics">
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="avgDespachos">0</div>
+                        <div class="secondary-label">Promedio</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="metaDespachos">0</div>
+                        <div class="secondary-label">Meta</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="complianceDespachos">0%</div>
+                        <div class="secondary-label">Cumplimiento</div>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div class="summary">
-            <div class="summary-item">
-                <div><i class="fas fa-chart-line ingresos"></i> Promedio Ingresos</div>
-                <div class="summary-value ingresos" id="avgIngresos">0</div>
-            </div>
-            <div class="summary-item">
-                <div><i class="fas fa-truck-loading despachos"></i> Promedio Despachos</div>
-                <div class="summary-value despachos" id="avgDespachos">0</div>
-            </div>
-            <div class="summary-item">
-                <div><i class="fas fa-bullseye meta"></i> Meta Diaria</div>
-                <div class="summary-value meta" id="metaValue">0</div>
-            </div>
-            <div class="summary-item">
-                <div><i class="fas fa-percentage cumplimiento"></i> Cumplimiento Promedio</div>
-                <div class="summary-value cumplimiento" id="avgCompliance">0%</div>
-            </div>
-        </div>
-        
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th><i class="far fa-calendar-alt"></i> Fecha</th>
-                        <th><i class="fas fa-money-bill-wave"></i> Ingresos</th>
-                        <th><i class="fas fa-shipping-fast"></i> Despachos</th>
-                        <th><i class="fas fa-bullseye"></i> Meta</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Ingresos</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Despachos</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Los datos se insertarán aquí con JavaScript -->
-                </tbody>
-            </table>
         </div>
         
         <div class="footer">
             <p><i class="fas fa-info-circle"></i> Nota: Los días sin despacho (valor 0) corresponden a días no laborales para despacho.</p>
+        </div>
+    </div>
+
+    <!-- Modal para detalles de Ingresos -->
+    <div class="details-container" id="ingresosDetails">
+        <div class="details-card">
+            <div class="details-header">
+                <div class="details-title" style="color: #3498db;">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Detalle de Ingresos
+                </div>
+                <button class="details-close" onclick="closeDetails('ingresosDetails')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Ingresos</th>
+                        <th>Meta</th>
+                        <th>% Cumplimiento</th>
+                    </tr>
+                </thead>
+                <tbody id="ingresosDetailsBody">
+                    <!-- Los datos se insertarán aquí con JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para detalles de Despachos -->
+    <div class="details-container" id="despachosDetails">
+        <div class="details-card">
+            <div class="details-header">
+                <div class="details-title" style="color: #2ecc71;">
+                    <i class="fas fa-shipping-fast"></i>
+                    Detalle de Despachos
+                </div>
+                <button class="details-close" onclick="closeDetails('despachosDetails')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Despachos</th>
+                        <th>Meta</th>
+                        <th>% Cumplimiento</th>
+                    </tr>
+                </thead>
+                <tbody id="despachosDetailsBody">
+                    <!-- Los datos se insertarán aquí con JavaScript -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -479,29 +685,29 @@
             }
         });
 
-        // Calcular promedios y actualizar resumen
+        // Calcular estadísticas
         const totalIngresos = data.reduce((sum, item) => sum + item.ingresos, 0);
         const totalDespachos = data.reduce((sum, item) => sum + item.despachos, 0);
         const diasConDespacho = data.filter(item => item.despachos > 0).length;
         
         const avgIngresos = Math.round(totalIngresos / data.length);
         const avgDespachos = Math.round(totalDespachos / diasConDespacho);
-        const avgComplianceIngresos = ((totalIngresos / (data.length * data[0].meta)) * 100).toFixed(1);
-        const avgComplianceDespachos = ((totalDespachos / (diasConDespacho * data[0].meta)) * 100).toFixed(1);
-        const avgCompliance = ((parseFloat(avgComplianceIngresos) + parseFloat(avgComplianceDespachos)) / 2).toFixed(1);
+        const metaDiaria = data[0].meta;
+        const complianceIngresos = ((totalIngresos / (data.length * metaDiaria)) * 100).toFixed(1);
+        const complianceDespachos = ((totalDespachos / (diasConDespacho * metaDiaria)) * 100).toFixed(1);
 
         // Actualizar tarjetas de consolidado
         document.getElementById('totalIngresos').textContent = totalIngresos.toLocaleString();
         document.getElementById('totalDespachos').textContent = totalDespachos.toLocaleString();
-        
-        // Actualizar resumen
         document.getElementById('avgIngresos').textContent = avgIngresos.toLocaleString();
         document.getElementById('avgDespachos').textContent = avgDespachos.toLocaleString();
-        document.getElementById('metaValue').textContent = data[0].meta.toLocaleString();
-        document.getElementById('avgCompliance').textContent = `${avgCompliance}%`;
+        document.getElementById('metaIngresos').textContent = metaDiaria.toLocaleString();
+        document.getElementById('metaDespachos').textContent = metaDiaria.toLocaleString();
+        document.getElementById('complianceIngresos').textContent = `${complianceIngresos}%`;
+        document.getElementById('complianceDespachos').textContent = `${complianceDespachos}%`;
 
-        // Llenar tabla de datos
-        const tableBody = document.getElementById('tableBody');
+        // Llenar detalles de ingresos
+        const ingresosDetailsBody = document.getElementById('ingresosDetailsBody');
         data.forEach(item => {
             const row = document.createElement('tr');
             
@@ -514,22 +720,68 @@
                 day: 'numeric' 
             });
             
-            // Calcular porcentajes de cumplimiento
+            // Calcular porcentaje de cumplimiento
             const cumplimientoIng = ((item.ingresos / item.meta) * 100).toFixed(1);
+            
+            row.innerHTML = `
+                <td>${fechaFormateada}</td>
+                <td>${item.ingresos.toLocaleString()}</td>
+                <td>${item.meta.toLocaleString()}</td>
+                <td>${cumplimientoIng}%</td>
+            `;
+            
+            ingresosDetailsBody.appendChild(row);
+        });
+
+        // Llenar detalles de despachos
+        const despachosDetailsBody = document.getElementById('despachosDetailsBody');
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            
+            // Formatear fecha correctamente
+            const date = formatDate(item.fecha);
+            const fechaFormateada = date.toLocaleDateString('es-ES', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            // Calcular porcentaje de cumplimiento
             const cumplimientoDes = item.despachos === 0 ? 
                 'No laboral' : 
                 ((item.despachos / item.meta) * 100).toFixed(1) + '%';
             
             row.innerHTML = `
                 <td>${fechaFormateada}</td>
-                <td>${item.ingresos.toLocaleString()}</td>
                 <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${item.despachos === 0 ? 'No laboral' : item.despachos.toLocaleString()}</td>
                 <td>${item.meta.toLocaleString()}</td>
-                <td>${cumplimientoIng}%</td>
                 <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${cumplimientoDes}</td>
             `;
             
-            tableBody.appendChild(row);
+            despachosDetailsBody.appendChild(row);
+        });
+
+        // Funcionalidad para mostrar/ocultar detalles
+        document.getElementById('ingresosCard').addEventListener('click', function() {
+            document.getElementById('ingresosDetails').classList.add('active');
+        });
+
+        document.getElementById('despachosCard').addEventListener('click', function() {
+            document.getElementById('despachosDetails').classList.add('active');
+        });
+
+        function closeDetails(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Cerrar modal al hacer clic fuera del contenido
+        document.querySelectorAll('.details-container').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
