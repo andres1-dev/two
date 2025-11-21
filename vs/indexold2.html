@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #3498db;
@@ -17,7 +16,7 @@
             --text-color: #333;
             --light-bg: #f5f7fa;
             --card-bg: #fff;
-            --border-radius: 12px;
+            --border-radius: 10px;
             --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             --spacing-sm: 10px;
             --spacing-md: 20px;
@@ -99,59 +98,23 @@
         
         .consolidated-card {
             flex: 1 1 300px;
-            background: linear-gradient(135deg, #3498db, #2980b9);
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .consolidated-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        }
-        
-        .consolidated-card.despachos-card {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-        }
-        
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: var(--spacing-sm);
-            opacity: 0.9;
         }
         
         .consolidated-title {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: var(--spacing-sm);
-            opacity: 0.9;
+            color: #495057;
         }
         
         .consolidated-value {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: bold;
-            margin: var(--spacing-sm) 0;
-        }
-        
-        .card-footer {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: var(--spacing-sm);
-        }
-        
-        .card-decoration {
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
         }
         
         .data-table-container {
@@ -238,11 +201,7 @@
             }
             
             .consolidated-value {
-                font-size: 1.8rem;
-            }
-            
-            .card-icon {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
             
             .data-table th, .data-table td {
@@ -263,10 +222,6 @@
             .chart-container {
                 height: 250px;
             }
-            
-            .consolidated-value {
-                font-size: 1.6rem;
-            }
         }
     </style>
 </head>
@@ -280,40 +235,30 @@
         
         <div class="consolidated">
             <div class="consolidated-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
                 <div class="consolidated-title">Total Ingresos</div>
-                <div class="consolidated-value" id="totalIngresos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="consolidated-value ingresos" id="totalIngresos">0</div>
             </div>
-            <div class="consolidated-card despachos-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
-                    <i class="fas fa-shipping-fast"></i>
-                </div>
+            <div class="consolidated-card">
                 <div class="consolidated-title">Total Despachos</div>
-                <div class="consolidated-value" id="totalDespachos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="consolidated-value despachos" id="totalDespachos">0</div>
             </div>
         </div>
         
         <div class="summary">
             <div class="summary-item">
-                <div><i class="fas fa-chart-line ingresos"></i> Promedio Ingresos</div>
+                <div>Promedio Ingresos</div>
                 <div class="summary-value ingresos" id="avgIngresos">0</div>
             </div>
             <div class="summary-item">
-                <div><i class="fas fa-truck-loading despachos"></i> Promedio Despachos</div>
+                <div>Promedio Despachos</div>
                 <div class="summary-value despachos" id="avgDespachos">0</div>
             </div>
             <div class="summary-item">
-                <div><i class="fas fa-bullseye meta"></i> Meta Diaria</div>
+                <div>Meta Diaria</div>
                 <div class="summary-value meta" id="metaValue">0</div>
             </div>
             <div class="summary-item">
-                <div><i class="fas fa-percentage cumplimiento"></i> Cumplimiento Promedio</div>
+                <div>Cumplimiento Promedio</div>
                 <div class="summary-value cumplimiento" id="avgCompliance">0%</div>
             </div>
         </div>
@@ -322,12 +267,12 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th><i class="far fa-calendar-alt"></i> Fecha</th>
-                        <th><i class="fas fa-money-bill-wave"></i> Ingresos</th>
-                        <th><i class="fas fa-shipping-fast"></i> Despachos</th>
-                        <th><i class="fas fa-bullseye"></i> Meta</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Ingresos</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Despachos</th>
+                        <th>Fecha</th>
+                        <th>Ingresos</th>
+                        <th>Despachos</th>
+                        <th>Meta</th>
+                        <th>Cumplimiento Ingresos</th>
+                        <th>Cumplimiento Despachos</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -337,7 +282,7 @@
         </div>
         
         <div class="footer">
-            <p><i class="fas fa-info-circle"></i> Nota: Los días sin despacho (valor 0) corresponden a días no laborales para despacho.</p>
+            <p>Nota: Los días sin despacho (valor 0) corresponden a días no laborales para despacho.</p>
         </div>
     </div>
 
