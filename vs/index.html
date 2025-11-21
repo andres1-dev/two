@@ -57,16 +57,6 @@
             font-size: 1.6rem;
             font-weight: 600;
         }
-
-        h2 {
-            text-align: center;
-            color: #6f8a9b; /* Más claro que #34495e */
-            margin-bottom: 0.2rem; /* Menor separación */
-            font-size: 1.2rem;
-            font-weight: 500;
-        }
-
-
         
         .chart-container {
             position: relative;
@@ -297,20 +287,6 @@
             font-style: italic;
         }
         
-        .footer {
-            text-align: center;
-            margin-top: var(--spacing-lg);
-            color: #7f8c8d;
-            font-size: 0.85rem;
-            padding: var(--spacing-md);
-            background: #f8f9fa;
-            border-radius: var(--border-radius);
-        }
-        
-        .footer i {
-            margin-right: 5px;
-        }
-        
         /* Botón de configuración del gráfico */
         .chart-config-btn {
             position: absolute;
@@ -505,58 +481,58 @@
             }
         }
 
-/* Footer personalizado */
-footer {
-    text-align: center;
-    margin-top: var(--spacing-lg);
-    padding: var(--spacing-md);
-    background: #ffffff;
-    color: rgb(102, 96, 96);
-    border-radius: var(--border-radius);
-}
+        /* Footer personalizado */
+        footer {
+            text-align: center;
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: #ffffff;
+            color: rgb(102, 96, 96);
+            border-radius: var(--border-radius);
+        }
 
-footer p, footer p1 {
-    margin: 5px 0;
-    font-size: 1.1rem;
-}
+        footer p, footer p1 {
+            margin: 5px 0;
+            font-size: 1rem;
+        }
 
-footer a {
-    color: #3498db;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
 
-footer a:hover {
-    color: #3498db;
-    text-decoration: underline;
-}
+        footer a:hover {
+            color: #3498db;
+            text-decoration: underline;
+        }
 
-.social-links {
-    margin-top: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-}
+        .social-links {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
 
-.social-links a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-}
+        .social-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
 
-.social-links a:hover {
-    /*background: #109dfc79;*/
-    transform: translateY(-3px);
-}
+        .social-links a:hover {
+            /*background: #109dfc79;*/
+            transform: translateY(-3px);
+        }
 
-.social-links i {
-    font-size: 1.2rem;
-}
+        .social-links i {
+            font-size: 1.2rem;
+        }
         
         @media (max-width: 480px) {
             .chart-container {
@@ -608,7 +584,6 @@ footer a:hover {
 <body>
     <div class="container">
         <h1>Ingresos vs Despachos</h1>
-        <H2>Universo</H2>
         
         <!-- Botón de configuración del gráfico -->
         <button class="chart-config-btn" id="chartConfigBtn">
@@ -715,28 +690,31 @@ footer a:hover {
             </div>
         </div>
 
-<footer>
-    <p1>
-        Developed by Andrés Mendoza</a> 
-        © 2025.
-    </p1>
-    <p>
-        Supported by 
-        <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a>.
-    </p>
-    <div class="social-links">
-        <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook">
-            <i class="fab fa-facebook"></i>
-        </a>
-        <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram">
-            <i class="fab fa-instagram"></i>
-        </a>
-        <a href="#" id="whatsappBtn" aria-label="WhatsApp">
-            <i class="fab fa-whatsapp"></i>
-        </a>
-    </div>
-</footer>
+        <footer>
+            <p1>
+                Developed by Andrés Mendoza 
+                © 2025.
+            </p1>
+            <p>
+                Supported by 
+                <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a>.
+            </p>
+            <div class="social-links">
+                <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
 
+                <!-- WhatsApp con mensaje profesional -->
+                <a href="https://wa.me/573168007979?text=Hola,%20quisiera%20obtener%20más%20información%20sobre%20el%20reporte%20de%20Ingresos%20vs%20Despachos." 
+                target="_blank" 
+                aria-label="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+            </div>
+        </footer>
 
     </div>
 
