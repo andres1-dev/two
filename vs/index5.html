@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráfico de Cumplimiento</title>
+    <title>Gráfico de Cumplimiento: Ingresos vs Despachos</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
@@ -37,6 +37,7 @@
             color: var(--text-color);
             font-size: 15px;
             line-height: 1.5;
+            transform-origin: top center;
         }
         
         .container {
@@ -47,7 +48,6 @@
             box-shadow: var(--box-shadow);
             padding: var(--spacing-md);
             overflow: hidden;
-            position: relative;
         }
         
         h1 {
@@ -301,124 +301,12 @@
             margin-right: 5px;
         }
         
-        /* Botón de configuración del gráfico */
-        .chart-config-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-        
-        .chart-config-btn:hover {
-            background: #2980b9;
-            transform: rotate(90deg);
-        }
-        
-        .chart-config-btn i {
-            font-size: 1.2rem;
-        }
-        
-        /* Panel de configuración del gráfico */
-        .chart-config-panel {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: var(--spacing-md);
-            width: 280px;
-            z-index: 100;
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .chart-config-panel.active {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .config-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: var(--spacing-md);
-            padding-bottom: var(--spacing-sm);
-            border-bottom: 1px solid #e1e1e1;
-        }
-        
-        .config-title {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 1.1rem;
-        }
-        
-        .config-close {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #7f8c8d;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            transition: background 0.3s ease;
-        }
-        
-        .config-close:hover {
-            background: #f0f0f0;
-            color: #e74c3c;
-        }
-        
-        .config-section {
-            margin-bottom: var(--spacing-md);
-        }
-        
-        .config-section-title {
-            font-weight: 600;
-            margin-bottom: var(--spacing-sm);
-            color: #2c3e50;
-            font-size: 0.95rem;
-        }
-        
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .toggle-switch input {
-            margin-right: 8px;
-        }
-        
-        .toggle-switch label {
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        
         /* Media Queries mejoradas */
         @media (max-width: 768px) {
+            html {
+                zoom: 1;
+            }
+            
             body {
                 padding: var(--spacing-sm);
                 font-size: 14px;
@@ -480,19 +368,6 @@
                 padding: 8px 10px;
                 font-size: 0.9rem;
             }
-            
-            .chart-config-btn {
-                width: 45px;
-                height: 45px;
-                top: 15px;
-                right: 15px;
-            }
-            
-            .chart-config-panel {
-                top: 70px;
-                right: 15px;
-                width: 260px;
-            }
         }
         
         @media (max-width: 480px) {
@@ -535,55 +410,12 @@
                 padding: 6px 8px;
                 font-size: 0.8rem;
             }
-            
-            .chart-config-panel {
-                width: 240px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Ingresos vs Despachos Universo</h1>
-        
-        <!-- Botón de configuración del gráfico -->
-        <button class="chart-config-btn" id="chartConfigBtn">
-            <i class="fas fa-sliders-h"></i>
-        </button>
-        
-        <!-- Panel de configuración del gráfico -->
-        <div class="chart-config-panel" id="chartConfigPanel">
-            <div class="config-header">
-                <div class="config-title">Configuración del Gráfico</div>
-                <button class="config-close" id="configCloseBtn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="config-section">
-                <div class="config-section-title">Mostrar/Ocultar</div>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="toggleIngresos" checked>
-                    <label for="toggleIngresos">Ingresos</label>
-                </div>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="toggleDespachos" checked>
-                    <label for="toggleDespachos">Despachos</label>
-                </div>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="toggleMeta" checked>
-                    <label for="toggleMeta">Meta</label>
-                </div>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="toggleCumplimientoIngresos" checked>
-                    <label for="toggleCumplimientoIngresos">% Cumplimiento Ingresos</label>
-                </div>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="toggleCumplimientoDespachos" checked>
-                    <label for="toggleCumplimientoDespachos">% Cumplimiento Despachos</label>
-                </div>
-            </div>
-        </div>
+        <h1>Gráfico de Cumplimiento: Ingresos vs Despachos</h1>
         
         <div class="chart-container">
             <canvas id="complianceChart"></canvas>
@@ -732,9 +564,6 @@
             { fecha: '2025-11-01', ingresos: 6165, despachos: 0, meta: 18000 }
         ];
 
-        // Variables globales
-        let complianceChart;
-
         // Función para formatear fechas correctamente (sin problemas de zona horaria)
         function formatDate(dateStr) {
             // Dividir la fecha en partes para evitar problemas de zona horaria
@@ -759,133 +588,99 @@
             item.despachos === 0 ? 0 : (item.despachos / item.meta * 100).toFixed(1)
         ).reverse();
 
-        // Función para crear el gráfico
-        function createChart() {
-            const ctx = document.getElementById('complianceChart').getContext('2d');
-            
-            // Destruir gráfico existente si existe
-            if (complianceChart) {
-                complianceChart.destroy();
-            }
-            
-            // Determinar qué datasets mostrar
-            const datasets = [];
-            
-            // Ingresos
-            if (document.getElementById('toggleIngresos').checked) {
-                datasets.push({
-                    label: 'Ingresos',
-                    data: ingresos,
-                    backgroundColor: 'rgba(52, 152, 219, 0.7)',
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    borderWidth: 1,
-                    yAxisID: 'y'
-                });
-            }
-            
-            // Despachos
-            if (document.getElementById('toggleDespachos').checked) {
-                datasets.push({
-                    label: 'Despachos',
-                    data: despachos,
-                    backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                    borderColor: 'rgba(46, 204, 113, 1)',
-                    borderWidth: 1,
-                    yAxisID: 'y'
-                });
-            }
-            
-            // Meta
-            if (document.getElementById('toggleMeta').checked) {
-                datasets.push({
-                    label: 'Meta',
-                    data: meta,
-                    type: 'line',
-                    fill: false,
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0,
-                    yAxisID: 'y'
-                });
-            }
-            
-            // % Cumplimiento Ingresos
-            if (document.getElementById('toggleCumplimientoIngresos').checked) {
-                datasets.push({
-                    label: '% Cumplimiento Ingresos',
-                    data: cumplimientoIngresos,
-                    type: 'line',
-                    fill: false,
-                    borderColor: 'rgba(155, 89, 182, 1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    tension: 0.4,
-                    yAxisID: 'y1'
-                });
-            }
-            
-            // % Cumplimiento Despachos
-            if (document.getElementById('toggleCumplimientoDespachos').checked) {
-                datasets.push({
-                    label: '% Cumplimiento Despachos',
-                    data: cumplimientoDespachos,
-                    type: 'line',
-                    fill: false,
-                    borderColor: 'rgba(241, 196, 15, 1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    tension: 0.4,
-                    yAxisID: 'y1'
-                });
-            }
-            
-            // Crear gráfico
-            complianceChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: fechas,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Cantidad'
-                            }
-                        },
-                        y1: {
-                            position: 'right',
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje (%)'
-                            },
-                            grid: {
-                                drawOnChartArea: false
-                            }
+        // Crear gráfico
+        const ctx = document.getElementById('complianceChart').getContext('2d');
+        const complianceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: fechas,
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: ingresos,
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Despachos',
+                        data: despachos,
+                        backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Meta',
+                        data: meta,
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '% Cumplimiento Ingresos',
+                        data: cumplimientoIngresos,
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(155, 89, 182, 1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '% Cumplimiento Despachos',
+                        data: cumplimientoDespachos,
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(241, 196, 15, 1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Cantidad'
                         }
                     },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Porcentaje (%)'
                         },
-                        legend: {
-                            position: 'top',
+                        grid: {
+                            drawOnChartArea: false
                         }
                     }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    legend: {
+                        position: 'top',
+                    }
                 }
-            });
-        }
-
-        // Inicializar gráfico
-        createChart();
+            }
+        });
 
         // Calcular estadísticas
         const totalIngresos = data.reduce((sum, item) => sum + item.ingresos, 0);
@@ -984,34 +779,6 @@
                     this.classList.remove('active');
                 }
             });
-        });
-
-        // Funcionalidad para el panel de configuración del gráfico
-        document.getElementById('chartConfigBtn').addEventListener('click', function() {
-            document.getElementById('chartConfigPanel').classList.toggle('active');
-        });
-
-        document.getElementById('configCloseBtn').addEventListener('click', function() {
-            document.getElementById('chartConfigPanel').classList.remove('active');
-        });
-
-        // Actualizar gráfico cuando cambian los toggles
-        document.querySelectorAll('.toggle-switch input').forEach(toggle => {
-            toggle.addEventListener('change', function() {
-                createChart();
-            });
-        });
-
-        // Cerrar panel de configuración al hacer clic fuera
-        document.addEventListener('click', function(e) {
-            const configPanel = document.getElementById('chartConfigPanel');
-            const configBtn = document.getElementById('chartConfigBtn');
-            
-            if (configPanel.classList.contains('active') && 
-                !configPanel.contains(e.target) && 
-                !configBtn.contains(e.target)) {
-                configPanel.classList.remove('active');
-            }
         });
     </script>
 </body>
