@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráfico de Cumplimiento: Ingresos vs Despachos</title>
+    <title>Ingresos vs Despachos</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
@@ -18,7 +18,7 @@
             --light-bg: #f5f7fa;
             --card-bg: #fff;
             --border-radius: 12px;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             --spacing-sm: 10px;
             --spacing-md: 20px;
             --spacing-lg: 30px;
@@ -34,7 +34,7 @@
             padding: var(--spacing-md);
             background-color: var(--light-bg);
             color: var(--text-color);
-            font-size: 16px;
+            font-size: 15px;
             line-height: 1.5;
         }
         
@@ -52,43 +52,19 @@
             text-align: center;
             color: #2c3e50;
             margin-bottom: var(--spacing-lg);
-            font-size: 1.5rem;
+            font-size: 1.6rem;
+            font-weight: 600;
         }
         
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 380px;
             margin-bottom: var(--spacing-lg);
-        }
-        
-        .summary {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-lg);
+            background: white;
+            border-radius: var(--border-radius);
             padding: var(--spacing-md);
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            box-shadow: var(--box-shadow);
         }
-        
-        .summary-item {
-            text-align: center;
-            padding: var(--spacing-sm);
-            flex: 1 1 150px;
-            min-width: 150px;
-        }
-        
-        .summary-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: var(--spacing-sm) 0;
-        }
-        
-        .ingresos { color: var(--primary-color); }
-        .despachos { color: var(--secondary-color); }
-        .meta { color: var(--accent-color); }
-        .cumplimiento { color: var(--highlight-color); }
         
         .consolidated {
             display: flex;
@@ -98,65 +74,158 @@
         }
         
         .consolidated-card {
-            flex: 1 1 300px;
+            flex: 1 1 48%;
             background: linear-gradient(135deg, #3498db, #2980b9);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-            text-align: center;
             color: white;
             position: relative;
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
         }
         
         .consolidated-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
         }
         
         .consolidated-card.despachos-card {
             background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.2);
+        }
+        
+        .consolidated-card.despachos-card:hover {
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.25);
+        }
+        
+        .card-bg-icon {
+            position: absolute;
+            font-size: 10rem;
+            right: -15px;
+            bottom: -15px;
+            opacity: 0.08;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            position: relative;
+            z-index: 1;
         }
         
         .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: var(--spacing-sm);
+            font-size: 1.8rem;
+            margin-right: var(--spacing-sm);
             opacity: 0.9;
         }
         
-        .consolidated-title {
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .main-metric {
+            text-align: center;
+            margin: var(--spacing-md) 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .main-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+        
+        .main-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .secondary-metrics {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+        
+        .secondary-metric {
+            text-align: center;
+            flex: 1;
+            padding: 0 5px;
+        }
+        
+        .secondary-value {
             font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: var(--spacing-sm);
-            opacity: 0.9;
+            margin: 4px 0;
         }
         
-        .consolidated-value {
-            font-size: 2.2rem;
-            font-weight: bold;
-            margin: var(--spacing-sm) 0;
+        .secondary-label {
+            font-size: 0.8rem;
+            opacity: 0.85;
         }
         
-        .card-footer {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: var(--spacing-sm);
+        .table-section {
+            margin-top: var(--spacing-lg);
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
         }
         
-        .card-decoration {
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 14px 18px;
+            cursor: pointer;
+            color: rgb(85, 82, 82);
+            transition: background 0.3s ease;
+        }
+        
+        .table-header:hover {
+            background: #ffffff;
+        }
+        
+        .table-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .table-header h2 i {
+            margin-right: 10px;
+        }
+        
+        .toggle-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .table-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
         }
         
         .data-table-container {
             overflow-x: auto;
-            margin-top: var(--spacing-lg);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+        
+        .data-table-container.expanded {
+            max-height: 1000px;
         }
         
         .data-table {
@@ -168,16 +237,23 @@
         .data-table th, .data-table td {
             padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e1e1e1;
         }
         
         .data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+        
+        .data-table th i {
+            margin-right: 8px;
+            color: #7f8c8d;
         }
         
         .data-table tr:hover {
-            background-color: #f5f5f5;
+            background-color: #f5f7fa;
         }
         
         .no-despacho {
@@ -189,7 +265,14 @@
             text-align: center;
             margin-top: var(--spacing-lg);
             color: #7f8c8d;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            padding: var(--spacing-md);
+            background: #ffffff;
+            border-radius: var(--border-radius);
+        }
+        
+        .footer i {
+            margin-right: 5px;
         }
         
         /* Media Queries para dispositivos móviles */
@@ -204,28 +287,14 @@
             }
             
             h1 {
-                font-size: 1.3rem;
+                font-size: 1.4rem;
                 margin-bottom: var(--spacing-md);
             }
             
             .chart-container {
                 height: 300px;
                 margin-bottom: var(--spacing-md);
-            }
-            
-            .summary {
                 padding: var(--spacing-sm);
-                gap: var(--spacing-sm);
-            }
-            
-            .summary-item {
-                flex: 1 1 120px;
-                min-width: 120px;
-                padding: 8px;
-            }
-            
-            .summary-value {
-                font-size: 1.2rem;
             }
             
             .consolidated {
@@ -237,42 +306,66 @@
                 padding: var(--spacing-sm);
             }
             
-            .consolidated-value {
+            .main-value {
                 font-size: 1.8rem;
             }
             
+            .secondary-value {
+                font-size: 1rem;
+            }
+            
             .card-icon {
-                font-size: 2rem;
+                font-size: 1.5rem;
+            }
+            
+            .card-bg-icon {
+                font-size: 4.5rem;
             }
             
             .data-table th, .data-table td {
-                padding: 8px 10px;
+                padding: 10px 12px;
+            }
+            
+            .table-header {
+                padding: 12px 15px;
+            }
+            
+            .table-header h2 {
+                font-size: 1.1rem;
             }
         }
         
         @media (max-width: 480px) {
-            .summary {
-                flex-direction: column;
-            }
-            
-            .summary-item {
-                flex: 1 1 auto;
-                min-width: auto;
-            }
-            
             .chart-container {
                 height: 250px;
             }
             
-            .consolidated-value {
+            .main-value {
                 font-size: 1.6rem;
+            }
+            
+            .secondary-metrics {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .secondary-metric {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: left;
+                padding: 5px 0;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Gráfico de Cumplimiento: Ingresos vs Despachos</h1>
+        <h1>Ingresos vs Despachos</h1>
         
         <div class="chart-container">
             <canvas id="complianceChart"></canvas>
@@ -280,64 +373,94 @@
         
         <div class="consolidated">
             <div class="consolidated-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
+                <div class="card-bg-icon">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="consolidated-title">Total Ingresos</div>
-                <div class="consolidated-value" id="totalIngresos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="card-title">Ingresos</div>
+                </div>
+                <div class="main-metric">
+                    <div class="main-value" id="totalIngresos">0</div>
+                    <div class="main-label">Total Acumulado</div>
+                </div>
+                <div class="secondary-metrics">
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="avgIngresos">0</div>
+                        <div class="secondary-label">Promedio Diario</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="metaIngresos">0</div>
+                        <div class="secondary-label">Meta Diaria</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="complianceIngresos">0%</div>
+                        <div class="secondary-label">Cumplimiento</div>
+                    </div>
+                </div>
             </div>
+            
             <div class="consolidated-card despachos-card">
-                <div class="card-decoration"></div>
-                <div class="card-icon">
+                <div class="card-bg-icon">
                     <i class="fas fa-shipping-fast"></i>
                 </div>
-                <div class="consolidated-title">Total Despachos</div>
-                <div class="consolidated-value" id="totalDespachos">0</div>
-                <div class="card-footer">Acumulado del período</div>
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-shipping-fast"></i>
+                    </div>
+                    <div class="card-title">Despachos</div>
+                </div>
+                <div class="main-metric">
+                    <div class="main-value" id="totalDespachos">0</div>
+                    <div class="main-label">Total Acumulado</div>
+                </div>
+                <div class="secondary-metrics">
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="avgDespachos">0</div>
+                        <div class="secondary-label">Promedio Diario</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="metaDespachos">0</div>
+                        <div class="secondary-label">Meta Diaria</div>
+                    </div>
+                    <div class="secondary-metric">
+                        <div class="secondary-value" id="complianceDespachos">0%</div>
+                        <div class="secondary-label">Cumplimiento</div>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div class="summary">
-            <div class="summary-item">
-                <div><i class="fas fa-chart-line ingresos"></i> Promedio Ingresos</div>
-                <div class="summary-value ingresos" id="avgIngresos">0</div>
+        <div class="table-section">
+            <div class="table-header collapsed" id="tableHeader">
+                <h2><i class="fas fa-table"></i> Detalle por Fecha</h2>
+                <div class="toggle-icon">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
             </div>
-            <div class="summary-item">
-                <div><i class="fas fa-truck-loading despachos"></i> Promedio Despachos</div>
-                <div class="summary-value despachos" id="avgDespachos">0</div>
+            <div class="data-table-container" id="tableContainer">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><i class="far fa-calendar-alt"></i> Fecha</th>
+                            <th><i class="fas fa-money-bill-wave"></i> Ingresos</th>
+                            <th><i class="fas fa-shipping-fast"></i> Despachos</th>
+                            <th><i class="fas fa-bullseye"></i> Meta</th>
+                            <th><i class="fas fa-percentage"></i> Cumplimiento Ingresos</th>
+                            <th><i class="fas fa-percentage"></i> Cumplimiento Despachos</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Los datos se insertarán aquí con JavaScript -->
+                    </tbody>
+                </table>
             </div>
-            <div class="summary-item">
-                <div><i class="fas fa-bullseye meta"></i> Meta Diaria</div>
-                <div class="summary-value meta" id="metaValue">0</div>
-            </div>
-            <div class="summary-item">
-                <div><i class="fas fa-percentage cumplimiento"></i> Cumplimiento Promedio</div>
-                <div class="summary-value cumplimiento" id="avgCompliance">0%</div>
-            </div>
-        </div>
-        
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th><i class="far fa-calendar-alt"></i> Fecha</th>
-                        <th><i class="fas fa-money-bill-wave"></i> Ingresos</th>
-                        <th><i class="fas fa-shipping-fast"></i> Despachos</th>
-                        <th><i class="fas fa-bullseye"></i> Meta</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Ingresos</th>
-                        <th><i class="fas fa-percentage"></i> Cumplimiento Despachos</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- Los datos se insertarán aquí con JavaScript -->
-                </tbody>
-            </table>
         </div>
         
         <div class="footer">
-            <p><i class="fas fa-info-circle"></i> Nota: Los días sin despacho (valor 0) corresponden a días no laborales para despacho.</p>
+            <p><i class="fas fa-info-circle"></i> Desarrollado por Andrés Mendoza para GrupoTDM</p>
         </div>
     </div>
 
@@ -479,26 +602,26 @@
             }
         });
 
-        // Calcular promedios y actualizar resumen
+        // Calcular estadísticas
         const totalIngresos = data.reduce((sum, item) => sum + item.ingresos, 0);
         const totalDespachos = data.reduce((sum, item) => sum + item.despachos, 0);
         const diasConDespacho = data.filter(item => item.despachos > 0).length;
         
         const avgIngresos = Math.round(totalIngresos / data.length);
         const avgDespachos = Math.round(totalDespachos / diasConDespacho);
-        const avgComplianceIngresos = ((totalIngresos / (data.length * data[0].meta)) * 100).toFixed(1);
-        const avgComplianceDespachos = ((totalDespachos / (diasConDespacho * data[0].meta)) * 100).toFixed(1);
-        const avgCompliance = ((parseFloat(avgComplianceIngresos) + parseFloat(avgComplianceDespachos)) / 2).toFixed(1);
+        const metaDiaria = data[0].meta;
+        const complianceIngresos = ((totalIngresos / (data.length * metaDiaria)) * 100).toFixed(1);
+        const complianceDespachos = ((totalDespachos / (diasConDespacho * metaDiaria)) * 100).toFixed(1);
 
         // Actualizar tarjetas de consolidado
         document.getElementById('totalIngresos').textContent = totalIngresos.toLocaleString();
         document.getElementById('totalDespachos').textContent = totalDespachos.toLocaleString();
-        
-        // Actualizar resumen
         document.getElementById('avgIngresos').textContent = avgIngresos.toLocaleString();
         document.getElementById('avgDespachos').textContent = avgDespachos.toLocaleString();
-        document.getElementById('metaValue').textContent = data[0].meta.toLocaleString();
-        document.getElementById('avgCompliance').textContent = `${avgCompliance}%`;
+        document.getElementById('metaIngresos').textContent = metaDiaria.toLocaleString();
+        document.getElementById('metaDespachos').textContent = metaDiaria.toLocaleString();
+        document.getElementById('complianceIngresos').textContent = `${complianceIngresos}%`;
+        document.getElementById('complianceDespachos').textContent = `${complianceDespachos}%`;
 
         // Llenar tabla de datos
         const tableBody = document.getElementById('tableBody');
@@ -530,6 +653,15 @@
             `;
             
             tableBody.appendChild(row);
+        });
+
+        // Funcionalidad para colapsar/expandir la tabla
+        const tableHeader = document.getElementById('tableHeader');
+        const tableContainer = document.getElementById('tableContainer');
+        
+        tableHeader.addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+            tableContainer.classList.toggle('expanded');
         });
     </script>
 </body>
