@@ -29,7 +29,6 @@
         }
         
         body {
-            zoom: 60%;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: var(--spacing-md);
@@ -69,13 +68,12 @@
         
         .consolidated {
             display: flex;
-            flex-wrap: wrap;
             gap: var(--spacing-md);
             margin: var(--spacing-lg) 0;
         }
         
         .consolidated-card {
-            flex: 1 1 48%;
+            flex: 1;
             background: linear-gradient(135deg, #3498db, #2980b9);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -84,6 +82,7 @@
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+            min-width: 0; /* Permite que se reduzcan */
         }
         
         .consolidated-card:hover {
@@ -102,9 +101,9 @@
         
         .card-bg-icon {
             position: absolute;
-            font-size: 6rem;
-            right: -15px;
-            bottom: -15px;
+            font-size: 12rem;
+            right: -40px;
+            bottom: -40px;
             opacity: 0.08;
         }
         
@@ -125,6 +124,7 @@
         .card-title {
             font-size: 1.3rem;
             font-weight: 600;
+            white-space: nowrap;
         }
         
         .main-metric {
@@ -155,23 +155,26 @@
             border-radius: 8px;
             padding: 12px;
             margin-top: 15px;
+            gap: 8px;
         }
         
         .secondary-metric {
             text-align: center;
             flex: 1;
-            padding: 0 5px;
+            min-width: 0; /* Permite que se reduzcan */
         }
         
         .secondary-value {
             font-size: 1.1rem;
             font-weight: 600;
             margin: 4px 0;
+            white-space: nowrap;
         }
         
         .secondary-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             opacity: 0.85;
+            white-space: nowrap;
         }
         
         .table-section {
@@ -235,20 +238,20 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 500px;
         }
         
         .data-table th, .data-table td {
-            padding: 12px 15px;
+            padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid #e1e1e1;
+            font-size: 0.85rem;
         }
         
         .data-table th {
             background-color: #f8f9fa;
             font-weight: 600;
             color: #2c3e50;
-            font-size: 0.9rem;
             white-space: nowrap;
         }
         
@@ -275,8 +278,8 @@
             margin-right: 5px;
         }
         
-        /* Media Queries mejoradas para dispositivos móviles */
-        @media (max-width: 1px) {
+        /* Media Queries mejoradas */
+        @media (max-width: 768px) {
             body {
                 padding: var(--spacing-sm);
                 font-size: 14px;
@@ -299,34 +302,39 @@
             
             .consolidated {
                 gap: var(--spacing-sm);
-                flex-direction: column;
+                flex-wrap: nowrap; /* Siempre en línea */
             }
             
             .consolidated-card {
-                flex: 1 1 100%;
-                padding: var(--spacing-md);
-                min-height: 200px;
+                padding: var(--spacing-sm);
+                min-width: 0; /* Permite compresión */
             }
             
             .main-value {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
             .secondary-value {
-                font-size: 1rem;
+                font-size: 0.95rem;
+            }
+            
+            .secondary-label {
+                font-size: 0.7rem;
             }
             
             .card-icon {
-                font-size: 1.6rem;
+                font-size: 1.5rem;
             }
             
             .card-bg-icon {
-                font-size: 5rem;
+                font-size: 8rem;
+                right: -25px;
+                bottom: -25px;
             }
             
             .data-table th, .data-table td {
-                padding: 10px 8px;
-                font-size: 0.85rem;
+                padding: 8px 6px;
+                font-size: 0.8rem;
             }
             
             .table-header {
@@ -336,10 +344,6 @@
             .table-header h2 {
                 font-size: 1.1rem;
             }
-            
-            .data-table {
-                min-width: 500px;
-            }
         }
         
         @media (max-width: 480px) {
@@ -348,39 +352,39 @@
             }
             
             .main-value {
-                font-size: 1.8rem;
-            }
-            
-            .secondary-metrics {
-                flex-direction: column;
-                gap: 8px;
-                padding: 10px;
-            }
-            
-            .secondary-metric {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                text-align: left;
-                padding: 6px 0;
+                font-size: 1.6rem;
             }
             
             .card-title {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
             
             .consolidated-card {
-                padding: var(--spacing-sm);
-                min-height: 180px;
+                padding: 10px;
+            }
+            
+            .card-bg-icon {
+                font-size: 6rem;
+                right: -15px;
+                bottom: -15px;
+            }
+            
+            .secondary-metrics {
+                padding: 8px;
+                gap: 5px;
+            }
+            
+            .secondary-value {
+                font-size: 0.9rem;
+            }
+            
+            .secondary-label {
+                font-size: 0.65rem;
             }
             
             .data-table th, .data-table td {
-                padding: 8px 6px;
-                font-size: 0.8rem;
-            }
-            
-            .data-table {
-                min-width: 450px;
+                padding: 6px 4px;
+                font-size: 0.75rem;
             }
         }
         
@@ -395,20 +399,27 @@
             
             .chart-container {
                 height: 250px;
-                padding: 10px;
+                padding: 8px;
             }
             
             .consolidated-card {
-                padding: 12px;
-                min-height: 170px;
+                padding: 8px;
             }
             
             .main-value {
-                font-size: 1.6rem;
+                font-size: 1.4rem;
             }
             
             .card-title {
-                font-size: 1.1rem;
+                font-size: 1rem;
+            }
+            
+            .secondary-value {
+                font-size: 0.85rem;
+            }
+            
+            .secondary-label {
+                font-size: 0.6rem;
             }
         }
     </style>
@@ -439,11 +450,11 @@
                 <div class="secondary-metrics">
                     <div class="secondary-metric">
                         <div class="secondary-value" id="avgIngresos">0</div>
-                        <div class="secondary-label">Promedio Diario</div>
+                        <div class="secondary-label">Promedio</div>
                     </div>
                     <div class="secondary-metric">
                         <div class="secondary-value" id="metaIngresos">0</div>
-                        <div class="secondary-label">Meta Diaria</div>
+                        <div class="secondary-label">Meta</div>
                     </div>
                     <div class="secondary-metric">
                         <div class="secondary-value" id="complianceIngresos">0%</div>
@@ -469,11 +480,11 @@
                 <div class="secondary-metrics">
                     <div class="secondary-metric">
                         <div class="secondary-value" id="avgDespachos">0</div>
-                        <div class="secondary-label">Promedio Diario</div>
+                        <div class="secondary-label">Promedio</div>
                     </div>
                     <div class="secondary-metric">
                         <div class="secondary-value" id="metaDespachos">0</div>
-                        <div class="secondary-label">Meta Diaria</div>
+                        <div class="secondary-label">Meta</div>
                     </div>
                     <div class="secondary-metric">
                         <div class="secondary-value" id="complianceDespachos">0%</div>
@@ -498,8 +509,8 @@
                             <th>Ingresos</th>
                             <th>Despachos</th>
                             <th>Meta</th>
-                            <th>Cumplimiento Ingresos</th>
-                            <th>Cumplimiento Despachos</th>
+                            <th>%Ing</th>
+                            <th>%Desp</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
