@@ -107,7 +107,7 @@
                                     <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS</option>
                                     <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA</option>
                                     <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA RAMIREZ</option>
-                                    <option value="SANCHEZ LOPEZ YULIETH">SANCHEZ LOPEZ YULIETH</option>
+                                    <!-- <option value="SANCHEZ LOPEZ YULIETH">SANCHEZ LOPEZ YULIETH</option> -->
                                     <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS</option>
                                 </select>
                             </div>
@@ -351,7 +351,7 @@ document.getElementById('csvFile').addEventListener('change', function(e) {
                     originalColumnsCount = Math.max(...lines.map(line => line.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).length));
                     
                     processedData = [];
-                    const targetUsers = ["APOLO", "LORTIZ", "KFERNANDEZ", "MONCALEANO", "LOCHOA", "PJARAMILLO", "CMENDOZA"]; // CMENDOZA SE USA PARA CORRECION DE ERRORES 
+                    const targetUsers = ["APOLO", "LORTIZ", "KFERNANDEZ", "MONCALEANO", "LOCHOA", "PJARAMILLO", "CMENDOZA", "PSANCHEZ"];
                     const targetValues = ["ZY", "DI", "XT", "BP", "PR", "ZZ"]; // PR SE USA SOLO PARA OBTENER LOS COSTOS EL VALOR DE OS Y DE AUDITORIA
                     const missingColors = new Set();
                     const missingOps = new Set();
