@@ -1,0 +1,314 @@
+:root {
+    --bg-gradient: linear-gradient(135deg, #1a1c2c 0%, #4a192c 100%);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #ff4757;
+    --accent-hover: #ff6b81;
+    --primary-btn: #2ed573;
+    --primary-btn-hover: #7bed9f;
+
+    --board-light: #e0e0e0;
+    --board-dark: #485460;
+    --highlight-move: rgba(123, 237, 159, 0.5);
+    --highlight-capture: rgba(255, 71, 87, 0.5);
+    --highlight-selected: rgba(255, 211, 42, 0.6);
+
+    --board-size: min(80vh, 600px);
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+    width: 100%;
+    max-width: 1200px;
+    height: 90vh;
+    align-items: center;
+}
+
+/* Glassmorphism Panels */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Sidebar */
+.sidebar {
+    flex: 1;
+    max-width: 350px;
+    height: 100%;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Connection Panel */
+.connection-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+}
+
+.connection-panel h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.status-indicator {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+    width: fit-content;
+}
+
+.status-indicator.connected {
+    background: rgba(46, 213, 115, 0.2);
+    color: #2ed573;
+}
+
+.status-indicator.disconnected {
+    background: rgba(255, 71, 87, 0.2);
+    color: #ff4757;
+}
+
+.id-display {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: monospace;
+}
+
+.id-display.hidden {
+    display: none;
+}
+
+input[type="text"] {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    padding: 10px;
+    border-radius: 8px;
+    color: white;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn.primary {
+    background: var(--primary-btn);
+    color: #1e272e;
+}
+
+.btn.primary:hover {
+    background: var(--primary-btn-hover);
+}
+
+.btn.secondary {
+    background: var(--accent-color);
+}
+
+.btn.secondary:hover {
+    background: var(--accent-hover);
+}
+
+.btn.icon {
+    padding: 5px 10px;
+}
+
+/* Game Info */
+.game-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.turn-indicator {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ccc;
+}
+
+.dot.white-turn {
+    background: #fff;
+    box-shadow: 0 0 10px #fff;
+}
+
+.dot.black-turn {
+    background: #000;
+    border: 1px solid #fff;
+}
+
+.message {
+    color: var(--accent-color);
+    font-weight: bold;
+    min-height: 1.2em;
+}
+
+/* Board Area */
+.main-area {
+    flex: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.board-wrapper {
+    padding: 20px;
+}
+
+.chessboard {
+    width: var(--board-size);
+    height: var(--board-size);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.square {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.square.light {
+    background-color: var(--board-light);
+}
+
+.square.dark {
+    background-color: var(--board-dark);
+}
+
+.square.selected {
+    background-color: var(--highlight-selected) !important;
+}
+
+.square.last-move {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
+.square.valid-move::after {
+    content: '';
+    width: 25%;
+    height: 25%;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+}
+
+.square.valid-capture {
+    background-color: var(--highlight-capture);
+}
+
+.piece {
+    width: 90%;
+    height: 90%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: grab;
+    z-index: 10;
+    transition: transform 0.2s ease;
+    filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+.piece:hover {
+    transform: scale(1.1);
+}
+
+.piece.dragging {
+    opacity: 0.8;
+    cursor: grabbing;
+    transform: scale(1.2);
+}
+
+/* Rotate Board */
+.chessboard.flipped {
+    transform: rotate(180deg);
+}
+
+.chessboard.flipped .piece {
+    transform: rotate(180deg);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .app-container {
+        flex-direction: column;
+        overflow-y: auto;
+        height: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        max-width: none;
+        height: auto;
+    }
+
+    :root {
+        --board-size: 90vw;
+    }
+}

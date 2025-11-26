@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Master Online</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="sidebar glass-panel">
+            <div class="logo">
+                <h1>Chess Master</h1>
+                <span class="subtitle">Online Edition</span>
+            </div>
+
+            <div class="connection-panel">
+                <h3>Multiplayer</h3>
+                <div id="connection-status" class="status-indicator disconnected">Desconectado</div>
+
+                <div class="host-controls">
+                    <button id="host-btn" class="btn primary">Crear Partida</button>
+                    <div id="my-id-display" class="id-display hidden">
+                        <span>Tu ID:</span>
+                        <code id="my-id">...</code>
+                        <button id="copy-btn" class="btn icon" title="Copiar">📋</button>
+                    </div>
+                </div>
+
+                <div class="join-controls">
+                    <input type="text" id="peer-id-input" placeholder="Ingresa ID del rival">
+                    <button id="join-btn" class="btn secondary">Unirse</button>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="turn-indicator">
+                    <span id="turn-text">Esperando...</span>
+                    <div id="turn-dot" class="dot"></div>
+                </div>
+                <div id="game-message" class="message"></div>
+            </div>
+
+            <div class="controls">
+                <button id="flip-btn" class="btn">Rotar Tablero</button>
+                <button id="restart-btn" class="btn danger">Reiniciar</button>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="board-wrapper glass-panel">
+                <div id="chessboard" class="chessboard"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
