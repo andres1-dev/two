@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cargar Excel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body{font-family:system-ui;max-width:600px;margin:20px auto;padding:20px}
+        .upload-area{border:2px dashed #3498db;border-radius:8px;padding:40px;text-align:center;margin-bottom:20px}
+        .file-input{display:none}
+        .upload-btn{background:#3498db;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer}
+        .process-btn{background:#27ae60;color:white;border:none;padding:12px;border-radius:5px;cursor:pointer;width:100%;margin:10px 0}
+        .process-btn:disabled{background:#95a5a6;cursor:not-allowed}
+        .status{padding:10px;border-radius:5px;margin:10px 0}
+        .success{background:#d4edda;color:#155724}
+        .error{background:#f8d7da;color:#721c24}
+        .processing{background:#cce7ff;color:#004085}
+        .hidden{display:none}
+    </style>
+</head>
+<body>
+    <h3>Cargar Excel - Filtro VL</h3>
+    
+    <div class="upload-area" id="uploadArea">
+        <p>Selecciona archivo Excel</p>
+        <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx">
+        <button class="upload-btn" id="uploadBtn">Seleccionar</button>
+    </div>
+
+    <button class="process-btn" id="processBtn" disabled>Enviar a Google Sheets</button>
+    <div class="status hidden" id="status"></div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJg4AmMdaqQP10URzvZQ9yN-o5IkmQ6ZEBTIoCTpMvFxAs3RsYvuOXtwGJ7p4y6uYKzQ/exec';
+        let filteredData = [];
+
+        document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+        
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            if (!e.target.files[0]) return;
+            await handleFile(e.target.files[0]);
+        });
+
+        document.getElementById('processBtn').addEventListener('click', processFile);
+
+        async function handleFile(file) {
+            if (!file.name.match(/\.(xls|xlsx)$/)) {
+                showStatus('Solo archivos Excel', 'error');
+                return;
+            }
+
+            try {
+                showStatus('Procesando archivo...', 'processing');
+                const arrayBuffer = await readFileAsArrayBuffer(file);
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                filteredData = filterVLData(jsonData);
+                
+                if (filteredData.length > 0) {
+                    showStatus(`Encontrados ${filteredData.length} registros con VL`, 'success');
+                    document.getElementById('processBtn').disabled = false;
+                } else {
+                    showStatus('No hay registros con VL', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function filterVLData(data) {
+            if (data.length === 0) return [];
+            const headers = data[0];
+            
+            // Buscar índices de las columnas necesarias
+            const referenIndex = headers.findIndex(h => h.toString().toLowerCase().includes('referen'));
+            const precioIndex = headers.findIndex(h => h.toString().toLowerCase().includes('precio'));
+            const listaalterIndex = headers.findIndex(h => h.toString().toLowerCase().includes('listaalter'));
+            
+            if (referenIndex === -1) throw new Error('No se encuentra columna referen');
+            if (precioIndex === -1) throw new Error('No se encuentra columna precio');
+            if (listaalterIndex === -1) throw new Error('No se encuentra columna listaalter');
+            
+            const filtered = [];
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (row[listaalterIndex] && row[listaalterIndex].toString().trim().toUpperCase() === 'VL') {
+                    filtered.push({
+                        referen: row[referenIndex] || '',
+                        precio: row[precioIndex] || ''
+                    });
+                }
+            }
+            return filtered;
+        }
+
+        async function processFile() {
+            if (filteredData.length === 0) return;
+            
+            document.getElementById('processBtn').disabled = true;
+            showStatus('Validando y enviando datos...', 'processing');
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'pegarDatos');
+                formData.append('datos', JSON.stringify(filteredData));
+
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(`✅ ${result.data.registrosNuevos} nuevos registros agregados (${result.data.registrosDuplicados} duplicados omitidos)`, 'success');
+                    setTimeout(() => {
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('processBtn').disabled = true;
+                        showStatus('', 'success');
+                    }, 3000);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Error leyendo archivo'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.toggle('hidden', !message);
+        }
+    </script>
+</body>
+</html>
