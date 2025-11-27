@@ -3,248 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Procesador de CSV a JSON Confiable</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.32/sweetalert2.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>Procesador de CSV - Datos de Producción</title>
     <style>
-        .json-viewer {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 15px;
-            max-height: 500px;
-            overflow-y: auto;
-            font-family: monospace;
-            white-space: pre;
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        #loadingData {
-            display: none;
+        .container {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
             margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .export-btn {
+            background-color: #28a745;
+        }
+        .export-btn:hover {
+            background-color: #218838;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-select, .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         .required-field::after {
             content: " *";
             color: red;
         }
-        .card {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        .json-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
         }
-        #dataStatus {
-            transition: all 0.3s ease;
+        .section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
-        .pvp-container {
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .edit-form {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .op-selector {
+            margin-bottom: 15px;
+        }
+        .pvp-control {
             display: flex;
             align-items: center;
         }
-        .pvp-prefix, .pvp-suffix {
-            margin: 0 0.5rem;
-            font-weight: bold;
+        .pvp-control input {
+            flex: 1;
+            margin-right: 5px;
+        }
+        .pvp-buttons {
+            display: flex;
+            flex-direction: column;
+        }
+        .pvp-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 1px;
+        }
+        .pvp-btn:hover {
+            background-color: #545b62;
+        }
+        .pvp-btn:first-child {
+            border-radius: 3px 3px 0 0;
+        }
+        .pvp-btn:last-child {
+            border-radius: 0 0 3px 3px;
+        }
+        .results-summary {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        .pendientes-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <h1 class="text-center mb-4 text-primary">
-                    <i class="fas fa-file-csv me-2"></i>Procesador de CSV a JSON v2 XT & ZZ
-                </h1>
-                
-                <div class="card mb-4 border-0">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="card-title mb-0">
-                            <i class="fas fa-upload me-2"></i>Cargar archivo CSV
-                        </h2>
-                    </div>
-                    <div class="card-body upload-section">
-                        <div class="row">
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-file-csv icon"></i>
-                                <label for="csvFile" class="form-label required-field">Archivo CSV</label>
-                                <input type="file" id="csvFile" accept=".csv" class="form-control" required disabled>
-                                <small class="form-text text-muted">Seleccione un archivo CSV separado por punto y coma (;)</small>
-                            </div>
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-industry icon"></i>
-                                <label for="proveedor" class="form-label required-field">Proveedor</label>
-                                <select id="proveedor" class="form-select" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="TEXTILES Y CREACIONES EL UNIVERSO SAS" selected>TEXTILES Y CREACIONES EL UNIVERSO SAS</option>
-                                    <option value="TEXTILES Y CREACIONES LOS ANGELES SAS">TEXTILES Y CREACIONES LOS ANGELES SAS</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-user-check icon"></i>
-                                <label for="auditor" class="form-label required-field">Auditor</label>
-                                <select id="auditor" class="form-select" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="GLORICED QUIÑONEZ BOJORJE">GLORICED QUIÑONEZ BOJORJE</option>
-                                    <option value="MAYRA ALEJANDRA GOMEZ OSORIO">MAYRA ALEJANDRA GOMEZ OSORIO</option>
-                                    <option value="MARYURI GARCIA RENTERIA">MARYURI GARCIA RENTERIA</option>
-                                    <option value="GREIZY JULIETH ESCOBAR SABOGAL">GREIZY JULIETH ESCOBAR SABOGAL</option>
-                                    <option value="ANA GABRIELA GUZMAN BETANCOURT">ANA GABRIELA GUZMAN BETANCOURT</option>
-                                    <option value="YULI ANGELY MUÑOZ MANCGABAJOY">YULI ANGELY MUÑOZ MANCGABAJOY</option>
-                                    <!-- <option value="JOHANA LISETH DAZA ERASO">JOHANA LISETH DAZA ERASO</option> -->
-                                    <option value="ROSA ALICIA VIERA BERNAL">ROSA ALICIA VIERA BERNAL</option>
-                                    <option value="BRESLEE DANIELA USMA CEPEDA">BRESLEE DANIELA USMA CEPEDA</option>
-                                    <option value="MAYERLY DEL MAR MORALES QUIROGA">MAYERLY DEL MAR MORALES QUIROGA</option>
-                                    <option value="MORALES RUALES DIANA LUCERO">MORALES RUALES DIANA LUCERO</option>
-                                    <option value="GALINDEZ MUÑOZ JHOAN MANUEL">GALINDEZ MUÑOZ JHOAN MANUEL</option>
-                                    <option value="DIANA PAOLA HENAO HERRERA">DIANA PAOLA HENAO HERRERA</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-user-tie icon"></i>
-                                <label for="gestor" class="form-label required-field">Gestor
-                                </label>
-                                <select id="gestor" class="form-select" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
-                                    <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO</option>
-                                    <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS</option>
-                                    <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA</option>
-                                    <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA RAMIREZ</option>
-                                    <!-- <option value="SANCHEZ LOPEZ YULIETH">SANCHEZ LOPEZ YULIETH</option> -->
-                                    <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-dollar-sign icon"></i>
-                                <label for="pvp" class="form-label required-field">PVP</label>
-                                <div class="pvp-container">
-                                    <span class="pvp-prefix">$</span>
-                                    <div class="pvp-input-wrapper">
-                                        <input type="number" id="pvp" class="form-control" min="1" max="999" required>
-                                    </div>
-                                    <span class="pvp-suffix">.900</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3 input-icon">
-                                <i class="fas fa-shopping-bag icon"></i>
-                                <label for="bolsas" class="form-label required-field">Bolsas</label>
-                                <input type="number" id="bolsas" class="form-control" min="0" required>
-                            </div>
-                        </div>
-                        
-                        <div id="dataStatus" class="alert alert-info">
-                            <div class="d-flex align-items-center">
-                                <div class="spinner-border spinner-border-sm me-2" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
-                                </div>
-                                <span>Iniciando carga de datos externos...</span>
-                            </div>
-                        </div>
-                        <div id="loadingData"></div>
+    <h1>Procesador de CSV - Datos de Producción</h1>
+    
+    <div class="section">
+        <h3>Procesamiento Principal</h3>
+        <div class="container">
+            <label for="csvFile">Selecciona el archivo CSV:</label>
+            <input type="file" id="csvFile" accept=".csv">
+            <button onclick="processCSV()" id="processBtn">Procesar CSV</button>
+            <button onclick="exportToCSV()" class="export-btn" style="display:none;" id="exportBtn">Exportar a CSV</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="results" style="display:none;">
+            <h3>Datos Procesados:</h3>
+            <div class="results-summary" id="resultsSummary"></div>
+        </div>
+    </div>
+
+    <div class="section" id="pendientesSection" style="display:none;">
+        <h3>Procesar Registros Pendientes (Individual por OP)</h3>
+        
+        <div class="op-selector">
+            <label for="selectOP" class="form-label required-field">Seleccionar OP para procesar:</label>
+            <select id="selectOP" class="form-select" onchange="loadOPData()">
+                <option value="">Seleccione una OP...</option>
+            </select>
+        </div>
+
+        <div id="opForm" style="display:none;">
+            <div class="form-group">
+                <label for="proveedor" class="form-label required-field">Proveedor</label>
+                <select id="proveedor" class="form-select" required>
+                    <option value="">Seleccione...</option>
+                    <option value="TEXTILES Y CREACIONES EL UNIVERSO SAS" selected>TEXTILES Y CREACIONES EL UNIVERSO SAS</option>
+                    <option value="TEXTILES Y CREACIONES LOS ANGELES SAS">TEXTILES Y CREACIONES LOS ANGELES SAS</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="auditor" class="form-label required-field">Auditor</label>
+                <select id="auditor" class="form-select" required>
+                    <option value="">Seleccione...</option>
+                    <option value="GLORICED QUIÑONEZ BOJORJE">GLORICED QUIÑONEZ BOJORJE</option>
+                    <option value="MAYRA ALEJANDRA GOMEZ OSORIO">MAYRA ALEJANDRA GOMEZ OSORIO</option>
+                    <option value="MARYURI GARCIA RENTERIA">MARYURI GARCIA RENTERIA</option>
+                    <option value="GREIZY JULIETH ESCOBAR SABOGAL">GREIZY JULIETH ESCOBAR SABOGAL</option>
+                    <option value="ANA GABRIELA GUZMAN BETANCOURT">ANA GABRIELA GUZMAN BETANCOURT</option>
+                    <option value="YULI ANGELY MUÑOZ MANCGABAJOY">YULI ANGELY MUÑOZ MANCGABAJOY</option>
+                    <option value="ROSA ALICIA VIERA BERNAL">ROSA ALICIA VIERA BERNAL</option>
+                    <option value="BRESLEE DANIELA USMA CEPEDA">BRESLEE DANIELA USMA CEPEDA</option>
+                    <option value="MAYERLY DEL MAR MORALES QUIROGA">MAYERLY DEL MAR MORALES QUIROGA</option>
+                    <option value="MORALES RUALES DIANA LUCERO">MORALES RUALES DIANA LUCERO</option>
+                    <option value="GALINDEZ MUÑOZ JHOAN MANUEL">GALINDEZ MUÑOZ JHOAN MANUEL</option>
+                    <option value="DIANA PAOLA HENAO HERRERA">DIANA PAOLA HENAO HERRERA</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="gestor" class="form-label required-field">Gestor</label>
+                <select id="gestor" class="form-select" required>
+                    <option value="">Seleccione...</option>
+                    <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
+                    <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO</option>
+                    <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS</option>
+                    <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA</option>
+                    <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA RAMIREZ</option>
+                    <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="bolsas" class="form-label required-field">Bolsas</label>
+                <input type="number" id="bolsas" class="form-control" min="0" value="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="pvpEdit" class="form-label required-field">PVP (Editable)</label>
+                <div class="pvp-control">
+                    <input type="text" id="pvpEdit" class="form-control" required>
+                    <div class="pvp-buttons">
+                        <button type="button" class="pvp-btn" onclick="adjustPVP(1000)">+1000</button>
+                        <button type="button" class="pvp-btn" onclick="adjustPVP(-1000)">-1000</button>
                     </div>
                 </div>
+            </div>
 
-                <div class="card mb-4 border-0" id="results" style="display: none;">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="card-title mb-0">
-                            <i class="fas fa-table me-2"></i>Resultados
-                        </h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div id="filteredCount" class="badge bg-primary fs-6"></div>
-                            <button id="generateJsonBtn" class="btn btn-primary">
-                                <i class="fas fa-file-code me-2"></i>Generar JSON
-                            </button>
-                        </div>
-
-                        <div id="jsonResultContainer" style="display: none;">
-                            <h5 class="mb-3">JSON Generado:</h5>
-                            <div class="json-viewer" id="jsonViewer"></div>
-                            <button id="downloadJsonBtn" class="btn btn-success mt-3">
-                                <i class="fas fa-download me-2"></i>Descargar JSON
-                            </button>
-
-                            <!-- Dentro del div con id="jsonResultContainer", después del botón de descarga -->
-                            <button id="saveToSheetsBtn" class="btn btn-primary mt-3 ms-2">
-                                <i class="fas fa-save me-2"></i>Guardar en Sheets
-                            </button>
-
-                        </div>
-                    </div>
-                </div>
+            <button onclick="generateJSONForOP()" id="generateJSONBtn">Generar JSON para esta OP</button>
+            <button onclick="saveToSheets()" id="saveBtn" style="display:none;">Guardar en Google Sheets</button>
+            
+            <div id="jsonPreview" style="display:none;">
+                <h4>Vista Previa del JSON para esta OP:</h4>
+                <div class="json-preview" id="jsonContent"></div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-
-<script>
-// Modificar la función saveToSheets
-function saveToSheets(jsonData) {
-    const loadingSwal = Swal.fire({
-        title: 'Guardando en Sheets...',
-        html: 'Por favor espera mientras se guardan los datos',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    const apiUrl = "https://script.google.com/macros/s/AKfycbyJXqnvNahoEkUf4XSY916E6ov3BvEtOyq_pBJNzINNmzvfrKsd5owR_cVsbSYyqfy3/exec";
-
-    fetch(apiUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(jsonData)
-    })
-    .then(() => {
-        loadingSwal.close();
-        Swal.fire({
-            icon: 'success',
-            title: '¡Guardado exitoso!',
-            text: 'Los datos se guardaron correctamente.',
-            confirmButtonText: 'Aceptar'
-        });
-        resetFormAfterSave(); // Limpiar solo lo necesario
-    })
-    .catch(error => {
-        loadingSwal.close();
-        console.error('Error al guardar en Sheets:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            html: `No se pudo guardar en Sheets:<br><small>${error.message}</small>`,
-            confirmButtonText: 'Entendido'
-        });
-    });
-}
-
-    document.getElementById('saveToSheetsBtn').onclick = function() {
-        const jsonData = JSON.parse(document.getElementById('jsonViewer').textContent);
-        saveToSheets(jsonData);
-    };
-</script>
-
-
     <script>
-        // Variables globales
         let processedData = [];
-        let externalData = {
-            colores: [],
-            sisproweb: [],
-            historicas: []
-        };
-        let originalColumnsCount = 0;
+        let coloresMap = new Map();
+        let data2Map = new Map();
+        let preciosMap = new Map();
+        let sisproMap = new Map();
+        let historicasMap = new Map();
+        let currentOPData = null;
+        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        const SPREADSHEET_ID = '133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI';
+        const SHEET_NAME = 'COLORES';
+        const DATA2_SHEET = 'DATA2';
+        const PRECIOS_SHEET = 'PRECIOS';
+        const SISPRO_SHEET = 'SISPROWEB';
+        const HISTORICAS_SHEET = 'HISTORICAS';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyM5AsR4WOLdfPWBp4uW_diONnaiaAThobOUE1Q4kwgSMXSsuorpdsmT8c52CeDXPgI/exec';
 
-        // Mapeo de usuarios a escaners
         const escanersMap = {
             "LORTIZ": "LEIDY TATIANA ORTIZ",
             "PSANCHEZ": "PAULA VANESSA SANCHEZ ERAZO",
@@ -256,528 +283,804 @@ function saveToSheets(jsonData) {
             "CMENDOZA": "CARLOS ANDRES MENDOZA ARIAS"
         };
 
-        // Cargar datos externos al iniciar
+        const bodegasMap = {
+            "DI": "PRIMERAS",
+            "ZY": "SIN CONFECCIONAR", 
+            "ZZ": "PROMOCIONES",
+            "BP": "COBROS",
+            "XT": "TRANSITO",
+            "PR": "CONTABLE"
+        };
+
+        const tiposMap = {
+            "AT": "AJUSTE TALLAS",
+            "EC": "ENTRADA CORTE", 
+            "SA": "SALIDA ALMACEN",
+            "SC": "SALIDA COBRO",
+            "ST": "SALIDA AJUSTE",
+            "TR": "TRASLADO"
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Iniciando carga de datos externos...");
-            loadExternalData();
+            loadDataFromSheets();
         });
 
-        // Función para cargar datos externos
-        async function loadExternalData() {
-            const loadingDiv = document.getElementById('loadingData');
-            const fileInput = document.getElementById('csvFile');
-            const dataStatus = document.getElementById('dataStatus');
-            
-            loadingDiv.style.display = 'block';
-            dataStatus.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-2" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <span>Conectando con servidor de datos...</span>
-                </div>
-            `;
-            
-            const apiUrl = "https://script.google.com/macros/s/AKfycbwziXtD6agWHvgALOZIkmYiPz_D9cfZcZjiLCeJpeEFluZylUuY-K_PYGbCvkKmeMxtXg/exec";
-            
-            try {
-                let response = await fetch(apiUrl, {
-                    mode: 'cors',
-                    redirect: 'follow'
-                });
+        async function loadDataFromSheets() {
+            showStatus('Cargando datos desde Google Sheets...', 'loading');
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = true;
 
-                if (!response.ok) {
-                    throw new Error('Error al cargar datos externos');
+            try {
+                // Cargar colores
+                const coloresUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+                const coloresResponse = await fetch(coloresUrl);
+                const coloresData = await coloresResponse.json();
+                
+                if (coloresData.values && coloresData.values.length > 0) {
+                    for (let i = 1; i < coloresData.values.length; i++) {
+                        const row = coloresData.values[i];
+                        if (row.length >= 2) {
+                            const codigo = row[0] || '';
+                            const color = row[1] || '';
+                            if (codigo && color) {
+                                coloresMap.set(codigo.trim(), color.trim());
+                            }
+                        }
+                    }
                 }
 
-                const data = await response.json();
-                externalData = {
-                    colores: data.colores || [],
-                    sisproweb: data.sisproweb || [],
-                    historicas: data.historicas || []
-                };
+                // Cargar DATA2
+                const data2Url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${DATA2_SHEET}?key=${API_KEY}`;
+                const data2Response = await fetch(data2Url);
+                const data2Data = await data2Response.json();
+                
+                if (data2Data.values && data2Data.values.length > 0) {
+                    for (let i = 1; i < data2Data.values.length; i++) {
+                        const row = data2Data.values[i];
+                        if (row.length >= 1) {
+                            const op = row[0] || '';
+                            if (op) {
+                                data2Map.set(op.trim(), true);
+                            }
+                        }
+                    }
+                }
 
-                dataStatus.innerHTML = `
-                    <div class="alert alert-info d-flex align-items-center">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <span>Datos cargados correctamente (${externalData.colores.length} colores, ${externalData.sisproweb.length} OPs)</span>
-                    </div>
-                `;
-                fileInput.disabled = false;
+                // Cargar PRECIOS
+                const preciosUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${PRECIOS_SHEET}?key=${API_KEY}`;
+                const preciosResponse = await fetch(preciosUrl);
+                const preciosData = await preciosResponse.json();
+                
+                if (preciosData.values && preciosData.values.length > 0) {
+                    for (let i = 1; i < preciosData.values.length; i++) {
+                        const row = preciosData.values[i];
+                        if (row.length >= 2) {
+                            const referencia = row[0] || '';
+                            const pvp = row[1] || '';
+                            if (referencia && pvp) {
+                                preciosMap.set(referencia.trim(), pvp.trim());
+                            }
+                        }
+                    }
+                }
+
+                // Cargar SISPROWEB
+                const sisproUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SISPRO_SHEET}?key=${API_KEY}`;
+                const sisproResponse = await fetch(sisproUrl);
+                const sisproData = await sisproResponse.json();
+                
+                if (sisproData.values && sisproData.values.length > 0) {
+                    for (let i = 1; i < sisproData.values.length; i++) {
+                        const row = sisproData.values[i];
+                        if (row.length >= 4) {
+                            const op = row[0] || '';
+                            const prenda = row[1] || '';
+                            const linea = row[2] || '';
+                            const genero = row[3] || '';
+                            if (op) {
+                                sisproMap.set(op.trim(), {
+                                    PRENDA: prenda.trim(),
+                                    LINEA: linea.trim(),
+                                    GENERO: genero.trim()
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Cargar HISTORICAS
+                const historicasUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${HISTORICAS_SHEET}?key=${API_KEY}`;
+                const historicasResponse = await fetch(historicasUrl);
+                const historicasData = await historicasResponse.json();
+                
+                if (historicasData.values && historicasData.values.length > 0) {
+                    for (let i = 1; i < historicasData.values.length; i++) {
+                        const row = historicasData.values[i];
+                        if (row.length >= 2) {
+                            const refprov = row[0] || '';
+                            const referencia = row[1] || '';
+                            if (refprov) {
+                                historicasMap.set(refprov.trim(), referencia.trim());
+                            }
+                        }
+                    }
+                }
+
+                showStatus(`Datos cargados correctamente. ${coloresMap.size} colores, ${data2Map.size} OPs, ${preciosMap.size} precios, ${sisproMap.size} registros SISPROWEB y ${historicasMap.size} referencias históricas.`, 'success');
+                processBtn.disabled = false;
 
             } catch (error) {
-                console.error('Error al cargar datos:', error);
-                dataStatus.innerHTML = `
-                    <div class="alert alert-danger d-flex align-items-center">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <span>Error al cargar datos: ${error.message}</span>
-                    </div>
-                `;
-                fileInput.disabled = true;
-            } finally {
-                loadingDiv.style.display = 'none';
+                showStatus('Error cargando datos: ' + error.message, 'error');
+                console.error('Error cargando datos:', error);
+                processBtn.disabled = false;
             }
         }
 
-        // Procesar CSV cuando se selecciona un archivo
-document.getElementById('csvFile').addEventListener('change', function(e) {
-    // Limpiar solo el procesamiento anterior
-    processedData = [];
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('jsonResultContainer').style.display = 'none';
-    document.getElementById('jsonViewer').textContent = '';
-    
-    // Procesar nuevo archivo
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        processCSV(e.target.result);
-    };
-    reader.readAsText(file);
-});
-
-        // Función para procesar el CSV
-        function processCSV(csvData) {
-            const loadingDiv = document.getElementById('loadingData');
-            loadingDiv.style.display = 'block';
-            loadingDiv.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Procesando...</span></div> Procesando archivo CSV...';
+        function adjustPVP(amount) {
+            const pvpInput = document.getElementById('pvpEdit');
+            let currentValue = parseInt(pvpInput.value.replace(/\./g, '')) || 0;
+            currentValue += amount;
             
-            setTimeout(() => {
-                try {
-                    const lines = csvData.split('\n').filter(line => line.trim() !== '');
-                    if (lines.length === 0) throw new Error('El archivo CSV está vacío');
-
-                    originalColumnsCount = Math.max(...lines.map(line => line.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).length));
-                    
-                    processedData = [];
-                    const targetUsers = ["APOLO", "LORTIZ", "KFERNANDEZ", "MONCALEANO", "LOCHOA", "PJARAMILLO", "CMENDOZA", "PSANCHEZ"];
-                    const targetValues = ["ZY", "DI", "XT", "BP", "PR", "ZZ"]; // PR SE USA SOLO PARA OBTENER LOS COSTOS EL VALOR DE OS Y DE AUDITORIA
-                    const missingColors = new Set();
-                    const missingOps = new Set();
-
-                    // Acumulador para HR
-                    const hrMap = {};
-                    const anexos = {}; // Cambiar a un objeto para unificar
-
-                    for (let i = 0; i < lines.length; i++) {
-                        let row = lines[i].split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => {
-                            let trimmed = cell.trim();
-                            if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-                                return trimmed.substring(1, trimmed.length - 1);
-                            }
-                            return trimmed;
-                        });
-                        
-                            // SOLUCIÓN MÍNIMA MEJORADA: Corregir ñ y convertir a MAYÚSCULAS
-                            row = row.map(cell => cell
-                                .replace(/�/g, 'Ñ')  // Corrige � a Ñ
-                                .toUpperCase());     // Convierte todo a mayúsculas
-        
-                        console.log(row); // Imprimir el contenido de la fila
-
-                        if (row.length > 14 && targetUsers.includes(row[1]) && targetValues.includes(row[14])) {
-                            // Asegurar que la fila tenga todas las columnas
-                            while (row.length < originalColumnsCount) {
-                                row.push('');
-                            }
-                            
-                            // Formatear campos específicos
-                            if (row[4]) row[4] = row[4].replace(/ 00:00:00$/, ''); // FECHA
-                            if (row[9]) row[9] = parseInt(row[9]) || 0; // CANTIDAD
-                            if (row[10]) row[10] = parseInt(row[10]) || 0; // COSTO
-                            
-                            // Obtener datos externos
-                            const colorInfo = getColorInfo(row[12]); // CODCOLOR
-                            const sisproInfo = getSisproInfo(row[2]); // OP
-                            const referencia = getReferencia(row[0]); // REFPROV
-                            
-                            // Registrar datos faltantes
-                            if (row[12] && !colorInfo.color) missingColors.add(row[12]);
-                            if (row[2] && !sisproInfo.prenda) missingOps.add(row[2]);
-                            
-                            // Añadir nuevas columnas
-                            row.push(referencia); // REFERENCIA
-                            row.push(getClassification(row)); // CLASIFICACION
-                            row.push(colorInfo.color || 'No encontrado'); // COLOR
-                            row.push(sisproInfo.prenda || 'No encontrado'); // PRENDA
-                            row.push(sisproInfo.linea || 'No encontrado'); // LINEA
-                            row.push(sisproInfo.genero || 'No encontrado'); // GENERO
-                            row.push(getMarca(sisproInfo.genero, row[row.length-3])); // MARCA
-                            row.push(getDescripcion(sisproInfo.prenda, sisproInfo.genero, row[row.length-1], row[0], row[row.length-6])); // DESCRIPCION
-                            row.push(escanersMap[row[1]] || row[1]); // ESCANER
-                            row.push(document.getElementById('gestor').value); // GESTOR
-
-                            processedData.push(row);
-
-                            // Clasificación para HR y Anexos
-                            const tipo = row[originalColumnsCount + 1]; // CLASIFICACION
-                            const codcolor = row[12]; // CODCOLOR
-                            const color = row[50]; // COLOR
-                            const talla = row[11]; // TALLAS
-                            const cantidad = parseInt(row[9]) || 0; // CANTIDAD
-                            const costo = (tipo === "SIN CONFECCIONAR") ? 0 : (parseInt(row[10]) || 0); // COSTO (0 para SIN CONFECCIONAR)
-
-                            if (tipo === "FULL") {
-                                // Acumular datos para HR
-                                const key = `${codcolor}-${color}-${talla}`;
-                                if (!hrMap[key]) {
-                                    hrMap[key] = [codcolor, color, talla, 0]; // Inicializar con cantidad 0
-                                }
-                                                               hrMap[key][3] += cantidad; // Acumular cantidad
-                            } else if (tipo === "PROMO" || tipo === "COBRO" || tipo === "SIN CONFECCIONAR") {
-                                // Manejar anexos
-                                const anexoKey = `${row[0]}-${talla}-${color}-${tipo}-${row[14]}`; // Crear una clave única para cada anexo
-                                // Dentro del bucle donde se procesan los anexos
-if (!anexos[anexoKey]) {
-    anexos[anexoKey] = {
-        "DOCUMENTO": row[0], // REFPROV
-        "TALLA": talla, // TALLAS
-        "COLOR": color, // COLOR
-        "TIPO": tipo,
-        "CANTIDAD": cantidad,
-        "COSTO_UNITARIO": costo,
-        "COSTO_TOTAL": cantidad * costo,
-        "BODEGA": row[14], // BODEGA
-        "TRASLADO": row[7] // TRASLADO
-    };
-} else {
-    anexos[anexoKey].CANTIDAD += cantidad;
-    anexos[anexoKey].COSTO_TOTAL += cantidad * costo;
-}
-                            }
-                        }
-                    }
-
-                    // Convertir el objeto hrMap a un array
-                    const hr = Object.values(hrMap);
-
-                    // Convertir el objeto anexos a un array
-                    const anexosArray = Object.values(anexos);
-
-                    // Mostrar advertencias para datos faltantes
-                    if (missingColors.size > 0 || missingOps.size > 0) {
-                        let warningMsg = '';
-                        if (missingColors.size > 0) {
-                            warningMsg += `<strong>Códigos de color no encontrados:</strong> ${Array.from(missingColors).join(', ')}<br>`;
-                        }
-                        if (missingOps.size > 0) {
-                            warningMsg += `<strong>OPs no encontradas:</strong> ${Array.from(missingOps).join(', ')}`;
-                        }
-                        
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Datos faltantes',
-                            html: warningMsg,
-                            confirmButtonText: 'Entendido'
-                        });
-                    }
-
-                    document.getElementById('results').style.display = 'block';
-                    document.getElementById('filteredCount').textContent = `Registros procesados: ${processedData.length}`;
-
-                    // Almacenar el array HR en el JSON final
-                    const jsonData = generateConsolidatedJson(processedData, hr, anexosArray);
-                    displayJson(jsonData);
-
-                } catch (error) {
-                    Swal.fire('Error', `Error al procesar el CSV: ${error.message}`, 'error');
-                    console.error(error);
-                } finally {
-                    loadingDiv.style.display = 'none';
-                }
-            }, 100);
+            // Formatear con separadores de miles
+            pvpInput.value = currentValue.toLocaleString('es-CO');
         }
 
-// Función para limpiar todos los inputs y restablecer el formulario
-function resetForm() {
-    // Limpiar inputs principales
-    document.getElementById('csvFile').value = '';
-    document.getElementById('proveedor').value = 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
-    document.getElementById('auditor').value = '';
-    document.getElementById('gestor').value = '';
-    document.getElementById('pvp').value = '';
-    document.getElementById('bolsas').value = '';
-    
-    // Ocultar resultados
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('jsonResultContainer').style.display = 'none';
-    
-    // Limpiar el visor JSON
-    document.getElementById('jsonViewer').textContent = '';
-    
-    // Restablecer contador
-    document.getElementById('filteredCount').textContent = '';
-    
-    // Restablecer estado de datos
-    processedData = [];
-    externalData = {
-        colores: [],
-        sisproweb: [],
-        historicas: []
-    };
-    
-    // Mostrar mensaje inicial
-    document.getElementById('dataStatus').innerHTML = `
-        <div class="d-flex align-items-center">
-            <i class="fas fa-check-circle me-2"></i>
-            <span>Datos cargados correctamente (${externalData.colores.length} colores, ${externalData.sisproweb.length} OPs)</span>
-        </div>
-    `;
-}
-
-// Función para limpiar inputs y preparar para nuevo archivo (sin afectar datos externos)
-function resetFormAfterSave() {
-    // 1. Limpiar inputs del formulario
-    document.getElementById('csvFile').value = '';
-    document.getElementById('pvp').value = '';
-    document.getElementById('bolsas').value = '';
-    
-    // 2. Limpiar resultados pero mantener datos cargados
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('jsonResultContainer').style.display = 'none';
-    document.getElementById('jsonViewer').textContent = '';
-    document.getElementById('filteredCount').textContent = '';
-    
-    // 3. Resetear variables de procesamiento (sin tocar externalData)
-    processedData = [];
-    
-    // 4. Mostrar estado listo para nuevo archivo
-    document.getElementById('dataStatus').innerHTML = `
-        <div class="alert alert-info d-flex align-items-center">
-            <i class="fas fa-check-circle me-2"></i>
-            <span>Datos listos para nuevo archivo (${externalData.colores.length} colores, ${externalData.sisproweb.length} OPs cargados)</span>
-        </div>
-    `;
-    
-    // 5. Mantener selecciones de usuario (proveedor, auditor, gestor)
-    // (Opcional) Si quieres limpiar estos también, quita el comentario:
-     document.getElementById('proveedor').value = 'TEXTILES Y CREACIONES EL UNIVERSO SAS';
-     document.getElementById('auditor').value = '';
-     document.getElementById('gestor').value = '';
-}
-
-// Función para generar el JSON consolidado
-function generateConsolidatedJson(data, hr, anexos) {
-    if (data.length === 0) return null;
-
-    const firstRow = data[0];
-    const op = firstRow[2]; // OP es la columna 2
-    
-    // Variables para cálculos
-    let cantidadFull = 0;
-    let cantidadPromo = 0;
-    let cantidadCobros = 0;
-    let cantidadSinConfeccionar = 0;
-    let totalGeneral = 0;
-    let costoUnitario = 0;
-    let costoTotal = 0;
-    let auditoria = '';
-    let ordenServicio = '';
-    let trasladoFull = '';
-    let refProvFull = '';
-    let referenciaFull = '';
-
-    // Buscar el primer registro con datos válidos para cada campo
-    for (const row of data) {
-        const tipo = row[originalColumnsCount + 1]; // CLASIFICACION
-        
-        // Obtener REFPROV del primer registro FULL y su referencia
-        if (!refProvFull && tipo === "FULL") {
-            refProvFull = row[0]; // REFPROV
-            referenciaFull = getReferencia(refProvFull);
+        function getSisproData(op) {
+            if (!op) return { PRENDA: '', LINEA: '', GENERO: '' };
+            return sisproMap.get(op.trim()) || { PRENDA: '', LINEA: '', GENERO: '' };
         }
 
-        // Obtener TOTAL GENERAL (índice 19) del primer registro con valor
-        if (totalGeneral === 0 && row[19] && row[19] !== '0') {
-            totalGeneral = parseInt(row[19]) || 0;
+        function getColorName(codigo) {
+            if (!codigo) return '';
+            return coloresMap.get(codigo.trim()) || codigo;
         }
 
-        // Obtener COSTO UNITARIO (índice 10) del primer registro con valor diferente a 0
-        if (costoUnitario === 0 && row[10] && row[10] !== '0') {
-            costoUnitario = parseInt(row[10]) || 0;
+        function getPvp(referencia) {
+            if (!referencia) return '';
+            return preciosMap.get(referencia.trim()) || '';
         }
 
-        // Obtener AUDITORIA (índice 37) del primer registro con valor
-        if (!auditoria && row[37]) {
-            auditoria = row[37];
+        function getReferenciaHistorica(refprov) {
+            if (!refprov) return refprov;
+            return historicasMap.get(refprov.trim()) || refprov;
         }
 
-        // Obtener ORDEN_SERVICIO (índice 13) del primer registro con valor
-        if (!ordenServicio && row[13]) {
-            ordenServicio = row[13];
-        }
-
-        // Obtener TRASLADO (índice 7) del primer registro FULL con valor
-        if (!trasladoFull && tipo === "FULL" && row[7]) {
-            trasladoFull = row[7];
-        }
-
-        const cantidad = parseInt(row[9]) || 0;
-
-        // Acumular según tipo
-        if (tipo === "FULL") {
-            cantidadFull += cantidad;
-        } else if (tipo === "PROMO") {
-            cantidadPromo += cantidad;
-        } else if (tipo === "COBRO") {
-            cantidadCobros += cantidad;
-        } else if (tipo === "SIN CONFECCIONAR") {
-            cantidadSinConfeccionar += cantidad;
-        }
-    }
-
-    // Si no encontramos REFPROV en FULL, usar la del primer registro
-    if (!refProvFull) {
-        refProvFull = firstRow[0];
-        referenciaFull = getReferencia(refProvFull);
-    }
-
-    // Calcular valores finales
-    const totalRelativo = cantidadFull + cantidadPromo + cantidadCobros + cantidadSinConfeccionar;
-    const cantidad = cantidadFull + cantidadPromo + cantidadCobros;
-    costoTotal = cantidad * costoUnitario;
-    const diferencia = totalGeneral - totalRelativo;
-
-    // Obtener información de OP
-    const sisproInfo = getSisproInfo(firstRow[2]);
-    const prenda = sisproInfo.prenda || 'No encontrado';
-    const genero = sisproInfo.genero || 'No encontrado';
-
-    // Aplicar costo unitario a los anexos (excepto SIN CONFECCIONAR)
-    anexos.forEach(anexo => {
-        if (anexo.TIPO !== "SIN CONFECCIONAR") {
-            anexo.COSTO_UNITARIO = costoUnitario;
-            anexo.COSTO_TOTAL = anexo.CANTIDAD * costoUnitario;
-        }
-    });
-
-    return {
-        "A": op.toString(),
-        "FECHA": firstRow[4],
-        "TALLER": firstRow[18],
-        "LINEA": firstRow[originalColumnsCount + 4],
-        "AUDITOR": document.getElementById('auditor').value,
-        "GESTOR": document.getElementById('gestor').value,
-        "ESCANER": firstRow[originalColumnsCount + 8],
-        "LOTE": parseInt(op),
-        "REFPROV": refProvFull,
-        "DESCRIPCIÓN": firstRow[originalColumnsCount + 7],
-        "CANTIDAD": cantidad,
-        "TOTAL_RELATIVO": totalRelativo,
-        "COSTO_UNITARIO": costoUnitario,
-        "COSTO_TOTAL": costoTotal,
-        "TOTAL_GENERAL": totalGeneral,
-        "DIFERENCIA": diferencia,
-        "AUDITORIA": auditoria,
-        "ORDEN_SERVICIO": ordenServicio, // Nueva propiedad añadida
-        "TRASLADO": trasladoFull,
-        "REFERENCIA": referenciaFull,
-        "TIPO": "FULL",
-        "PVP": document.getElementById('pvp').value ? `${document.getElementById('pvp').value}.900` : null,
-        "PRENDA": prenda,
-        "GENERO": genero,
-        "PROVEEDOR": document.getElementById('proveedor').value,
-        "ANEXOS": anexos,
-        "HR": hr,
-        "BOLSAS": parseInt(document.getElementById('bolsas').value) || 0,
-        "DETALLE_CANTIDADES": {
-            "FULL": cantidadFull,
-            "PROMO": cantidadPromo,
-            "COBRO": cantidadCobros,
-            "SIN_CONFECCIONAR": cantidadSinConfeccionar
-        }
-    };
-}
-        // Mostrar JSON en la interfaz
-        function displayJson(jsonData) {
-            const jsonViewer = document.getElementById('jsonViewer');
-            jsonViewer.textContent = JSON.stringify(jsonData, null, 2);
-            document.getElementById('jsonResultContainer').style.display = 'block';
-            
-            // Configurar botón de descarga
-            document.getElementById('downloadJsonBtn').onclick = function() {
-                downloadJson(jsonData);
-            };
-        }
-
-        // Descargar JSON como archivo
-        function downloadJson(jsonData) {
-            const jsonStr = JSON.stringify(jsonData, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `datos_${jsonData.A}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // ===== FUNCIONES AUXILIARES =====
-        
-        // Obtener información de color
-        function getColorInfo(codigo) {
-            if (!codigo || !externalData.colores) return {};
-            return externalData.colores.find(item => item.codigo === codigo) || {};
-        }
-        
-        // Obtener información de OP
-        function getSisproInfo(op) {
-            if (!op || !externalData.sisproweb) return {};
-            return externalData.sisproweb.find(item => item.op === op) || {};
-        }
-        
-        // Obtener referencia histórica
-        function getReferencia(refProv) {
-            if (!refProv || !externalData.historicas) return refProv;
-            const found = externalData.historicas.find(item => item.refProv === refProv);
-            return found ? found.referencia : refProv;
-        }
-        
-        // Determinar clasificación
-// Determinar clasificación
-function getClassification(row) {
-    const bodega = row[14]; // BODEGA
-    
-    if (bodega === "DI") return "FULL";
-    if (bodega === "ZY") return "SIN CONFECCIONAR";
-    if (bodega === "XT") return "PROMO";
-    if (bodega === "ZZ") return "PROMO";
-    if (bodega === "BP") return "COBRO";
-    
-    return "NO DEFINIDO";
-}
-        
-        // Determinar marca
-        function getMarca(genero, classification) {
-            if (classification === "PROMO") return "PROMOCION";
-            if (!genero) return "SIN MARCA";
-            
-            genero = (genero || '').toUpperCase();
-            if (genero.includes("DAMA") || genero.includes("NIÑA") || genero.includes("MUJER")) {
-                return "CHICA CHIC";
-            } else if (genero.includes("HOMBRE") || genero.includes("NIÑO") || genero.includes("VARON")) {
-                return "80 GRADOS";
+        function getMarca(genero) {
+            if (!genero) return '';
+            const generoUpper = genero.toUpperCase();
+            if (generoUpper.includes('DAMA') || generoUpper.includes('NIÑA')) {
+                return 'CHICA CHIC';
+            } else if (generoUpper.includes('HOMBRE') || generoUpper.includes('NIÑO')) {
+                return '80 GRADOS';
             }
-            return "GENERO NO DEFINIDO";
+            return '';
         }
-        
-        // Crear descripción
-        function getDescripcion(prenda, genero, marca, refprov, classification) {
+
+        function getClaseByPVP(pvp) {
+            const valor = parseFloat(pvp);
+            if (isNaN(valor)) return "";
+            if (valor <= 39900) return "LINEA";
+            if (valor <= 59900) return "MODA";
+            if (valor > 59900) return "PRONTAMODA";
+        }
+
+        function getDescripcion(prenda, genero, marca, refprov) {
             const partes = [];
             if (prenda) partes.push(prenda);
             if (genero) partes.push(genero);
-            
-            if (classification !== "PROMOCION" && marca) {
-                partes.push(marca);
-            }
-            
+            if (marca) partes.push(marca);
             if (refprov) partes.push(refprov);
             
-            return partes.join(" ");
+            return partes.join(' ');
         }
+
+        function normalizeTipo(tipoCode) {
+            return tiposMap[tipoCode] || tipoCode;
+        }
+
+        function extractTrasladoNumber(traslado) {
+            if (!traslado) return '';
+            return traslado.replace(/\D/g, '').replace(/^0+/, '');
+        }
+
+        function extractOSNumber(os) {
+            if (!os) return '';
+            return os.replace(/\D/g, '').replace(/^0+/, '');
+        }
+
+        function validarEstado(op) {
+            if (!op) return 'PENDIENTE';
+            return data2Map.has(op.trim()) ? 'CONFIRMADA' : 'PENDIENTE';
+        }
+
+        async function processCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const processBtn = document.getElementById('processBtn');
+            
+            if (!fileInput.files.length) {
+                showStatus('Por favor selecciona un archivo CSV', 'error');
+                return;
+            }
+
+            processBtn.disabled = true;
+            showStatus('Procesando archivo CSV...', 'loading');
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const csvContent = e.target.result;
+                    const rows = parseCSV(csvContent);
+                    
+                    if (rows.length === 0) {
+                        showStatus('El archivo está vacío', 'error');
+                        processBtn.disabled = false;
+                        return;
+                    }
+
+                    const prDataMap = new Map();
+                    
+                    rows.forEach(row => {
+                        if (row.length >= 38) {
+                            const usuario = row[1] || '';
+                            const bodega = row[14] || '';
+                            const tipo = row[3] || '';
+                            
+                            if (escanersMap[usuario] && bodega === 'PR' && tipo === 'TR') {
+                                const key = `${row[2]}|${row[11]}|${row[12]}`;
+                                prDataMap.set(key, {
+                                    COSTO: parseFloat(row[10]) || 0,
+                                    OS: extractOSNumber(row[13] || ''),
+                                    CC: row[37] || ''
+                                });
+                            }
+                        }
+                    });
+
+                    processedData = [];
+                    
+                    rows.forEach(row => {
+                        if (row.length >= 38) {
+                            const usuario = row[1] || '';
+                            const bodega = row[14] || '';
+                            const tipo = row[3] || '';
+                            
+                            if (escanersMap[usuario] && bodega !== 'PR' && tipo === 'TR') {
+                                const key = `${row[2]}|${row[11]}|${row[12]}`;
+                                const prData = prDataMap.get(key);
+                                const sisproInfo = getSisproData(row[2] || '');
+                                
+                                let costo = 0;
+                                if (bodega !== 'ZY' && prData) {
+                                    costo = prData.COSTO;
+                                }
+                                
+                                const op = row[2] || '';
+                                const referencia = row[0] || '';
+                                const estado = validarEstado(op);
+                                const pvp = getPvp(referencia);
+                                const codColorOriginal = row[12] || '';
+                                const marca = getMarca(sisproInfo.GENERO);
+                                const clase = getClaseByPVP(pvp);
+                                const descripcion = getDescripcion(
+                                    sisproInfo.PRENDA || normalizeText(row[23] || ''),
+                                    sisproInfo.GENERO,
+                                    marca,
+                                    referencia
+                                );
+                                
+                                const processedRow = {
+                                    REFERENCIA: referencia,
+                                    USUARIO: escanersMap[usuario] || usuario,
+                                    OP: op,
+                                    TIPO: normalizeTipo(tipo),
+                                    FECHA: formatDate(row[4]),
+                                    TRASLADO: extractTrasladoNumber(row[7] || ''),
+                                    CANTIDAD: parseFloat(row[9]) || 0,
+                                    COSTO: formatCosto(costo),
+                                    TOTAL: row[19] || '',
+                                    PVP: pvp,
+                                    TALLA: row[11] || '',
+                                    COLORES: getColorName(codColorOriginal),
+                                    COD_COLOR: codColorOriginal,
+                                    OS: prData ? prData.OS : extractOSNumber(row[13] || ''),
+                                    BODEGA: normalizeBodega(bodega),
+                                    TALLER: normalizeText(row[18] || ''),
+                                    DESCRIPCION_LARGA: normalizeText(row[21] || ''),
+                                    PRENDA: sisproInfo.PRENDA || normalizeText(row[23] || ''),
+                                    LINEA: sisproInfo.LINEA || '',
+                                    GENERO: sisproInfo.GENERO || '',
+                                    CC: prData ? prData.CC : (row[37] || ''),
+                                    ESTADO: estado,
+                                    MARCA: marca,
+                                    CLASE: clase,
+                                    DESCRIPCION: descripcion
+                                };
+                                processedData.push(processedRow);
+                            }
+                        }
+                    });
+
+                    if (processedData.length === 0) {
+                        showStatus('No se encontraron datos válidos para los usuarios especificados con tipo TR', 'error');
+                        processBtn.disabled = false;
+                        return;
+                    }
+
+                    displayResultsSummary(processedData);
+                    showStatus(`Datos procesados correctamente. ${processedData.length} registros TRASLADO encontrados.`, 'success');
+                    document.getElementById('results').style.display = 'block';
+                    document.getElementById('exportBtn').style.display = 'inline-block';
+                    
+                    const pendientes = processedData.filter(item => item.ESTADO === 'PENDIENTE');
+                    if (pendientes.length > 0) {
+                        setupPendientesSection(pendientes);
+                        document.getElementById('pendientesSection').style.display = 'block';
+                        showStatus(`${pendientes.length} registros pendientes listos para procesar individualmente.`, 'success');
+                    }
+                    
+                    processBtn.disabled = false;
+
+                } catch (error) {
+                    showStatus('Error al procesar el archivo: ' + error.message, 'error');
+                    console.error('Error:', error);
+                    processBtn.disabled = false;
+                }
+            };
+
+            reader.onerror = function() {
+                showStatus('Error al leer el archivo', 'error');
+                processBtn.disabled = false;
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function displayResultsSummary(data) {
+            const summaryDiv = document.getElementById('resultsSummary');
+            
+            const pendientes = data.filter(item => item.ESTADO === 'PENDIENTE');
+            const unidadesPendientes = pendientes.reduce((sum, item) => sum + item.CANTIDAD, 0);
+            const opsPendientes = [...new Set(pendientes.map(item => item.OP))];
+            
+            let contenido = `
+                <p><strong>Total de registros procesados:</strong> ${data.length}</p>
+                <div class="pendientes-info">
+                    <p><strong>Registros pendientes:</strong> ${pendientes.length}</p>
+                    <p><strong>Unidades pendientes:</strong> ${unidadesPendientes}</p>
+                    <p><strong>OPs únicas pendientes:</strong> ${opsPendientes.length}</p>
+                </div>
+                <p style="margin-top: 15px;"><strong>El archivo CSV está listo para descargar</strong></p>
+            `;
+            
+            summaryDiv.innerHTML = contenido;
+        }
+
+        function setupPendientesSection(pendientes) {
+            const selectOP = document.getElementById('selectOP');
+            selectOP.innerHTML = '<option value="">Seleccione una OP...</option>';
+            
+            const opGroups = {};
+            pendientes.forEach(item => {
+                if (!opGroups[item.OP]) {
+                    opGroups[item.OP] = {
+                        referencia: item.REFERENCIA,
+                        prenda: item.PRENDA,
+                        usuario: item.USUARIO,
+                        cantidad: 0,
+                        items: []
+                    };
+                }
+                opGroups[item.OP].cantidad += item.CANTIDAD;
+                opGroups[item.OP].items.push(item);
+            });
+
+            Object.keys(opGroups).forEach(op => {
+                const grupo = opGroups[op];
+                const option = document.createElement('option');
+                option.value = op;
+                option.textContent = `OP: ${op} - Ref: ${grupo.referencia} - ${grupo.prenda} - Usuario: ${grupo.usuario} - Cant: ${grupo.cantidad}`;
+                option.dataset.items = JSON.stringify(grupo.items);
+                selectOP.appendChild(option);
+            });
+        }
+
+        function loadOPData() {
+            const selectOP = document.getElementById('selectOP');
+            const opForm = document.getElementById('opForm');
+            const selectedOption = selectOP.options[selectOP.selectedIndex];
+            
+            if (!selectedOption.value) {
+                opForm.style.display = 'none';
+                return;
+            }
+
+            const items = JSON.parse(selectedOption.dataset.items);
+            currentOPData = items;
+            
+            const primerItem = items[0];
+            
+            // Llenar formulario con datos de la OP
+            document.getElementById('pvpEdit').value = primerItem.PVP || '';
+            
+            opForm.style.display = 'block';
+            showStatus(`Cargados datos para OP: ${primerItem.OP}`, 'success');
+        }
+
+        function generateJSONForOP() {
+            if (!currentOPData || currentOPData.length === 0) {
+                showStatus('No hay datos de OP cargados', 'error');
+                return;
+            }
+
+            const proveedor = document.getElementById('proveedor').value;
+            const auditor = document.getElementById('auditor').value;
+            const gestor = document.getElementById('gestor').value;
+            const bolsas = parseInt(document.getElementById('bolsas').value) || 0;
+            const pvpEdit = document.getElementById('pvpEdit').value;
+
+            if (!proveedor || !auditor || !gestor || !pvpEdit) {
+                showStatus('Por favor complete todos los campos requeridos', 'error');
+                return;
+            }
+
+            const primerItem = currentOPData[0];
+            const items = currentOPData;
+
+            // CANTIDAD = TOTAL del CSV (índice 19)
+            const cantidad = parseInt(primerItem.TOTAL) || 0;
+            
+            // Calcular cantidades por tipo de bodega
+            let cantidadFull = 0;
+            let cantidadPromo = 0;
+            let cantidadCobros = 0;
+            let cantidadSinConfeccionar = 0;
+            let costoTotal = 0;
+            const hr = [];
+            const anexos = [];
+
+            items.forEach(item => {
+                const costoUnitario = parseInt(item.COSTO) || 0;
+                const costoTOTAL = costoUnitario * item.CANTIDAD;
+                costoTotal += costoTOTAL;
+
+                // Clasificar por bodega y acumular cantidades
+                if (item.BODEGA === 'PRIMERAS') {
+                    cantidadFull += item.CANTIDAD;
+                    // Solo PRIMERAS van al HR
+                    hr.push([
+                        item.COD_COLOR,
+                        item.COLORES,
+                        item.TALLA,
+                        item.CANTIDAD
+                    ]);
+                } 
+                else if (item.BODEGA === 'PROMOCIONES') {
+                    cantidadPromo += item.CANTIDAD;
+                    anexos.push({
+                        DOCUMENTO: item.REFERENCIA,
+                        TALLA: item.TALLA,
+                        COLOR: item.COLORES,
+                        TIPO: 'PROMO',
+                        CANTIDAD: item.CANTIDAD,
+                        COSTO_UNITARIO: costoUnitario,
+                        COSTO_TOTAL: costoTOTAL,
+                        BODEGA: item.BODEGA,
+                        TRASLADO: item.TRASLADO
+                    });
+                }
+                else if (item.BODEGA === 'COBROS') {
+                    cantidadCobros += item.CANTIDAD;
+                    anexos.push({
+                        DOCUMENTO: item.REFERENCIA,
+                        TALLA: item.TALLA,
+                        COLOR: item.COLORES,
+                        TIPO: 'COBRO',
+                        CANTIDAD: item.CANTIDAD,
+                        COSTO_UNITARIO: costoUnitario,
+                        COSTO_TOTAL: costoTOTAL,
+                        BODEGA: item.BODEGA,
+                        TRASLADO: item.TRASLADO
+                    });
+                }
+                else if (item.BODEGA === 'SIN CONFECCIONAR') {
+                    cantidadSinConfeccionar += item.CANTIDAD;
+                    anexos.push({
+                        DOCUMENTO: item.REFERENCIA,
+                        TALLA: item.TALLA,
+                        COLOR: item.COLORES,
+                        TIPO: 'SIN_CONFECCIONAR',
+                        CANTIDAD: item.CANTIDAD,
+                        COSTO_UNITARIO: costoUnitario,
+                        COSTO_TOTAL: costoTOTAL,
+                        BODEGA: item.BODEGA,
+                        TRASLADO: item.TRASLADO
+                    });
+                }
+            });
+
+            // APLICAR LÓGICA CORRECTA
+            const totalRelativo = cantidadFull + cantidadPromo + cantidadCobros; // TODO MENOS SIN CONFECCIONAR
+            const totalGeneral = cantidadFull + cantidadPromo + cantidadCobros + cantidadSinConfeccionar; // SUMA DE TODO
+            const diferencia = cantidad - totalGeneral; // CANTIDAD - TOTAL_GENERAL
+            
+            const costoUnitario = cantidad > 0 ? Math.round(costoTotal / cantidad) : 0;
+
+            // CALCULAR SUMATORIA para DETALLE_CANTIDADES
+            const sumatoria = cantidadFull + cantidadPromo + cantidadCobros + cantidadSinConfeccionar;
+
+            // Obtener referencia histórica
+            const referenciaHistorica = getReferenciaHistorica(primerItem.REFERENCIA);
+            
+            // Obtener marca, clase y descripción
+            const marca = getMarca(primerItem.GENERO);
+            const clase = getClaseByPVP(pvpEdit);
+            const descripcion = getDescripcion(
+                primerItem.PRENDA,
+                primerItem.GENERO,
+                marca,
+                referenciaHistorica
+            );
+
+            const jsonData = {
+                "A": primerItem.OP,
+                "FECHA": primerItem.FECHA,
+                "TALLER": primerItem.TALLER,
+                "LINEA": primerItem.LINEA,
+                "AUDITOR": auditor,
+                "GESTOR": gestor,
+                "ESCANER": primerItem.USUARIO,
+                "LOTE": parseInt(primerItem.OP) || 0,
+                "REFPROV": primerItem.REFERENCIA,
+                "DESCRIPCION_LARGA": primerItem.DESCRIPCION_LARGA,
+                "CANTIDAD": cantidad, // Índice 19 del CSV
+                "TOTAL_RELATIVO": totalRelativo, // TODO MENOS SIN CONFECCIONAR
+                "COSTO_UNITARIO": costoUnitario,
+                "COSTO_TOTAL": costoTotal,
+                "TOTAL_GENERAL": totalGeneral, // SUMA DE TODO
+                "DIFERENCIA": diferencia, // CANTIDAD - TOTAL_GENERAL
+                "AUDITORIA": primerItem.CC,
+                "ORDEN_SERVICIO": `S0${primerItem.OS}`,
+                "TRASLADO": `T000${primerItem.TRASLADO}`,
+                "REFERENCIA": referenciaHistorica,
+                "TIPO": "FULL",
+                "PVP": pvpEdit,
+                "PRENDA": primerItem.PRENDA,
+                "GENERO": primerItem.GENERO,
+                "PROVEEDOR": proveedor,
+                "ANEXOS": anexos,
+                "HR": hr,
+                "BOLSAS": bolsas,
+                "MARCA": marca,
+                "CLASE": clase,
+                "DESCRIPCION": descripcion,
+                "DETALLE_CANTIDADES": {
+                    "SUMATORIA": sumatoria, // SUMA DE TODAS LAS CANTIDADES
+                    "FULL": cantidadFull,
+                    "PROMO": cantidadPromo,
+                    "COBRO": cantidadCobros,
+                    "SIN_CONFECCIONAR": cantidadSinConfeccionar
+                }
+            };
+
+            const jsonPreview = document.getElementById('jsonPreview');
+            const jsonContent = document.getElementById('jsonContent');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            jsonContent.textContent = JSON.stringify(jsonData, null, 2);
+            jsonPreview.style.display = 'block';
+            saveBtn.style.display = 'inline-block';
+            
+            showStatus(`JSON generado para OP: ${primerItem.OP} - SUMATORIA: ${sumatoria}, FULL: ${cantidadFull}, PROMO: ${cantidadPromo}, COBRO: ${cantidadCobros}, SIN_CONFECCIONAR: ${cantidadSinConfeccionar}`, 'success');
+        }
+
+        async function saveToSheets() {
+            const saveBtn = document.getElementById('saveBtn');
+            const jsonContent = document.getElementById('jsonContent');
+            
+            if (!currentOPData || currentOPData.length === 0) {
+                showStatus('No hay datos de OP cargados', 'error');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            showStatus('Guardando en Google Sheets...', 'loading');
+
+            try {
+                const jsonData = JSON.parse(jsonContent.textContent);
+                
+                // Preparar datos para enviar
+                const formData = new URLSearchParams();
+                formData.append('action', 'guardarOP');
+                formData.append('datos', JSON.stringify(jsonData));
+                
+                // Usar XMLHttpRequest para evitar problemas CORS
+                const xhr = new XMLHttpRequest();
+                
+                xhr.open('POST', GAS_URL, true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                showStatus(response.message, 'success');
+                                
+                                // Actualizar el estado de la OP en data2Map para marcarla como confirmada
+                                data2Map.set(jsonData.A, true);
+                                
+                                // Actualizar la visualización si es necesario
+                                const pendientes = processedData.filter(item => item.ESTADO === 'PENDIENTE');
+                                if (pendientes.length === 0) {
+                                    document.getElementById('pendientesSection').style.display = 'none';
+                                } else {
+                                    setupPendientesSection(pendientes);
+                                }
+                                
+                                // Ocultar el formulario actual
+                                document.getElementById('opForm').style.display = 'none';
+                                document.getElementById('selectOP').value = '';
+                                
+                            } else {
+                                showStatus('Error al guardar: ' + response.message, 'error');
+                            }
+                        } catch (e) {
+                            showStatus('Error al procesar respuesta: ' + e.message, 'error');
+                        }
+                    } else {
+                        showStatus('Error HTTP: ' + xhr.status, 'error');
+                    }
+                    saveBtn.disabled = false;
+                };
+                
+                xhr.onerror = function() {
+                    showStatus('Error de conexión con Google Apps Script', 'error');
+                    saveBtn.disabled = false;
+                };
+                
+                xhr.send(formData);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error: ' + error.message, 'error');
+                saveBtn.disabled = false;
+            }
+        }
+
+        function normalizeBodega(bodegaCode) {
+            return bodegasMap[bodegaCode] || bodegaCode.toUpperCase();
+        }
+
+        function normalizeText(text) {
+            if (!text) return '';
+            return text
+                .replace(/�/g, 'Ñ')
+                .replace(/Ã‘/g, 'Ñ')
+                .replace(/Ã±/g, 'ñ')
+                .replace(/Ã/g, 'Ó')
+                .replace(/Ã³/g, 'ó')
+                .replace(/Ã/g, 'Í')
+                .replace(/Ã­/g, 'í')
+                .replace(/Ã©/g, 'é')
+                .replace(/Ã¡/g, 'á')
+                .replace(/Ãº/g, 'ú')
+                .replace(/Ã/g, 'Ú');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            return dateString.split(' ')[0];
+        }
+
+        function formatCosto(costo) {
+            return Math.floor(costo).toString();
+        }
+
+        function parseCSV(csvContent) {
+            const rows = [];
+            const lines = csvContent.split('\n');
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                const columns = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ';' && !inQuotes) {
+                        columns.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                columns.push(current.trim());
+                rows.push(columns);
+            }
+            
+            return rows;
+        }
+
+        function exportToCSV() {
+            if (processedData.length === 0) {
+                showStatus('No hay datos para exportar', 'error');
+                return;
+            }
+
+            const headers = [
+                'REFERENCIA', 'USUARIO', 'OP', 'TIPO', 'FECHA', 'TRASLADO', 
+                'CANTIDAD', 'COSTO', 'TOTAL', 'PVP', 'TALLA', 'COLORES', 'COD_COLOR', 'OS', 'BODEGA', 
+                'TALLER', 'DESCRIPCION_LARGA', 'PRENDA', 'LINEA', 'GENERO', 'CC', 'ESTADO', 'MARCA', 'CLASE', 'DESCRIPCION'
+            ];
+
+            let csvContent = '\uFEFF' + headers.join(';') + '\n';
+            
+            processedData.forEach(item => {
+                const row = headers.map(header => {
+                    let value = item[header];
+                    if (typeof value === 'string' && (value.includes(';') || value.includes('"') || value.includes('\n') || value.includes('\r'))) {
+                        value = '"' + value.replace(/"/g, '""') + '"';
+                    }
+                    return value;
+                }).join(';');
+                csvContent += row + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'datos_procesados.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showStatus('Archivo exportado correctamente', 'success');
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('csvFile');
+            
+            fileInput.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.style.borderColor = '#007bff';
+            });
+            
+            fileInput.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.style.borderColor = '#ccc';
+            });
+            
+            fileInput.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInput.style.borderColor = '#ccc';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                }
+            });
+        });
     </script>
 </body>
 </html>
