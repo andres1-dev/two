@@ -782,6 +782,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         // Configuración de la API de Google Sheets
         const SHEET_ID = '133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI';
@@ -858,15 +859,15 @@
             ).reverse();
 
             // Función para crear el gráfico
-            window.createChart = function () {
-                const ctx = document.getElementById('complianceChart').getContext('2d');
+            window.createChart = function (canvasId = 'complianceChart') {
+                const ctx = document.getElementById(canvasId).getContext('2d');
 
-                // Destruir gráfico existente si existe
-                if (complianceChart) {
+                // Si es el gráfico principal y ya existe, destruirlo
+                if (canvasId === 'complianceChart' && complianceChart) {
                     complianceChart.destroy();
                 }
 
-                // Determinar qué datasets mostrar
+                // Determinar qué datasets mostrar (basado en los toggles originales)
                 const datasets = [];
 
                 // Ingresos
@@ -939,7 +940,7 @@
                 }
 
                 // Crear gráfico
-                complianceChart = new Chart(ctx, {
+                const newChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: fechas,
@@ -948,6 +949,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: false, // Desactivar animación para capturas
                         scales: {
                             y: {
                                 beginAtZero: true,
@@ -980,6 +982,12 @@
                         }
                     }
                 });
+
+                if (canvasId === 'complianceChart') {
+                    complianceChart = newChart;
+                }
+
+                return newChart;
             }
 
             // Inicializar gráfico
@@ -1025,11 +1033,11 @@
                 const cumplimientoIng = item.meta > 0 ? ((item.ingresos / item.meta) * 100).toFixed(1) : 0;
 
                 row.innerHTML = `
-                    <td>${fechaFormateada}</td>
-                    <td>${item.ingresos.toLocaleString()}</td>
-                    <td>${item.meta.toLocaleString()}</td>
-                    <td>${cumplimientoIng}%</td>
-                `;
+        <td>${fechaFormateada}</td>
+        <td>${item.ingresos.toLocaleString()}</td>
+        <td>${item.meta.toLocaleString()}</td>
+        <td>${cumplimientoIng}%</td>
+        `;
 
                 ingresosDetailsBody.appendChild(row);
             });
@@ -1055,11 +1063,11 @@
                     (item.meta > 0 ? ((item.despachos / item.meta) * 100).toFixed(1) + '%' : '0%');
 
                 row.innerHTML = `
-                    <td>${fechaFormateada}</td>
-                    <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${item.despachos === 0 ? 'No laboral' : item.despachos.toLocaleString()}</td>
-                    <td>${item.meta.toLocaleString()}</td>
-                    <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${cumplimientoDes}</td>
-                `;
+        <td>${fechaFormateada}</td>
+        <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${item.despachos === 0 ? 'No laboral' : item.despachos.toLocaleString()}</td>
+        <td>${item.meta.toLocaleString()}</td>
+        <td class="${item.despachos === 0 ? 'no-despacho' : ''}">${cumplimientoDes}</td>
+        `;
 
                 despachosDetailsBody.appendChild(row);
             });
@@ -1116,6 +1124,101 @@
                 configPanel.classList.remove('active');
             }
         });
+
+        // Lógica de captura de pantalla
+        document.querySelector('a[aria-label="WhatsApp"]').addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const password = prompt("Ingrese la contraseña para descargar el reporte:");
+            if (password === "1234") { // Contraseña simple
+                captureScreenshot();
+            } else if (password !== null) {
+                alert("Contraseña incorrecta");
+            }
+        });
+
+        function captureScreenshot() {
+            // Crear un contenedor clonado para la captura
+            const originalContainer = document.querySelector('.container');
+            const clone = originalContainer.cloneNode(true);
+
+            // Configurar el clon para simular vista de escritorio
+            clone.style.width = '1200px';
+            clone.style.position = 'absolute';
+            clone.style.top = '-9999px';
+            clone.style.left = '0';
+            clone.style.zIndex = '-1';
+            clone.style.background = '#fff';
+            clone.style.transform = 'none'; // Resetear transformaciones
+
+            // Asegurar que el gráfico se renderice en el clon
+            // Chart.js usa canvas, que no se clona con su contenido dibujado automáticamente
+            // Necesitamos recrear el gráfico en el clon
+            const originalCanvas = document.getElementById('complianceChart');
+            const cloneCanvas = clone.querySelector('#complianceChart');
+
+            // Ajustar altura del contenedor del gráfico en el clon
+            const cloneChartContainer = clone.querySelector('.chart-container');
+            cloneChartContainer.style.height = '400px';
+
+            // Ocultar el footer en la captura
+            const cloneFooter = clone.querySelector('footer');
+            if (cloneFooter) {
+                cloneFooter.style.display = 'none';
+            }
+
+            // Corregir espaciado del título h1
+            const cloneH1 = clone.querySelector('h1');
+            if (cloneH1) {
+                cloneH1.style.marginBottom = '30px';
+                cloneH1.style.lineHeight = '1.5';
+            }
+
+            // Corregir espaciado de main-label
+            const cloneMainLabels = clone.querySelectorAll('.main-label');
+            cloneMainLabels.forEach(label => {
+                label.style.marginTop = '10px';
+                label.style.display = 'block';
+            });
+
+            document.body.appendChild(clone);
+
+            // Recrear el gráfico en el canvas clonado
+            // Necesitamos una pequeña espera para que el DOM se actualice
+            setTimeout(() => {
+                // Usar la función createChart expuesta globalmente, pasando el ID del nuevo canvas
+                // Pero como clonamos con el mismo ID, necesitamos cambiarlo en el clon
+                cloneCanvas.id = 'complianceChartClone';
+                window.createChart('complianceChartClone');
+
+                // Esperar a que el gráfico se renderice
+                setTimeout(() => {
+                    html2canvas(clone, {
+                        scale: 2, // Mejor calidad
+                        width: 1200,
+                        windowWidth: 1200,
+                        useCORS: true,
+                        logging: false
+                    }).then(canvas => {
+                        // Crear enlace de descarga
+                        const link = document.createElement('a');
+                        link.download = `Reporte_Ingresos_vs_Despachos_${new Date().toISOString().split('T')[0]}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+
+                        // Limpiar
+                        document.body.removeChild(clone);
+
+                        // Redirigir a WhatsApp después de la descarga (opcional, según flujo original)
+                        // window.open(this.href, '_blank'); 
+                    }).catch(err => {
+                        console.error('Error capturando pantalla:', err);
+                        alert('Error al generar la imagen');
+                        document.body.removeChild(clone);
+                    });
+                }, 500);
+            }, 100);
+        }
 
         // Iniciar la carga de datos
         fetchData();
