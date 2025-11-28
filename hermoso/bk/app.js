@@ -292,104 +292,19 @@ function getNotificationIcon(type) {
     return icons[type] || 'info';
 }
 
-function showQuickConfirm(title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'warning', tableData = null) {
+function showQuickConfirm(title, message, confirmText = 'Confirmar', cancelText = 'Cancelar') {
     return new Promise((resolve) => {
-        const iconConfig = {
-            'warning': {
-                icon: 'codicon-warning',
-                color: 'var(--warning)'
-            },
-            'error': {
-                icon: 'codicon-error',
-                color: 'var(--error)'
-            },
-            'info': {
-                icon: 'codicon-info',
-                color: 'var(--info)'
-            },
-            'success': {
-                icon: 'codicon-check',
-                color: 'var(--success)'
-            }
-        };
-
-        const config = iconConfig[type] || iconConfig.warning;
-
-        // Construir la tabla si hay datos
-        let tableHTML = '';
-        if (tableData) {
-            tableHTML = `
-                <div style="margin: 16px 0; border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: 'Segoe UI', sans-serif;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--border);">
-                                <th style="text-align: center; padding: 8px 12px; color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tipo de Bodega</th>
-                                <th style="text-align: center; padding: 8px 12px; color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Unidades</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${tableData.map(row => `
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="text-align: center; padding: 10px 12px; color: var(--text); font-weight: 500;">${row.label}</td>
-                                    <td style="text-align: center; padding: 10px 12px; color: var(--text); font-weight: 600;">${row.value}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                        <tfoot>
-                            <tr style="border-top: 2px solid var(--border);">
-                                <td style="text-align: center; padding: 12px; color: var(--text); font-weight: 700; font-size: 13px;">TOTAL GENERAL</td>
-                                <td style="text-align: center; padding: 12px; color: var(--text); font-weight: 700; font-size: 14px;">${tableData.reduce((sum, row) => sum + row.value, 0)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            `;
-        }
-
-        const modal = createModal('', `
-            <div style="padding: 24px; text-align: center;">
-                <div class="alert-icon" style="margin: 0 auto 20px;">
-                    <i class="codicon ${config.icon} alert-modal-icon" style="color: ${config.color};"></i>
-                </div>
-                <h3 style="margin: 0 0 16px 0; color: var(--text); font-size: 20px; font-weight: 600; line-height: 1.3;">${title}</h3>
-                <p style="margin: 0 0 20px 0; color: var(--text-secondary); line-height: 1.5; font-size: 14px;">${message}</p>
-                ${tableHTML}
-                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
-                    <button class="btn-secondary" onclick="closeQuickModal(false)" style="min-width: 100px; padding: 10px 20px;">${cancelText}</button>
-                    <button class="btn-primary" onclick="closeQuickModal(true)" style="min-width: 120px; padding: 10px 20px; background-color: ${config.color}; border-color: ${config.color};">
-                        <i class="codicon codicon-check"></i>
-                        ${confirmText}
-                    </button>
+        const modal = createModal(title, `
+            <div style="padding: 16px 0;">
+                <p style="margin: 0 0 16px 0; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeQuickModal(false)">${cancelText}</button>
+                    <button class="btn-primary" onclick="closeQuickModal(true)">${confirmText}</button>
                 </div>
             </div>
         `, false);
         
-        modal.style.display = 'flex';
-        modal.alignItems = 'center';
-        modal.justifyContent = 'center';
-        
-        const modalContent = modal.querySelector('.modal-content');
-        modalContent.style.maxWidth = '480px';
-        modalContent.style.borderRadius = '12px';
-        modalContent.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.3)';
-        
-        // Agregar el CSS específico para el icono de la alerta
-        const style = document.createElement('style');
-        style.textContent = `
-            .alert-modal-icon {
-                font-size: 40px !important;
-                width: 40px !important;
-                height: 40px !important;
-                line-height: 40px !important;
-            }
-        `;
-        document.head.appendChild(style);
-        
         window.closeQuickModal = function(result) {
-            // Remover el estilo cuando se cierre el modal
-            if (style && style.parentNode) {
-                style.remove();
-            }
             if (modal && modal.parentNode) {
                 modal.remove();
             }
@@ -857,7 +772,6 @@ function parseCSV(csvContent) {
     return rows;
 }
 
-// CSV Processing - Modificar la función processCSVData
 async function processCSVData(rows) {
     const prDataMap = new Map();
     
@@ -880,7 +794,6 @@ async function processCSVData(rows) {
     });
 
     processedData = [];
-    const opErrors = new Map(); // Para trackear errores por OP
     
     // Second pass: process TR data
     rows.forEach(row => {
@@ -890,42 +803,20 @@ async function processCSVData(rows) {
             const tipo = row[3] || '';
             
             if (escanersMap[usuario] && bodega !== 'PR' && tipo === 'TR') {
-                const op = row[2] || '';
-                const codColorOriginal = row[12] || '';
-                
-                // Validar existencia de datos críticos
-                const errors = [];
-                
-                // Validar OP en sisproMap
-                if (!sisproMap.has(op.trim())) {
-                    errors.push(`OP ${op} no encontrada en SISPROWEB`);
-                }
-                
-                // Validar color en coloresMap
-                if (codColorOriginal && !coloresMap.has(codColorOriginal.trim())) {
-                    errors.push(`Color ${codColorOriginal} no encontrado en COLORES`);
-                }
-                
-                // Si hay errores, agregar al mapa y saltar esta OP
-                if (errors.length > 0) {
-                    if (!opErrors.has(op)) {
-                        opErrors.set(op, errors);
-                    }
-                    return; // Saltar este registro
-                }
-                
                 const key = `${row[2]}|${row[11]}|${row[12]}`;
                 const prData = prDataMap.get(key);
-                const sisproInfo = getSisproData(op);
+                const sisproInfo = getSisproData(row[2] || '');
                 
                 let costo = 0;
                 if (bodega !== 'ZY' && prData) {
                     costo = prData.COSTO;
                 }
                 
+                const op = row[2] || '';
                 const referencia = row[0] || '';
                 const estado = validarEstado(op);
                 const pvp = getPvp(referencia);
+                const codColorOriginal = row[12] || '';
                 const marca = getMarca(sisproInfo.GENERO);
                 const clase = getClaseByPVP(pvp);
                 const descripcion = getDescripcion(
@@ -966,18 +857,6 @@ async function processCSVData(rows) {
             }
         }
     });
-
-    // Mostrar notificaciones de errores
-    if (opErrors.size > 0) {
-        let errorMessage = `Se encontraron ${opErrors.size} OPs con errores:`;
-        
-        opErrors.forEach((errors, op) => {
-            errorMessage += `\n• OP ${op}: ${errors.join(', ')}`;
-        });
-        
-        showMessage(errorMessage, 'error', 5000);
-        updateStatus(`${opErrors.size} OPs deshabilitadas por datos faltantes`, 'warning');
-    }
 
     if (processedData.length === 0) {
         throw new Error('No se encontraron datos válidos para los usuarios especificados con tipo TR');
@@ -1062,8 +941,7 @@ function displayResultsSummary(data) {
     `;
 }
 
-
-// Pending OPs Management - Solo ✓ y ✗ con diferencia con signo
+// Pending OPs Management
 function setupPendientesSection(pendientes) {
     const selectOP = document.getElementById('selectOP');
     selectOP.innerHTML = '<option value="">Seleccione una OP...</option>';
@@ -1075,9 +953,7 @@ function setupPendientesSection(pendientes) {
                 referencia: item.REFERENCIA,
                 prenda: item.PRENDA,
                 usuario: item.USUARIO,
-                fecha: item.FECHA,
                 cantidad: 0,
-                total: parseInt(item.TOTAL) || 0,
                 items: []
             };
         }
@@ -1087,42 +963,9 @@ function setupPendientesSection(pendientes) {
 
     Object.keys(opGroups).forEach(op => {
         const grupo = opGroups[op];
-        
-        // Calcular la diferencia
-        const diferencia = grupo.total - grupo.cantidad;
-        
         const option = document.createElement('option');
         option.value = op;
-        
-        // Verificar si la OP tiene todos los datos necesarios
-        const primerItem = grupo.items[0];
-        const tieneSispro = sisproMap.has(op.trim());
-        const tieneColor = !primerItem.COD_COLOR || coloresMap.has(primerItem.COD_COLOR.trim());
-        
-        // Determinar el icono - Solo ✓ para completas, sin icono para las demás
-        let estadoIcono = '';
-        
-        if (diferencia === 0) {
-            estadoIcono = '✓ '; // Solo las completas llevan ✓
-        }
-        // Las demás no llevan icono
-        
-        if (!tieneSispro || !tieneColor) {
-            option.disabled = true;
-            option.textContent = `✗ OP: ${op} - DESHABILITADA - Datos incompletos`;
-            option.style.color = '#f44747'; // Rojo para deshabilitadas
-            option.style.fontStyle = 'italic';
-        } else {
-            // Mostrar diferencia con signo (+ para exceso, - para faltante)
-            const diferenciaTexto = diferencia !== 0 ? ` ${diferencia > 0 ? '-' : '+'}${Math.abs(diferencia)}` : '';
-            
-            option.textContent = `${estadoIcono}OP: ${op} | FECHA: ${grupo.fecha} | REFPROV: ${grupo.referencia} | ${grupo.prenda} | USUARIO: ${grupo.usuario} | PROGRESO: ${grupo.cantidad}/${grupo.total}${diferenciaTexto}`;
-            
-            // Color normal del tema
-            option.style.color = '';
-            option.style.fontWeight = 'normal';
-        }
-        
+        option.textContent = `OP: ${op} - Ref: ${grupo.referencia} - ${grupo.prenda} - Usuario: ${grupo.usuario} - Cant: ${grupo.cantidad}`;
         option.dataset.items = JSON.stringify(grupo.items);
         selectOP.appendChild(option);
     });
@@ -1378,6 +1221,7 @@ function generateJSONForOP() {
 
 
 // Save to Google Sheets
+// Save to Google Sheets
 async function saveToSheets() {
     const saveBtn = document.getElementById('saveBtn');
     const saveBtnToolbar = document.getElementById('saveBtnToolbar');
@@ -1389,51 +1233,14 @@ async function saveToSheets() {
         return;
     }
 
-    // Obtener los datos JSON para verificar la diferencia
-    let jsonData;
-    try {
-        jsonData = JSON.parse(jsonContent.textContent);
-    } catch (e) {
-        showMessage('Error al leer los datos JSON', 'error', 2000);
-        return;
-    }
-
-    // Verificar si hay diferencia (unidades faltantes)
-    const diferencia = jsonData.DIFERENCIA || 0;
-
-    // Preparar datos para la tabla
-    const tableData = [
-        { label: 'Primeras (DI)', value: jsonData.DETALLE_CANTIDADES?.FULL || 0 },
-        { label: 'Promociones (ZZ)', value: jsonData.DETALLE_CANTIDADES?.PROMO || 0 },
-        { label: 'Cobros (BP)', value: jsonData.DETALLE_CANTIDADES?.COBRO || 0 },
-        { label: 'Sin Confeccionar (ZY)', value: jsonData.DETALLE_CANTIDADES?.SIN_CONFECCIONAR || 0 }
-    ];
-
-    if (diferencia > 0) {
-        // Si hay diferencia, mostrar alerta de advertencia
-        const confirmed = await showQuickConfirm(
-            'Unidades Faltantes',
-            `Hay <strong>${diferencia} unidades faltantes</strong> en esta orden de producción.<br><br>Detalle de unidades procesadas:`,
-            'Sí, Guardar',
-            'Cancelar',
-            'warning',
-            tableData
-        );
-        
-        if (!confirmed) return;
-    } else {
-        // Si NO hay diferencia, mostrar alerta de éxito pero igual preguntar
-        const confirmed = await showQuickConfirm(
-            'Confirmar Guardado',
-            `La orden de producción está <strong>completa</strong> (sin unidades faltantes).<br><br>Detalle de unidades:`,
-            'Sí, Guardar',
-            'Cancelar', 
-            'success',
-            tableData
-        );
-        
-        if (!confirmed) return;
-    }
+    const confirmed = await showQuickConfirm(
+        'Guardar Orden de Producción', 
+        '¿Estás seguro de que deseas guardar esta OP en Google Sheets?',
+        'Sí, Guardar',
+        'Cancelar'
+    );
+    
+    if (!confirmed) return;
 
     const loading = showQuickLoading('Guardando en Google Sheets...');
     saveBtn.disabled = true;
@@ -1443,6 +1250,8 @@ async function saveToSheets() {
     saveBtnToolbar.title = "Guardando...";
 
     try {
+        const jsonData = JSON.parse(jsonContent.textContent);
+        
         // Prepare data to send
         const formData = new URLSearchParams();
         formData.append('action', 'guardarOP');
@@ -1461,12 +1270,7 @@ async function saveToSheets() {
                 try {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
-                        // Mensaje diferente según si hubo diferencia o no
-                        if (diferencia > 0) {
-                            showMessage(`OP ${jsonData.A} guardada con ${diferencia} unidades faltantes`, 'warning', 3000);
-                        } else {
-                            showMessage(`OP ${jsonData.A} guardada correctamente (completa)`, 'success', 2000);
-                        }
+                        showMessage(`OP ${jsonData.A} guardada correctamente`, 'success', 2000);
                         
                         // Recargar datos desde Google Sheets
                         const reloadLoading = showQuickLoading('Recargando datos desde Google Sheets...');
@@ -1492,6 +1296,7 @@ async function saveToSheets() {
                         // Limpiar formulario y resetear para nueva OP
                         document.getElementById('opForm').style.display = 'none';
                         document.getElementById('selectOP').value = '';
+                        /*document.getElementById('proveedor').value = '';*/
                         document.getElementById('auditor').value = '';
                         document.getElementById('gestor').value = '';
                         document.getElementById('bolsas').value = '0';
@@ -1502,11 +1307,7 @@ async function saveToSheets() {
                         // Limpiar JSON editor
                         document.getElementById('jsonContent').textContent = '{\n  "mensaje": "Genera un JSON desde la pestaña de OPs Pendientes"\n}';
                         
-                        if (diferencia > 0) {
-                            updateStatus(`OP ${jsonData.A} guardada con ${diferencia} unidades faltantes. Datos recargados.`, 'warning');
-                        } else {
-                            updateStatus(`OP ${jsonData.A} guardada exitosamente. Datos recargados y CSV reprocesado.`, 'success');
-                        }
+                        updateStatus(`OP ${jsonData.A} guardada exitosamente. Datos recargados y CSV reprocesado.`, 'success');
                         
                     } else {
                         showMessage('Error al guardar: ' + response.message, 'error', 3000);
