@@ -61,11 +61,16 @@ function setupEventListeners() {
     const fileInput = document.getElementById('csvFile');
     const uploadBox = document.getElementById('uploadBox');
     
-    fileInput.addEventListener('change', function(e) {
+    fileInput.addEventListener('change', async function(e) {
         if (e.target.files.length > 0) {
             const fileName = e.target.files[0].name;
             updateStatus(`Archivo seleccionado: ${fileName}`, 'success');
-            showMessage(`Archivo "${fileName}" listo para procesar`, 'success', 2000);
+            showMessage(`Archivo "${fileName}" cargado. Procesando automáticamente...`, 'success', 2000);
+            
+            // Procesar automáticamente después de un breve delay
+            setTimeout(() => {
+                processCSV();
+            }, 500);
         }
     });
     
@@ -90,7 +95,12 @@ function setupEventListeners() {
             fileInput.files = e.dataTransfer.files;
             const fileName = e.dataTransfer.files[0].name;
             updateStatus(`Archivo listo: ${fileName}`, 'success');
-            showMessage(`Archivo "${fileName}" cargado por drag & drop`, 'success', 2000);
+            showMessage(`Archivo "${fileName}" cargado. Procesando automáticamente...`, 'success', 2000);
+            
+            // Procesar automáticamente después de un breve delay
+            setTimeout(() => {
+                processCSV();
+            }, 500);
         }
     });
 
@@ -432,7 +442,7 @@ async function loadDataFromSheets() {
     try {
         await Promise.all([
             loadColoresData(),
-            loadData2Data(),
+            loadData2Data(),  // Esta es la hoja importante que tiene las OPs
             loadPreciosData(),
             loadSisproData(),
             loadHistoricasData()
@@ -440,7 +450,11 @@ async function loadDataFromSheets() {
 
         updateDataStats();
         updateStatus('Datos cargados correctamente', 'success');
-        showMessage(`Sistema listo - ${coloresMap.size} colores, ${data2Map.size} OPs, ${preciosMap.size} precios cargados`, 'success', 2000);
+        
+        // Solo mostrar mensaje completo si es la carga inicial
+        if (!loading._isReload) {
+            showMessage(`Sistema listo - ${coloresMap.size} colores, ${data2Map.size} OPs, ${preciosMap.size} precios cargados`, 'success', 2000);
+        }
 
     } catch (error) {
         console.error('Error cargando datos:', error);
@@ -686,7 +700,14 @@ async function processCSV() {
             }
 
             await processCSVData(rows);
-            showMessage(`Procesamiento completado - ${processedData.length} registros procesados`, 'success', 2000);
+            
+            // Verificar si es un reprocesamiento después de guardar
+            const isReprocess = loading._isReprocess;
+            if (isReprocess) {
+                showMessage(`CSV reprocesado - ${processedData.length} registros actualizados`, 'success', 2000);
+            } else {
+                showMessage(`Procesamiento completado - ${processedData.length} registros procesados`, 'success', 2000);
+            }
 
         } catch (error) {
             console.error('Error procesando CSV:', error);
@@ -1122,6 +1143,13 @@ function generateJSONForOP() {
         referenciaHistorica
     );
 
+    // Convertir valores numéricos
+    const auditoriaNum = parseInt(primerItem.CC) || 0;
+    const osNum = parseInt(primerItem.OS) || 0;
+    const trasladoNum = parseInt(primerItem.TRASLADO) || 0;
+    const pvpNum = parseInt(pvpEdit.replace(/\./g, '')) || 0;
+    const loteNum = parseInt(primerItem.OP) || 0;
+
     const jsonData = {
         "A": primerItem.OP,
         "FECHA": primerItem.FECHA,
@@ -1130,8 +1158,9 @@ function generateJSONForOP() {
         "AUDITOR": auditor,
         "GESTOR": gestor,
         "ESCANER": primerItem.USUARIO,
-        "LOTE": parseInt(primerItem.OP) || 0,
+        "LOTE": loteNum,
         "REFPROV": primerItem.REFERENCIA,
+        "DESCRIPCION": descripcion,
         "DESCRIPCION_LARGA": primerItem.DESCRIPCION_LARGA,
         "CANTIDAD": cantidad,
         "TOTAL_RELATIVO": totalRelativo,
@@ -1139,23 +1168,24 @@ function generateJSONForOP() {
         "COSTO_TOTAL": costoTotal,
         "TOTAL_GENERAL": totalGeneral,
         "DIFERENCIA": diferencia,
-        "AUDITORIA": primerItem.CC,
-        "ORDEN_SERVICIO": `S0${primerItem.OS}`,
-        "TRASLADO": `T000${primerItem.TRASLADO}`,
+        "AUDITORIA": auditoriaNum,
+        /*"ORDEN_SERVICIO": `S0${osNum}`,
+        "TRASLADO": `T000${trasladoNum}`,*/
+        "ORDEN_SERVICIO": osNum,
+        "TRASLADO": trasladoNum,
         "REFERENCIA": referenciaHistorica,
         "TIPO": "FULL",
-        "PVP": pvpEdit,
+        "PVP": pvpNum,
+        "CLASE": clase,
         "PRENDA": primerItem.PRENDA,
         "GENERO": primerItem.GENERO,
+        "MARCA": marca,
         "PROVEEDOR": proveedor,
+        "BOLSAS": bolsas,
         "ANEXOS": anexos,
         "HR": hr,
-        "BOLSAS": bolsas,
-        "MARCA": marca,
-        "CLASE": clase,
-        "DESCRIPCION": descripcion,
         "DETALLE_CANTIDADES": {
-            "SUMATORIA": sumatoria,
+            "TOTAL": sumatoria,
             "FULL": cantidadFull,
             "PROMO": cantidadPromo,
             "COBRO": cantidadCobros,
@@ -1165,9 +1195,11 @@ function generateJSONForOP() {
 
     const jsonContent = document.getElementById('jsonContent');
     const saveBtn = document.getElementById('saveBtn');
+    const saveBtnToolbar = document.getElementById('saveBtnToolbar');
     
     jsonContent.textContent = JSON.stringify(jsonData, null, 2);
-    saveBtn.style.display = 'inline-block';
+    saveBtn.style.display = 'inline-flex';
+    saveBtnToolbar.style.display = 'flex';
     
     // Switch to JSON editor tab
     document.querySelector('[data-tab="json-editor"]').click();
@@ -1175,10 +1207,14 @@ function generateJSONForOP() {
     showMessage(`JSON generado exitosamente para OP: ${primerItem.OP}`, 'success', 2000);
 }
 
+
+// Save to Google Sheets
 // Save to Google Sheets
 async function saveToSheets() {
     const saveBtn = document.getElementById('saveBtn');
+    const saveBtnToolbar = document.getElementById('saveBtnToolbar');
     const jsonContent = document.getElementById('jsonContent');
+    const fileInput = document.getElementById('csvFile');
     
     if (!currentOPData || currentOPData.length === 0) {
         showMessage('No hay datos de OP cargados', 'error', 2000);
@@ -1197,6 +1233,9 @@ async function saveToSheets() {
     const loading = showQuickLoading('Guardando en Google Sheets...');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+    saveBtnToolbar.disabled = true;
+    saveBtnToolbar.innerHTML = '<span class="loading-spinner"></span>';
+    saveBtnToolbar.title = "Guardando...";
 
     try {
         const jsonData = JSON.parse(jsonContent.textContent);
@@ -1212,7 +1251,7 @@ async function saveToSheets() {
         xhr.open('POST', GAS_URL, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         
-        xhr.onload = function() {
+        xhr.onload = async function() {
             loading.close();
             
             if (xhr.status === 200) {
@@ -1221,23 +1260,42 @@ async function saveToSheets() {
                     if (response.success) {
                         showMessage(`OP ${jsonData.A} guardada correctamente`, 'success', 2000);
                         
-                        // Update OP status in data2Map to mark as confirmed
-                        data2Map.set(jsonData.A, true);
-                        
-                        // Update visualization if necessary
-                        const pendientes = processedData.filter(item => item.ESTADO === 'PENDIENTE');
-                        if (pendientes.length === 0) {
-                            document.getElementById('pendientesSection').style.display = 'none';
-                        } else {
-                            setupPendientesSection(pendientes);
+                        // Recargar datos desde Google Sheets
+                        const reloadLoading = showQuickLoading('Recargando datos desde Google Sheets...');
+                        try {
+                            await loadDataFromSheets();
+                            
+                            // Si hay archivo CSV cargado, reprocesar automáticamente
+                            if (fileInput.files.length > 0) {
+                                updateStatus('Reprocesando CSV con datos actualizados...', 'loading');
+                                setTimeout(() => {
+                                    processCSV();
+                                }, 1000);
+                            }
+                            
+                            reloadLoading.close();
+                            
+                        } catch (reloadError) {
+                            reloadLoading.close();
+                            console.error('Error recargando datos:', reloadError);
+                            showMessage('OP guardada pero error al recargar datos', 'warning', 3000);
                         }
                         
-                        // Hide current form and reset
+                        // Limpiar formulario y resetear para nueva OP
                         document.getElementById('opForm').style.display = 'none';
                         document.getElementById('selectOP').value = '';
-                        document.getElementById('saveBtn').style.display = 'none';
+                        document.getElementById('proveedor').value = '';
+                        document.getElementById('auditor').value = '';
+                        document.getElementById('gestor').value = '';
+                        document.getElementById('bolsas').value = '0';
+                        document.getElementById('pvpEdit').value = '';
                         
-                        updateStatus(`OP ${jsonData.A} guardada exitosamente`, 'success');
+                        saveBtn.style.display = 'none';
+                        
+                        // Limpiar JSON editor
+                        document.getElementById('jsonContent').textContent = '{\n  "mensaje": "Genera un JSON desde la pestaña de OPs Pendientes"\n}';
+                        
+                        updateStatus(`OP ${jsonData.A} guardada exitosamente. Datos recargados y CSV reprocesado.`, 'success');
                         
                     } else {
                         showMessage('Error al guardar: ' + response.message, 'error', 3000);
@@ -1250,6 +1308,9 @@ async function saveToSheets() {
             }
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="codicon codicon-save"></i> Guardar en Sheets';
+            saveBtnToolbar.disabled = false;
+            saveBtnToolbar.innerHTML = '<i class="codicon codicon-cloud-upload"></i>';
+            saveBtnToolbar.title = "Guardar en Google Sheets";
         };
         
         xhr.onerror = function() {
@@ -1257,6 +1318,9 @@ async function saveToSheets() {
             showMessage('Error de conexión con Google Apps Script', 'error', 3000);
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="codicon codicon-save"></i> Guardar en Sheets';
+            saveBtnToolbar.disabled = false;
+            saveBtnToolbar.innerHTML = '<i class="codicon codicon-cloud-upload"></i>';
+            saveBtnToolbar.title = "Guardar en Google Sheets";
         };
         
         xhr.send(formData);
@@ -1267,6 +1331,9 @@ async function saveToSheets() {
         showMessage('Error: ' + error.message, 'error', 3000);
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i class="codicon codicon-save"></i> Guardar en Sheets';
+        saveBtnToolbar.disabled = false;
+        saveBtnToolbar.innerHTML = '<i class="codicon codicon-cloud-upload"></i>';
+        saveBtnToolbar.title = "Guardar en Google Sheets";
     }
 }
 

@@ -311,6 +311,14 @@ body {
     margin-bottom: 32px;
 }
 
+.json-editor-container .btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .upload-box {
     border: 2px dashed var(--border);
     border-radius: 8px;
@@ -328,11 +336,25 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.upload-box i {
-    font-size: 56px;
-    /*color: var(--primary);*/
-    margin-bottom: 20px;
-    opacity: 0.8;
+/* Estilos para OPs con problemas */
+select option:disabled {
+    color: var(--error) !important;
+    background-color: rgba(244, 71, 71, 0.1) !important;
+    font-style: italic;
+}
+
+select option:disabled::after {
+    content: " (Datos incompletos)";
+    color: var(--error);
+}
+
+/* Mejora visual para el preview con problemas */
+.op-details .detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-value[style*="color: var(--error)"] {
+    line-height: 1.3;
 }
 
 .upload-box h4 {
@@ -563,7 +585,12 @@ body {
     background-color: var(--sidebar);
     border-bottom: 1px solid var(--border);
     display: flex;
+    align-items: center;
     gap: 8px;
+}
+
+.editor-toolbar .btn-icon {
+    transition: all 0.2s ease;
 }
 
 .json-editor {
