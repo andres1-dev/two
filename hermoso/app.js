@@ -857,7 +857,7 @@ function parseCSV(csvContent) {
     return rows;
 }
 
-// CSV Processing - Modificar la función processCSVData
+// Reemplaza la función processCSVData actual con esta versión corregida
 async function processCSVData(rows) {
     const prDataMap = new Map();
     
@@ -879,10 +879,11 @@ async function processCSVData(rows) {
         }
     });
 
-    processedData = [];
-    const opErrors = new Map(); // Para trackear errores por OP
-    
-    // Second pass: process TR data
+    // Map temporal para agrupar registros duplicados
+    const groupedDataMap = new Map();
+    const opErrors = new Map();
+
+    // Second pass: process TR data and group duplicates
     rows.forEach(row => {
         if (row.length >= 38) {
             const usuario = row[1] || '';
@@ -892,27 +893,29 @@ async function processCSVData(rows) {
             if (escanersMap[usuario] && bodega !== 'PR' && tipo === 'TR') {
                 const op = row[2] || '';
                 const codColorOriginal = row[12] || '';
+                const talla = row[11] || '';
+                const referencia = row[0] || '';
                 
                 // Validar existencia de datos críticos
                 const errors = [];
                 
-                // Validar OP en sisproMap
                 if (!sisproMap.has(op.trim())) {
                     errors.push(`OP ${op} no encontrada en SISPROWEB`);
                 }
                 
-                // Validar color en coloresMap
                 if (codColorOriginal && !coloresMap.has(codColorOriginal.trim())) {
                     errors.push(`Color ${codColorOriginal} no encontrado en COLORES`);
                 }
                 
-                // Si hay errores, agregar al mapa y saltar esta OP
                 if (errors.length > 0) {
                     if (!opErrors.has(op)) {
                         opErrors.set(op, errors);
                     }
-                    return; // Saltar este registro
+                    return;
                 }
+                
+                // Crear clave única para agrupar: OP + Referencia + Talla + Color + Bodega
+                const groupKey = `${op}|${referencia}|${talla}|${codColorOriginal}|${bodega}`;
                 
                 const key = `${row[2]}|${row[11]}|${row[12]}`;
                 const prData = prDataMap.get(key);
@@ -923,49 +926,64 @@ async function processCSVData(rows) {
                     costo = prData.COSTO;
                 }
                 
-                const referencia = row[0] || '';
-                const estado = validarEstado(op);
-                const pvp = getPvp(referencia);
-                const marca = getMarca(sisproInfo.GENERO);
-                const clase = getClaseByPVP(pvp);
-                const descripcion = getDescripcion(
-                    sisproInfo.PRENDA || normalizeText(row[23] || ''),
-                    sisproInfo.GENERO,
-                    marca,
-                    referencia
-                );
+                const cantidad = parseFloat(row[9]) || 0;
                 
-                const processedRow = {
-                    REFERENCIA: referencia,
-                    USUARIO: escanersMap[usuario] || usuario,
-                    OP: op,
-                    TIPO: normalizeTipo(tipo),
-                    FECHA: formatDate(row[4]),
-                    TRASLADO: extractTrasladoNumber(row[7] || ''),
-                    CANTIDAD: parseFloat(row[9]) || 0,
-                    COSTO: formatCosto(costo),
-                    TOTAL: row[19] || '',
-                    PVP: pvp,
-                    TALLA: row[11] || '',
-                    COLORES: getColorName(codColorOriginal),
-                    COD_COLOR: codColorOriginal,
-                    OS: prData ? prData.OS : extractOSNumber(row[13] || ''),
-                    BODEGA: normalizeBodega(bodega),
-                    TALLER: normalizeText(row[18] || ''),
-                    DESCRIPCION_LARGA: normalizeText(row[21] || ''),
-                    PRENDA: sisproInfo.PRENDA || normalizeText(row[23] || ''),
-                    LINEA: sisproInfo.LINEA || '',
-                    GENERO: sisproInfo.GENERO || '',
-                    CC: prData ? prData.CC : (row[37] || ''),
-                    ESTADO: estado,
-                    MARCA: marca,
-                    CLASE: clase,
-                    DESCRIPCION: descripcion
-                };
-                processedData.push(processedRow);
+                if (groupedDataMap.has(groupKey)) {
+                    // Si ya existe, sumar la cantidad
+                    const existing = groupedDataMap.get(groupKey);
+                    existing.CANTIDAD += cantidad;
+                    
+                    // Sumar también el costo si corresponde
+                    if (bodega !== 'ZY' && prData) {
+                        existing.COSTO = formatCosto(parseFloat(existing.COSTO) + costo);
+                    }
+                } else {
+                    // Si no existe, crear nuevo registro
+                    const estado = validarEstado(op);
+                    const pvp = getPvp(referencia);
+                    const marca = getMarca(sisproInfo.GENERO);
+                    const clase = getClaseByPVP(pvp);
+                    const descripcion = getDescripcion(
+                        sisproInfo.PRENDA || normalizeText(row[23] || ''),
+                        sisproInfo.GENERO,
+                        marca,
+                        referencia
+                    );
+                    
+                    groupedDataMap.set(groupKey, {
+                        REFERENCIA: referencia,
+                        USUARIO: escanersMap[usuario] || usuario,
+                        OP: op,
+                        TIPO: normalizeTipo(tipo),
+                        FECHA: formatDate(row[4]),
+                        TRASLADO: extractTrasladoNumber(row[7] || ''),
+                        CANTIDAD: cantidad,
+                        COSTO: formatCosto(costo),
+                        TOTAL: row[19] || '',
+                        PVP: pvp,
+                        TALLA: talla,
+                        COLORES: getColorName(codColorOriginal),
+                        COD_COLOR: codColorOriginal,
+                        OS: prData ? prData.OS : extractOSNumber(row[13] || ''),
+                        BODEGA: normalizeBodega(bodega),
+                        TALLER: normalizeText(row[18] || ''),
+                        DESCRIPCION_LARGA: normalizeText(row[21] || ''),
+                        PRENDA: sisproInfo.PRENDA || normalizeText(row[23] || ''),
+                        LINEA: sisproInfo.LINEA || '',
+                        GENERO: sisproInfo.GENERO || '',
+                        CC: prData ? prData.CC : (row[37] || ''),
+                        ESTADO: estado,
+                        MARCA: marca,
+                        CLASE: clase,
+                        DESCRIPCION: descripcion
+                    });
+                }
             }
         }
     });
+
+    // Convertir el Map a array
+    processedData = Array.from(groupedDataMap.values());
 
     // Mostrar notificaciones de errores
     if (opErrors.size > 0) {
