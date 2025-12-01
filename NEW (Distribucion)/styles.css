@@ -694,6 +694,13 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     margin-bottom: 28px;
 }
 
+.empty-state h5 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
 .form-section h5 {
     display: flex;
     align-items: center;
@@ -1496,12 +1503,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     color: var(--text);
 }
 
-.empty-state p {
-    font-size: 13px;
-    margin: 0;
-    max-width: 300px;
-    line-height: 1.5;
-}
+
 
 /* Panel de resultados */
 .results-panel .panel-content {

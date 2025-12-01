@@ -1294,9 +1294,19 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     background-color: var(--hover);
 }
 
-.empty-state {
+/*.empty-state {
     text-align: center;
     padding: 40px 20px;
+    color: var(--text-secondary);
+}*/
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
     color: var(--text-secondary);
 }
 

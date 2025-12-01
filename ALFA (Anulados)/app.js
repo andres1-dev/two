@@ -169,11 +169,8 @@ function setupTabSystem() {
                         transferList.innerHTML = `
                             <div class="empty-state">
                                 <i class="codicon codicon-info"></i>
+                                <h5>Sin datos para mostrar</h5>
                                 <p>Primero procesa un archivo CSV para ver los traslados</p>
-                                <button class="btn-primary" onclick="processCSV()" style="margin-top: 10px;">
-                                    <i class="codicon codicon-play"></i>
-                                    Procesar CSV
-                                </button>
                             </div>
                         `;
                     }

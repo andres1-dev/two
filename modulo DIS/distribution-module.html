@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Distribución</title>
+    
+    <!-- VS Code Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet">
+    
+    <!-- CSS del Módulo -->
+    <link rel="stylesheet" href="distribution-module.css">
+</head>
+<body>
+    <!-- Módulo de Distribución -->
+    <div class="distribution-module">
+        <div class="distribution-module-container">
+            <!-- Header del Módulo -->
+            <div class="module-header">
+                <div class="header-title">
+                    <i class="codicon codicon-package"></i>
+                    <h2>Distribución PandaDash</h2>
+                    <span class="header-badge">BETA</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" id="moduleConfigBtn" title="Configuración">
+                        <i class="codicon codicon-settings-gear"></i>
+                    </button>
+                    <button class="btn-secondary" id="reloadDataBtn">
+                        <i class="codicon codicon-refresh"></i>
+                        Actualizar
+                    </button>
+                    <button class="btn-primary" id="saveDistributionsBtn">
+                        <i class="codicon codicon-save"></i>
+                        Guardar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="module-content">
+                <!-- Estado de Carga -->
+                <div id="distribution-loading" class="distribution-loading">
+                    <div class="loading-content">
+                        <div class="loading-spinner-large"></div>
+                        <div class="loading-text">
+                            <div class="loading-title">Cargando módulo de distribución</div>
+                            <div class="loading-subtitle">Inicializando datos y configuraciones...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenedor Principal -->
+                <div id="distribution-main" class="distribution-main" style="display:none">
+                    <!-- Panel de Búsqueda -->
+                    <div class="distribution-panel">
+                        <div class="panel-header">
+                            <i class="codicon codicon-search"></i>
+                            <h4>Consultar Documento</h4>
+                            <div class="panel-actions">
+                                <button class="btn-icon" title="Historial de búsquedas">
+                                    <i class="codicon codicon-history"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <div class="search-container">
+                                <div class="search-input-group">
+                                    <input type="number" id="recInput" class="search-input" 
+                                           placeholder="Ingrese número de REC..." 
+                                           oninput="searchRec()">
+                                    <button class="btn-icon search-btn" onclick="searchRec()" title="Buscar">
+                                        <i class="codicon codicon-search"></i>
+                                    </button>
+                                </div>
+                                <div class="search-info">
+                                    <i class="codicon codicon-info"></i>
+                                    <span>Busque por número de REC para cargar la distribución</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Distribución -->
+                    <div class="distribution-grid">
+                        <!-- Panel de Empresas -->
+                        <div class="distribution-panel">
+                            <div class="panel-header">
+                                <i class="codicon codicon-organization"></i>
+                                <h4>Distribución por Empresas</h4>
+                                <div class="panel-badge" id="empresas-count">0</div>
+                            </div>
+                            <div class="panel-content">
+                                <div class="distribution-controls">
+                                    <div class="control-group">
+                                        <label class="control-label">Asignación Automática</label>
+                                        <div class="control-actions">
+                                            <button class="btn-icon distribute-btn" title="Distribuir equitativamente">
+                                                <i class="codicon codicon-symbol-array"></i>
+                                            </button>
+                                            <button class="btn-icon clear-btn" title="Restablecer valores">
+                                                <i class="codicon codicon-clear-all"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="empresasContainer" class="empresas-grid">
+                                    <!-- Las empresas se cargarán aquí -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Mayoristas -->
+                        <div class="distribution-panel">
+                            <div class="panel-header">
+                                <i class="codicon codicon-account"></i>
+                                <h4>Mayoristas Disponibles</h4>
+                                <div class="panel-badge" id="mayoristas-count">0</div>
+                            </div>
+                            <div class="panel-content">
+                                <div class="distribution-controls">
+                                    <div class="control-group">
+                                        <label class="control-label">Selección Múltiple</label>
+                                        <div class="control-actions">
+                                            <button class="btn-icon" onclick="selectAllMayoristas()" title="Seleccionar todos">
+                                                <i class="codicon codicon-check-all"></i>
+                                            </button>
+                                            <button class="btn-icon" onclick="deselectAllMayoristas()" title="Deseleccionar todos">
+                                                <i class="codicon codicon-clear-all"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="mayoristasContainer" class="mayoristas-grid">
+                                    <!-- Los mayoristas se cargarán aquí -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Resultados -->
+                    <div class="distribution-panel results-panel">
+                        <div class="panel-header">
+                            <i class="codicon codicon-table"></i>
+                            <h4>Resultados de Distribución</h4>
+                            <div class="panel-actions">
+                                <button class="btn-icon" title="Exportar a CSV">
+                                    <i class="codicon codicon-export"></i>
+                                </button>
+                                <button class="btn-icon" title="Imprimir">
+                                    <i class="codicon codicon-print"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <div id="result" class="results-container">
+                                <div class="empty-state">
+                                    <i class="codicon codicon-dashboard"></i>
+                                    <h5>Sin datos para mostrar</h5>
+                                    <p>Ingrese un número de REC y configure la distribución para ver los resultados.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor para Modales -->
+    <div id="modalContainer"></div>
+
+    <!-- JavaScript del Módulo -->
+    <script src="distribution-module.js"></script>
+    <script src="distribution-utils"></script>
+
+    
+</body>
+</html>
