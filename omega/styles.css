@@ -573,6 +573,8 @@ select option:disabled {
 select.form-control {
     cursor: pointer;
     appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
@@ -580,12 +582,14 @@ select.form-control {
 }
 
 input.form-control[type="number"] {
+    appearance: textfield;
     -moz-appearance: textfield;
 }
 
 input.form-control[type="number"]::-webkit-outer-spin-button,
 input.form-control[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
@@ -1443,13 +1447,14 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
    MÓDULO DE DISTRIBUCIÓN - ESTILOS COMPLETOS
    ============================================ */
 
-/* Estados de carga */
+/* Estados de carga - Clase genérica reutilizable */
+.loading-state,
 .distribution-loading {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 400px;
+    min-height: 400px;
     gap: 20px;
 }
 
@@ -1489,8 +1494,9 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     gap: 20px;
 }
 
+/* Paneles de distribución - Alineados con .results-panel */
 .distribution-panel {
-    background: var(--sidebar);
+    margin-top: 32px;
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
@@ -1498,15 +1504,18 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .distribution-panel .panel-header {
+    padding: 16px 20px;
+    background-color: var(--sidebar);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px 20px;
-    background: var(--editor);
-    border-bottom: 1px solid var(--border);
 }
 
 .distribution-panel .panel-header h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 15px;
     font-weight: 600;
     color: var(--text);
@@ -1518,6 +1527,9 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     color: var(--primary);
 }
 
+/* Badge unificado - Reemplaza .header-badge y .panel-badge */
+.badge,
+.header-badge,
 .panel-badge {
     background: var(--primary);
     color: white;
@@ -1525,6 +1537,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     min-width: 24px;
     text-align: center;
 }
@@ -1535,7 +1549,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .distribution-panel .panel-content {
-    padding: 20px;
+    padding: 24px;
+    background-color: var(--editor);
 }
 
 /* Grid de distribución */
@@ -1614,16 +1629,18 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     min-width: 80px;
 }
 
+/* Inputs de empresa - Extienden .form-control */
 .empresa-item input[type="number"] {
     width: 70px;
-    padding: 8px 10px;
+    padding: 10px 14px;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text);
     font-size: 13px;
-    transition: border-color 0.2s ease;
+    transition: all 0.2s ease;
+    font-family: inherit;
 }
 
 .empresa-item input[type="number"]:focus {
@@ -1696,13 +1713,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     flex: 1;
 }
 
-/* Búsqueda */
-.search-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
+/* Búsqueda - Consolidado con definición anterior (línea 1402) */
 .search-input-group {
     display: flex;
     gap: 8px;
@@ -1711,12 +1722,12 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 
 .search-input {
     flex: 1;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    background: var(--editor);
+    background: var(--bg);
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.2s ease;
 }
 
@@ -1727,20 +1738,25 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .search-btn {
-    padding: 12px 16px;
+    padding: 10px 20px;
     border-radius: 6px;
     background: var(--primary);
     color: white;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    display: flex;
+    transition: all 0.2s ease;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .search-btn:hover {
     background: #106ebe;
+    box-shadow: 0 4px 8px rgba(0, 120, 212, 0.3);
+    transform: translateY(-1px);
 }
 
 .search-info {
@@ -1763,7 +1779,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 
 /* Panel de resultados */
 .results-panel .panel-content {
-    padding: 0;
+    padding: 16px;
 }
 
 .results-container {
@@ -1773,8 +1789,10 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 
-/* Tabla de resultados */
-.distribution-module table {
+/* Tabla de resultados - Clase base reutilizable */
+.data-table,
+.distribution-module table,
+#distribution-result table {
     border-collapse: collapse;
     width: 100%;
     margin: 0;
@@ -1783,15 +1801,21 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     min-width: 800px;
 }
 
+.data-table th,
+.data-table td,
 .distribution-module th,
-.distribution-module td {
+.distribution-module td,
+#distribution-result th,
+#distribution-result td {
     border: 1px solid var(--border);
     padding: 12px 16px;
     text-align: center;
     color: var(--text);
 }
 
-.distribution-module th {
+.data-table th,
+.distribution-module th,
+#distribution-result th {
     background: var(--sidebar);
     position: sticky;
     top: 0;
@@ -1804,22 +1828,28 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     border-bottom: 2px solid var(--border);
 }
 
-.distribution-module tbody tr {
+.data-table tbody tr,
+.distribution-module tbody tr,
+#distribution-result tbody tr {
     transition: background-color 0.2s ease;
 }
 
-.distribution-module tbody tr:hover {
+.data-table tbody tr:hover,
+.distribution-module tbody tr:hover,
+#distribution-result tbody tr:hover {
     background: var(--hover);
 }
 
-.distribution-module .total-row {
+.data-table .total-row,
+.distribution-module .total-row,
+#distribution-result .total-row {
     background: var(--sidebar) !important;
     font-weight: 600;
     border-top: 2px solid var(--border);
 }
 
 .valor-negativo {
-    color: var(--error);
+    color: var(--error) !important;
     font-weight: 700;
 }
 
@@ -1903,18 +1933,19 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
 }
 
-/* Inputs de mayorista en tabla */
+/* Inputs de mayorista en tabla - Alineados con .form-control */
 .mayorista-input {
     width: 100%;
     max-width: 80px;
-    padding: 8px 10px;
+    padding: 10px 14px;
     text-align: center;
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--bg);
     color: var(--text);
     font-size: 13px;
-    transition: border-color 0.2s ease;
+    font-family: inherit;
+    transition: all 0.2s ease;
 }
 
 .mayorista-input:focus {
@@ -2168,7 +2199,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 #distribution-result table {
-    border-collapse: separate; /* Necesario para el sticky header */
+    border-collapse: separate;
+    /* Necesario para el sticky header */
     border-spacing: 0;
     width: 100%;
     margin: 0;
@@ -2202,8 +2234,10 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     letter-spacing: 0.5px;
     position: sticky;
     top: 0;
-    z-index: 20; /* Mayor z-index para estar sobre el contenido */
-    box-shadow: 0 1px 0 var(--border); /* Borde visual al hacer scroll */
+    z-index: 20;
+    /* Mayor z-index para estar sobre el contenido */
+    box-shadow: 0 1px 0 var(--border);
+    /* Borde visual al hacer scroll */
 }
 
 /* Filas */
@@ -2327,7 +2361,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 /* Celdas específicas */
 .principal-cell {
     font-weight: 600;
-    background-color: rgba(0, 120, 212, 0.05); /* Leve tinte azul */
+    background-color: rgba(0, 120, 212, 0.05);
+    /* Leve tinte azul */
 }
 
 .secundaria-cell {
@@ -2343,58 +2378,66 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 
 
 /* ============================================
-   CONTROLES NUMÉRICOS: GLOBAL Y EMPRESAS
+   CONTROLES NUMÉRICOS: CLASE BASE REUTILIZABLE
    ============================================ */
 
-/* 1. Ocultar flechas nativas en TODOS los inputs numéricos afectados */
+/* Clase base para grupos de inputs numéricos */
+.number-input-group,
+.mayorista-column-header .input-group,
+.empresa-item .input-group {
+    display: flex;
+    align-items: stretch;
+}
+
+/* Ocultar flechas nativas en TODOS los inputs numéricos */
+.number-input-group input[type="number"]::-webkit-outer-spin-button,
+.number-input-group input[type="number"]::-webkit-inner-spin-button,
 .mayorista-input::-webkit-outer-spin-button,
 .mayorista-input::-webkit-inner-spin-button,
 .global-mayorista-input::-webkit-outer-spin-button,
 .global-mayorista-input::-webkit-inner-spin-button,
 .empresa-item input[type="number"]::-webkit-outer-spin-button,
 .empresa-item input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+    -webkit-appearance: none;
+    margin: 0;
 }
 
+.number-input-group input[type="number"],
 .mayorista-input,
 .global-mayorista-input,
 .empresa-item input[type="number"] {
-  -moz-appearance: textfield;
+    appearance: textfield;
+    -moz-appearance: textfield;
 }
 
-/* 2. Ajustes para el Input Global en el Header */
+/* Input Global en el Header */
 .mayorista-column-header .input-group {
-    display: flex;
-    align-items: stretch;
     width: 100%;
-    height: 28px; /* Un poco más compacto en el header */
+    height: 28px;
     margin-top: 4px;
 }
 
 .mayorista-column-header .global-mayorista-input {
-    border-radius: 4px 0 0 4px;
+    border-radius: 6px 0 0 6px;
     border-right: none;
     text-align: center;
-    padding: 0 4px;
+    padding: 0 8px;
     height: 100%;
     width: 100%;
-    margin: 0; /* Resetear margin previo */
+    margin: 0;
 }
 
-/* 3. Ajustes para el Input de Empresas */
+/* Input de Empresas */
 .empresa-item .input-group {
-    display: flex;
-    align-items: stretch;
-    width: 90px; /* Ancho fijo adecuado para empresas */
-    height: 30px;
+    width: 90px;
+    height: 32px;
 }
 
 .empresa-item input[type="number"] {
-    border-radius: 4px 0 0 4px;
+    border-radius: 6px 0 0 6px;
     border-right: none;
     text-align: center;
-    padding: 0 4px;
+    padding: 0 8px;
     height: 100%;
     width: 100%;
 }

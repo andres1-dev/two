@@ -49,26 +49,18 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Modificar la función initializeApp para inicializar también el módulo de distribución
+// Busca la función initializeApp y reemplázala con esta versión:
 function initializeApp() {
     setupEventListeners();
     setupTabSystem();
     setupTheme();
     initializeNotifications();
+    
+    // Marcamos esto como true desde el inicio para evitar recargas accidentales
+    window.distributionInitialized = true; 
+    
+    // Cargamos TODOS los datos (incluyendo distribución)
     loadDataFromSheets();
-
-    // Inicializar módulo de distribución cuando se cargue la pestaña
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function () {
-            const tabName = this.dataset.tab;
-            if (tabName === 'distribution') {
-                if (!window.distributionInitialized) {
-                    initializeDistribution();
-                    setupDistributionEventListeners();
-                    window.distributionInitialized = true;
-                }
-            }
-        });
-    });
 
     updateStatus('Sistema inicializado correctamente', 'info');
 }
@@ -576,6 +568,7 @@ function clearJSON() {
 }
 
 // Data Loading Functions
+// Busca la función loadDataFromSheets y actualiza el Promise.all:
 async function loadDataFromSheets() {
     updateStatus('Cargando datos desde Google Sheets...', 'loading');
     const processBtn = document.getElementById('processBtn');
@@ -584,23 +577,25 @@ async function loadDataFromSheets() {
         processBtn.innerHTML = '<span class="loading-spinner"></span> Cargando datos...';
     }
 
-    const loading = showQuickLoading('Cargando datos desde Google Sheets...');
+    const loading = showQuickLoading('Cargando datos globales y distribución...');
 
     try {
+        // AÑADIDO: initializeDistribution() al array de promesas
         await Promise.all([
             loadColoresData(),
-            loadData2Data(),  // Esta es la hoja importante que tiene las OPs
+            loadData2Data(),  
             loadPreciosData(),
             loadSisproData(),
-            loadHistoricasData()
+            loadHistoricasData(),
+            initializeDistribution() // <--- AHORA CARGA AQUÍ INMEDIATAMENTE
         ]);
 
         updateDataStats();
         updateStatus('Datos cargados correctamente', 'success');
 
-        // Solo mostrar mensaje completo si es la carga inicial
         if (!loading._isReload) {
-            showMessage(`Sistema listo - ${coloresMap.size} colores, ${data2Map.size} OPs, ${preciosMap.size} precios cargados`, 'success', 2000);
+            // Actualizamos el mensaje para reflejar que todo cargó
+            showMessage(`Sistema listo - Datos base y Módulo de Distribución cargados`, 'success', 2000);
         }
 
     } catch (error) {
@@ -2455,12 +2450,19 @@ const CLIENTES_CONFIG = {
 };
 
 // Inicializar módulo de distribución
+// Busca la función initializeDistribution y reemplázala con esta versión mejorada:
 function initializeDistribution() {
-    // Mostrar loading
-    document.getElementById('distribution-loading').style.display = 'flex';
-    document.getElementById('distribution-main').style.display = 'none';
+    // UI Setup
+    const loadingElem = document.getElementById('distribution-loading');
+    const mainElem = document.getElementById('distribution-main');
+    
+    if (loadingElem) loadingElem.style.display = 'flex';
+    if (mainElem) mainElem.style.display = 'none';
 
-    Promise.all([
+    setupDistributionEventListeners(); // Configuramos los listeners una sola vez
+
+    // Retornamos la promesa para que loadDataFromSheets espere a que termine
+    return Promise.all([
         cargarTodosLosDatos(),
         cargarConfiguraciones()
     ]).then(([recData, configData]) => {
@@ -2470,13 +2472,15 @@ function initializeDistribution() {
         handleRecData(recData);
         handleConfigData(configData);
 
-        // Ocultar loading y mostrar contenido principal
-        document.getElementById('distribution-loading').style.display = 'none';
-        document.getElementById('distribution-main').style.display = 'block';
+        if (loadingElem) loadingElem.style.display = 'none';
+        if (mainElem) mainElem.style.display = 'block';
 
-        // Actualizar contadores
         updateCounters();
-    }).catch(handleError);
+        return true; // Éxito
+    }).catch(error => {
+        handleError(error);
+        throw error; // Propagar error al manejador principal
+    });
 }
 
 // Función para cargar datos unificados

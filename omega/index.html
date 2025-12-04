@@ -438,7 +438,7 @@
                 <div class="section-header">
                     <h3>
                         <i class="codicon codicon-package"></i>
-                        Distribución PandaDash
+                        Distribución
                         <span class="header-badge">BETA</span>
                     </h3>
                     <div class="header-actions">
@@ -469,31 +469,23 @@
                     <div id="distribution-main" class="distribution-main" style="display:none">
                         <!-- Panel de Búsqueda -->
                         <div class="distribution-panel">
-                            <div class="panel-header">
-                                <i class="codicon codicon-search"></i>
-                                <h4>Consultar Documento</h4>
-                                <div class="panel-actions">
-                                    <button class="btn-icon" title="Historial de búsquedas">
-                                        <i class="codicon codicon-history"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="panel-content">
-                                <div class="search-container">
-                                    <div class="search-input-group">
-                                        <input type="number" id="recInput" class="search-input"
-                                            placeholder="Ingrese número de REC..." oninput="searchDistributionRec()">
-                                        <button class="btn-icon search-btn" onclick="searchDistributionRec()"
-                                            title="Buscar">
-                                            <i class="codicon codicon-search"></i>
+
+
+                                <div class="form-group">
+                                    <label for="recInput">
+                                        <i class="codicon codicon-search"></i>
+                                        Buscar REC
+                                    </label>
+                                    <div class="search-container">
+                                        <input type="number" id="recInput" class="form-control"
+                                            placeholder="Buscar por número de REC..."
+                                            oninput="searchDistributionRec()">
+                                        <button class="btn-icon" onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();" title="Limpiar búsqueda">
+                                            <i class="codicon codicon-clear-all"></i>
                                         </button>
                                     </div>
-                                    <div class="search-info">
-                                        <i class="codicon codicon-info"></i>
-                                        <span>Busque por número de REC para cargar la distribución</span>
-                                    </div>
                                 </div>
-                            </div>
+
                         </div>
 
                         <!-- Grid de Distribución -->
