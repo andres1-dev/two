@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador CSV - IDE</title>
+
+    <!-- VS Code Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link href="styles.css" rel="stylesheet">
+</head>
+
+<body class="vscode-light">
+    <!-- Activity Bar -->
+    <div class="activity-bar">
+        <div class="activity-icons">
+            <button class="activity-icon active" data-tab="file-explorer" title="Explorador de Archivos">
+                <i class="codicon codicon-files"></i>
+            </button>
+            <button class="activity-icon" data-tab="csv-processor" title="Procesador CSV">
+                <i class="codicon codicon-symbol-array"></i>
+            </button>
+            <button class="activity-icon" data-tab="pending-ops" title="OPs Pendientes">
+                <i class="codicon codicon-symbol-enum"></i>
+            </button>
+            <button class="activity-icon" data-tab="json-editor" title="Editor JSON">
+                <i class="codicon codicon-json"></i>
+            </button>
+            <button class="activity-icon" data-tab="cancel-transfers" title="Anular Traslados">
+                <i class="codicon codicon-circle-slash"></i>
+            </button>
+            <button class="activity-icon" data-tab="distribution" title="Distribución">
+                <i class="codicon codicon-package"></i>
+            </button>
+        </div>
+        <div class="activity-bottom">
+            <button class="activity-icon" id="themeToggle" title="Cambiar Tema">
+                <i class="codicon codicon-color-mode"></i>
+            </button>
+            <button class="activity-icon" id="settingsBtn" title="Configuración">
+                <i class="codicon codicon-settings-gear"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="file-explorer">
+        <div class="sidebar-header">
+            <h3>EXPLORADOR</h3>
+            <div class="sidebar-actions">
+                <button class="btn-icon" title="Nuevo Archivo">
+                    <i class="codicon codicon-new-file"></i>
+                </button>
+                <button class="btn-icon" title="Refrescar">
+                    <i class="codicon codicon-refresh"></i>
+                </button>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <div class="file-tree">
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Procesos Activos</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Órdenes de Producción</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Archivos CSV</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Distribuciones</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Editor Area -->
+    <div class="editor-container">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <div class="tabs">
+                <button class="tab active" data-tab="csv-processor">
+                    <i class="codicon codicon-symbol-array"></i>
+                    Procesador CSV
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="pending-ops">
+                    <i class="codicon codicon-symbol-enum"></i>
+                    OPs Pendientes
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="json-editor">
+                    <i class="codicon codicon-json"></i>
+                    Editor JSON
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="cancel-transfers">
+                    <i class="codicon codicon-circle-slash"></i>
+                    Anular Traslados
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="distribution">
+                    <i class="codicon codicon-package"></i>
+                    Distribución
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+            </div>
+            <div class="tab-actions">
+                <button class="btn-icon" id="splitEditor" title="Dividir Editor">
+                    <i class="codicon codicon-split-horizontal"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content active" id="csv-processor-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-file-code"></i> Procesamiento de Archivos CSV</h3>
+                </div>
+                <div class="section-content">
+                    <div class="file-upload-area">
+                        <div class="upload-box" id="uploadBox">
+                            <i class="codicon codicon-cloud-upload"></i>
+                            <h4>Arrastra tu archivo CSV aquí</h4>
+                            <p>o haz clic para seleccionar</p>
+                            <input type="file" id="csvFile" accept=".csv" hidden>
+                            <button class="btn-primary" onclick="document.getElementById('csvFile').click()">
+                                <i class="codicon codicon-folder-opened"></i>
+                                Seleccionar Archivo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" id="processBtn" onclick="processCSV()">
+                            <i class="codicon codicon-play"></i>
+                            Procesar CSV
+                        </button>
+                        <button class="btn-secondary" id="exportBtn" onclick="exportToCSV()" style="display:none;">
+                            <i class="codicon codicon-desktop-download"></i>
+                            Exportar CSV
+                        </button>
+                    </div>
+
+                    <div class="status-bar" id="statusBar">
+                        <div class="status-item">
+                            <i class="codicon codicon-info"></i>
+                            <span id="statusMessage">Listo para procesar</span>
+                        </div>
+                        <div class="status-item">
+                            <i class="codicon codicon-database"></i>
+                            <span id="dataStats">Cargando datos...</span>
+                        </div>
+                    </div>
+
+                    <div class="results-panel" id="resultsPanel" style="display:none;">
+                        <div class="panel-header">
+                            <h4><i class="codicon codicon-graph"></i> Resultados del Procesamiento</h4>
+                        </div>
+                        <div class="panel-content" id="resultsContent">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="pending-ops-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-symbol-enum"></i> Órdenes de Producción Pendientes</h3>
+                </div>
+                <div class="section-content">
+                    <div class="ops-container" id="pendientesSection" style="display:none;">
+                        <div class="form-group">
+                            <label for="selectOP">
+                                <i class="codicon codicon-list-selection"></i>
+                                Seleccionar OP para procesar
+                            </label>
+                            <select id="selectOP" class="form-control" onchange="loadOPData()">
+                                <option value="">Seleccione una OP...</option>
+                            </select>
+                        </div>
+
+                        <div class="op-preview" id="opPreview">
+                            <div class="preview-placeholder">
+                                <i class="codicon codicon-info"></i>
+                                Selecciona una OP para ver los detalles
+                            </div>
+                        </div>
+
+                        <div class="op-form" id="opForm" style="display:none;">
+                            <div class="form-section">
+                                <h5><i class="codicon codicon-edit"></i> Información de la OP</h5>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="proveedor">
+                                            <i class="codicon codicon-organization"></i>
+                                            Proveedor
+                                        </label>
+                                        <select id="proveedor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="TEXTILES Y CREACIONES EL UNIVERSO SAS" selected>TEXTILES Y
+                                                CREACIONES EL UNIVERSO SAS</option>
+                                            <option value="TEXTILES Y CREACIONES LOS ANGELES SAS">TEXTILES Y CREACIONES
+                                                LOS ANGELES SAS</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="auditor">
+                                            <i class="codicon codicon-account"></i>
+                                            Auditor
+                                        </label>
+                                        <select id="auditor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="GLORICED QUIÑONEZ BOJORJE">GLORICED QUIÑONEZ BOJORJE</option>
+                                            <option value="MAYRA ALEJANDRA GOMEZ OSORIO">MAYRA ALEJANDRA GOMEZ OSORIO
+                                            </option>
+                                            <option value="MARYURI GARCIA RENTERIA">MARYURI GARCIA RENTERIA</option>
+                                            <option value="GREIZY JULIETH ESCOBAR SABOGAL">GREIZY JULIETH ESCOBAR
+                                                SABOGAL</option>
+                                            <option value="ANA GABRIELA GUZMAN BETANCOURT">ANA GABRIELA GUZMAN
+                                                BETANCOURT</option>
+                                            <option value="YULI ANGELY MUÑOZ MANCGABAJOY">YULI ANGELY MUÑOZ MANCGABAJOY
+                                            </option>
+                                            <option value="ROSA ALICIA VIERA BERNAL">ROSA ALICIA VIERA BERNAL</option>
+                                            <option value="BRESLEE DANIELA USMA CEPEDA">BRESLEE DANIELA USMA CEPEDA
+                                            </option>
+                                            <option value="MAYERLY DEL MAR MORALES QUIROGA">MAYERLY DEL MAR MORALES
+                                                QUIROGA</option>
+                                            <option value="MORALES RUALES DIANA LUCERO">MORALES RUALES DIANA LUCERO
+                                            </option>
+                                            <option value="GALINDEZ MUÑOZ JHOAN MANUEL">GALINDEZ MUÑOZ JHOAN MANUEL
+                                            </option>
+                                            <option value="DIANA PAOLA HENAO HERRERA">DIANA PAOLA HENAO HERRERA</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gestor">
+                                            <i class="codicon codicon-person"></i>
+                                            Gestor
+                                        </label>
+                                        <select id="gestor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
+                                            <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO
+                                            </option>
+                                            <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS
+                                            </option>
+                                            <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA
+                                            </option>
+                                            <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA
+                                                RAMIREZ</option>
+                                            <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="bolsas">
+                                            <i class="codicon codicon-package"></i>
+                                            Bolsas
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" id="bolsas" class="form-control" min="0" value="0"
+                                                required>
+                                            <div class="number-controls">
+                                                <button type="button" class="number-btn" onclick="adjustBolsas(1)"
+                                                    title="Aumentar">
+                                                    <i class="codicon codicon-chevron-up"></i>
+                                                </button>
+                                                <button type="button" class="number-btn" onclick="adjustBolsas(-1)"
+                                                    title="Disminuir">
+                                                    <i class="codicon codicon-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="pvpEdit">
+                                            <i class="codicon codicon-symbol-numeric"></i>
+                                            PVP
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" id="pvpEdit" class="form-control" required>
+                                            <button type="button" class="btn-icon" onclick="adjustPVP(1000)"
+                                                title="Aumentar +1000">
+                                                <i class="codicon codicon-add"></i>
+                                            </button>
+                                            <button type="button" class="btn-icon" onclick="adjustPVP(-1000)"
+                                                title="Disminuir -1000">
+                                                <i class="codicon codicon-remove"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="btn-primary" onclick="generateJSONForOP()" id="generateJSONBtn">
+                                    <i class="codicon codicon-code"></i>
+                                    Generar JSON
+                                </button>
+                                <button class="btn-success" onclick="saveToSheets()" id="saveBtn" style="display:none;">
+                                    <i class="codicon codicon-save"></i>
+                                    Guardar en Sheets
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="json-editor-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-json"></i> Editor JSON</h3>
+                </div>
+                <div class="section-content">
+                    <div class="json-editor-container">
+                        <div class="editor-toolbar">
+                            <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON">
+                                <i class="codicon codicon-symbol-method"></i>
+                            </button>
+                            <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON">
+                                <i class="codicon codicon-copy"></i>
+                            </button>
+                            <button class="btn-icon" onclick="clearJSON()" title="Limpiar Editor">
+                                <i class="codicon codicon-clear-all"></i>
+                            </button>
+                            <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar" style="display:none;"
+                                title="Guardar en Google Sheets">
+                                <i class="codicon codicon-cloud-upload"></i>
+                            </button>
+                        </div>
+                        <div class="json-editor">
+                            <pre id="jsonContent" class="json-content">{
+                                "mensaje": "Genera un JSON desde la pestaña de OPs Pendientes"
+                                }</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="cancel-transfers-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-circle-slash"></i> Anulación de Traslados</h3>
+                    <div class="header-actions">
+                        <button class="btn-icon" id="importCancelledBtn"
+                            title="Importar traslados anulados desde archivo">
+                            <i class="codicon codicon-folder-opened"></i>
+                        </button>
+                        <button class="btn-icon" id="exportCancelledBtn" title="Exportar traslados anulados a archivo">
+                            <i class="codicon codicon-save-as"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <!-- Campo de búsqueda -->
+                    <div class="form-group">
+                        <label>
+                            <i class="codicon codicon-search"></i>
+                            Buscar traslados
+                        </label>
+                        <div class="search-container">
+                            <input type="text" id="transferSearch" class="form-control"
+                                placeholder="Buscar por número de traslado, OP, referencia o usuario..."
+                                oninput="filterTransfers()">
+                            <button class="btn-icon" onclick="clearSearch()" title="Limpiar búsqueda">
+                                <i class="codicon codicon-clear-all"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <i class="codicon codicon-list-selection"></i>
+                            Seleccionar traslados para anular
+                        </label>
+                        <div class="transfer-list" id="transferList">
+                            <!-- Los traslados se cargarán aquí dinámicamente -->
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn-warning" onclick="cancelSelectedTransfers()" id="cancelBtn">
+                            <i class="codicon codicon-circle-slash"></i>
+                            Anular Traslados Seleccionados
+                        </button>
+                        <button class="btn-primary" onclick="applyCancellationsToCSV()" id="applyBtn">
+                            <i class="codicon codicon-play"></i>
+                            Aplicar Cambios al CSV
+                        </button>
+                        <button class="btn-secondary" onclick="restoreAllCancelledTransfers()" id="restoreAllBtn"
+                            style="display:none;">
+                            <i class="codicon codicon-discard"></i>
+                            Restaurar Todos
+                        </button>
+                    </div>
+
+                    <div class="cancelled-transfers" id="cancelledTransfers">
+                        <h5><i class="codicon codicon-history"></i> Traslados Anulados</h5>
+                        <div class="transfer-table" id="cancelledTransferTable">
+                            <!-- Tabla de traslados anulados -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Distribución -->
+        <div class="tab-content" id="distribution-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3>
+                        <i class="codicon codicon-package"></i>
+                        Distribución PandaDash
+                        <span class="header-badge">BETA</span>
+                    </h3>
+                    <div class="header-actions">
+                        <button class="btn-icon" id="moduleConfigBtn" title="Configuración">
+                            <i class="codicon codicon-settings-gear"></i>
+                        </button>
+                        <button class="btn-icon" id="reloadDataBtn" title="Actualizar">
+                            <i class="codicon codicon-refresh"></i>
+                        </button>
+                        <button class="btn-icon" id="saveDistributionsBtn" title="Guardar">
+                            <i class="codicon codicon-save"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <!-- Estado de Carga -->
+                    <div id="distribution-loading" class="distribution-loading">
+                        <div class="loading-content">
+                            <div class="loading-spinner-large"></div>
+                            <div class="loading-text">
+                                <div class="loading-title">Cargando módulo de distribución</div>
+                                <div class="loading-subtitle">Inicializando datos y configuraciones...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor Principal -->
+                    <div id="distribution-main" class="distribution-main" style="display:none">
+                        <!-- Panel de Búsqueda -->
+                        <div class="distribution-panel">
+                            <div class="panel-header">
+                                <i class="codicon codicon-search"></i>
+                                <h4>Consultar Documento</h4>
+                                <div class="panel-actions">
+                                    <button class="btn-icon" title="Historial de búsquedas">
+                                        <i class="codicon codicon-history"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="panel-content">
+                                <div class="search-container">
+                                    <div class="search-input-group">
+                                        <input type="number" id="recInput" class="search-input"
+                                            placeholder="Ingrese número de REC..." oninput="searchDistributionRec()">
+                                        <button class="btn-icon search-btn" onclick="searchDistributionRec()"
+                                            title="Buscar">
+                                            <i class="codicon codicon-search"></i>
+                                        </button>
+                                    </div>
+                                    <div class="search-info">
+                                        <i class="codicon codicon-info"></i>
+                                        <span>Busque por número de REC para cargar la distribución</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grid de Distribución -->
+                        <div class="distribution-grid">
+                            <!-- Panel de Empresas -->
+                            <div class="distribution-panel">
+                                <div class="panel-header">
+                                    <i class="codicon codicon-organization"></i>
+                                    <h4>Distribución por Empresas</h4>
+                                    <div class="panel-badge" id="empresas-count">0</div>
+                                </div>
+                                <div class="panel-content">
+                                    <div class="distribution-controls">
+                                        <div class="control-group">
+                                            <label class="control-label">Asignación Automática</label>
+                                            <div class="control-actions">
+                                                <button class="btn-icon distribute-btn"
+                                                    title="Distribuir equitativamente">
+                                                    <i class="codicon codicon-symbol-array"></i>
+                                                </button>
+                                                <button class="btn-icon clear-btn" title="Restablecer valores">
+                                                    <i class="codicon codicon-clear-all"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="empresasContainer" class="empresas-grid">
+                                        <!-- Las empresas se cargarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel de Mayoristas -->
+                            <div class="distribution-panel">
+                                <div class="panel-header">
+                                    <i class="codicon codicon-account"></i>
+                                    <h4>Mayoristas Disponibles</h4>
+                                    <div class="panel-badge" id="mayoristas-count">0</div>
+                                </div>
+                                <div class="panel-content">
+                                    <div class="distribution-controls">
+                                        <div class="control-group">
+                                            <label class="control-label">Selección Múltiple</label>
+                                            <div class="control-actions">
+                                                <button class="btn-icon" onclick="selectAllMayoristas()"
+                                                    title="Seleccionar todos">
+                                                    <i class="codicon codicon-check-all"></i>
+                                                </button>
+                                                <button class="btn-icon" onclick="deselectAllMayoristas()"
+                                                    title="Deseleccionar todos">
+                                                    <i class="codicon codicon-clear-all"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="mayoristasContainer" class="mayoristas-grid">
+                                        <!-- Los mayoristas se cargarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Resultados -->
+                        <div class="distribution-panel results-panel">
+                            <div class="panel-header">
+                                <i class="codicon codicon-table"></i>
+                                <h4>Resultados de Distribución</h4>
+                                <div class="panel-actions">
+                                    <button class="btn-icon" title="Exportar a CSV">
+                                        <i class="codicon codicon-export"></i>
+                                    </button>
+                                    <button class="btn-icon" title="Imprimir">
+                                        <i class="codicon codicon-print"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="panel-content">
+                                <div id="distribution-result" class="results-container">
+                                    <div class="empty-state">
+                                        <i class="codicon codicon-dashboard"></i>
+                                        <h5>Sin datos para mostrar</h5>
+                                        <p>Ingrese un número de REC y configure la distribución para ver los resultados.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modalContainer"></div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+
+</html>
