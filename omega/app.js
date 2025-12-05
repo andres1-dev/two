@@ -9,6 +9,7 @@ let data2Map = new Map();
 let preciosMap = new Map();
 let sisproMap = new Map();
 let historicasMap = new Map();
+let clientesMap = new Map();
 let currentOPData = null;
 let cancelledTransfers = new Set();
 let transferListData = [];
@@ -55,10 +56,10 @@ function initializeApp() {
     setupTabSystem();
     setupTheme();
     initializeNotifications();
-    
+
     // Marcamos esto como true desde el inicio para evitar recargas accidentales
-    window.distributionInitialized = true; 
-    
+    window.distributionInitialized = true;
+
     // Cargamos TODOS los datos (incluyendo distribución)
     loadDataFromSheets();
 
@@ -272,7 +273,7 @@ function updateDataStats() {
     const statsElement = document.getElementById('dataStats');
     if (statsElement) {
         statsElement.textContent =
-            `${coloresMap.size} colores | ${data2Map.size} OPs | ${preciosMap.size} precios | ${sisproMap.size} productos`;
+            `${coloresMap.size} colores | ${data2Map.size} OPs | ${preciosMap.size} precios | ${sisproMap.size} productos | ${clientesMap.size} clientes`;
     }
 }
 
@@ -581,14 +582,19 @@ async function loadDataFromSheets() {
 
     try {
         // AÑADIDO: initializeDistribution() al array de promesas
+        // 1. Cargar datos base primero (incluyendo CLIENTES)
         await Promise.all([
             loadColoresData(),
-            loadData2Data(),  
+            loadData2Data(),
             loadPreciosData(),
             loadSisproData(),
             loadHistoricasData(),
-            initializeDistribution() // <--- AHORA CARGA AQUÍ INMEDIATAMENTE
+            loadClientesData()
         ]);
+
+        // 2. Una vez cargados los clientes, inicializar distribución
+        console.log('Datos base cargados, inicializando distribución...');
+        await initializeDistribution();
 
         updateDataStats();
         updateStatus('Datos cargados correctamente', 'success');
@@ -716,6 +722,55 @@ async function loadHistoricasData() {
     }
 }
 
+async function loadClientesData() {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/CLIENTES?key=${API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.values && data.values.length > 0) {
+        clientesMap.clear();
+        console.log('📥 Cargando CLIENTES desde Google Sheets...');
+        console.log('Total de filas (incluyendo encabezado):', data.values.length);
+
+        // Skip header row (i = 1)
+        for (let i = 1; i < data.values.length; i++) {
+            const row = data.values[i];
+
+            // Solo requerimos que exista el ID (columna 0)
+            const id = row[0] || '';
+
+            if (id && id.trim()) {
+                const razonSocial = row[1] || '';
+                const nombreCorto = row[2] || '';
+                const tipoCliente = row[3] || '';
+                const estado = row[4] || '';
+                const direccion = row[5] || '';
+                const telefono = row[6] || '';
+                const email = row[7] || '';
+                const tipoEmpresa = row[8] || '';
+
+                clientesMap.set(id.trim(), {
+                    ID: id.trim(),
+                    RAZON_SOCIAL: razonSocial.trim(),
+                    NOMBRE_CORTO: nombreCorto.trim(),
+                    TIPO_CLIENTE: tipoCliente.trim(),
+                    ESTADO: estado.trim(),
+                    DIRECCION: direccion.trim(),
+                    TELEFONO: telefono.trim(),
+                    EMAIL: email.trim(),
+                    TIPO_EMPRESA: tipoEmpresa.trim()
+                });
+
+                console.log(`  ✓ Cliente ${i}: ${nombreCorto.trim()} (${tipoCliente.trim()}) - Columnas: ${row.length}`);
+            } else {
+                console.log(`  ⊘ Fila ${i}: Sin ID, saltando...`);
+            }
+        }
+
+        console.log(`✅ Total clientes cargados: ${clientesMap.size}`);
+    }
+}
+
 // Utility Functions
 function getSisproData(op) {
     if (!op) return { PRENDA: '', LINEA: '', GENERO: '' };
@@ -735,6 +790,11 @@ function getPvp(referencia) {
 function getReferenciaHistorica(refprov) {
     if (!refprov) return refprov;
     return historicasMap.get(refprov.trim()) || refprov;
+}
+
+function getClienteData(id) {
+    if (!id) return null;
+    return clientesMap.get(id.trim()) || null;
 }
 
 function getMarca(genero) {
@@ -2405,18 +2465,6 @@ function clearSearch() {
     document.getElementById('transferSearch').focus();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 // ============================================
 // MÓDULO DE DISTRIBUCIÓN
 // ============================================
@@ -2434,20 +2482,9 @@ let colorOptions = [];
 let tallaOptions = [];
 let mayoristaFilters = {};
 
-// Configuración fija de clientes
-const CLIENTES_CONFIG = {
-    "67006141": { "id": "67006141", "razonSocial": "QUINTERO ORTIZ PATRICIA YAMILET", "nombreCorto": "Yamilet", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CL 26 # 7 - 21", "telefono": "3122441788", "email": "p.yamiletquino@hotmail.com" },
-    "805027653": { "id": "805027653", "razonSocial": "EL TEMPLO DE LA MODA S.A.S.", "nombreCorto": "Templo", "tipoCliente": "Empresa", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3143927031", "email": "auxiliarcdi@eltemplodelamoda.com.co", "tipoEmpresa": "Principal" },
-    "900021825": { "id": "900021825", "razonSocial": "INDUALPES S.A.S", "nombreCorto": "Indualpes", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CR 52 29 A 111 BG 205", "telefono": "", "email": "gerencia@indualpes.com" },
-    "900047252": { "id": "900047252", "razonSocial": "EL TEMPLO DE LA MODA FRESCA S.A.S.", "nombreCorto": "Shopping", "tipoCliente": "Empresa", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3185859934", "email": "bodega@eltemplodelamodafresca.com", "tipoEmpresa": "Secundaria" },
-    "900616124": { "id": "900616124", "razonSocial": "TEXTILES Y CREACIONES EL UNIVERSO S.A.S.", "nombreCorto": "Universo", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3168007979", "email": "coordinadorlogistico@eltemplodelamoda.com.co" },
-    "900692469": { "id": "900692469", "razonSocial": "TEXTILES Y CREACIONES LOS ANGELES S.A.S.", "nombreCorto": "Ángeles", "tipoCliente": "Proveedor", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3154799895", "email": "gerencia@tclosangeles.com" },
-    "901920844": { "id": "901920844", "razonSocial": "INVERSIONES URBANA SAS", "nombreCorto": "Ruben", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3103944800", "email": "contabilidad@eltemplodelamoda.com.co" },
-    "1007348825": { "id": "1007348825", "razonSocial": "ZULUAGA GOMEZ RUBEN ESTEBAN", "nombreCorto": "Esteban", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CONDOMINIO CAMPESTRE LAS MERCEDES", "telefono": "3205702698", "email": "contabilidad@eltemplodelamoda.com.co" },
-    "900616124-1": { "id": "900616124", "razonSocial": "TEXTILES Y CREACIONES EL UNIVERSO S.A.S.", "nombreCorto": "Universo", "tipoCliente": "Proveedor", "estado": "Activo", "direccion": "CALLE 26 # 7 - 21", "telefono": "3168007979", "email": "coordinadorlogistico@eltemplodelamoda.com.co" },
-    "70825517-1": { "id": "70825517", "razonSocial": "ARISTIZABAL LOPES JESUS MARIA", "nombreCorto": "Jesús", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CL 26 # 7 - 21", "telefono": "3122441788", "email": "p.yamiletquino@hotmail.com" },
-    "70825517-2": { "id": "14838951", "razonSocial": "QUINTERO ORTIZ JOSE ALEXANDER", "nombreCorto": "Alex", "tipoCliente": "Mayorista", "estado": "Activo", "direccion": "CL 26 # 7 - 21", "telefono": "3104624213", "email": "alexander511933@hotmail.com" }
-};
+// NOTA: Los datos de clientes ahora se cargan dinámicamente desde Google Sheets
+// a través de clientesMap. Ver función loadClientesData() y cargarConfiguraciones()
+
 
 // Inicializar módulo de distribución
 // Busca la función initializeDistribution y reemplázala con esta versión mejorada:
@@ -2455,7 +2492,7 @@ function initializeDistribution() {
     // UI Setup
     const loadingElem = document.getElementById('distribution-loading');
     const mainElem = document.getElementById('distribution-main');
-    
+
     if (loadingElem) loadingElem.style.display = 'flex';
     if (mainElem) mainElem.style.display = 'none';
 
@@ -2673,15 +2710,31 @@ async function getSheetDataAsJSON_2() {
     }
 }
 
-// Cargar configuraciones desde objeto fijo
+// Cargar configuraciones desde clientesMap (Google Sheets)
 function cargarConfiguraciones() {
     return new Promise((resolve) => {
-        // Convertir el objeto CLIENTES_CONFIG al formato esperado
-        const configArray = Object.entries(CLIENTES_CONFIG).map(([id, config]) => ({
-            id: id,
-            ...config
+        // Convertir el clientesMap al formato esperado por el módulo de distribución
+        const configArray = Array.from(clientesMap.values()).map(cliente => ({
+            id: cliente.ID,
+            razonSocial: cliente.RAZON_SOCIAL,
+            nombreCorto: cliente.NOMBRE_CORTO,
+            tipoCliente: cliente.TIPO_CLIENTE,
+            estado: cliente.ESTADO,
+            direccion: cliente.DIRECCION,
+            telefono: cliente.TELEFONO,
+            email: cliente.EMAIL,
+            tipoEmpresa: cliente.TIPO_EMPRESA || ''
         }));
-        console.log('Configuración cargada:', configArray.length, 'clientes');
+
+        console.log('✅ Configuración cargada desde Google Sheets:', configArray.length, 'clientes');
+        console.log('📊 Desglose:', {
+            total: configArray.length,
+            activos: configArray.filter(c => c.estado === 'Activo').length,
+            inactivos: configArray.filter(c => c.estado === 'Inactivo').length,
+            empresas: configArray.filter(c => c.tipoEmpresa).length,
+            mayoristas: configArray.filter(c => c.tipoCliente === 'Mayorista').length
+        });
+
         resolve(configArray);
     });
 }
@@ -2707,9 +2760,20 @@ function handleConfigData(configData) {
 }
 
 function processConfigData() {
-    // Procesar empresas
+    console.log('🔍 Procesando configuración de clientes...');
+
+    // Procesar empresas (filtrar por tipoEmpresa no vacío Y estado Activo)
     empresasData = Object.entries(allConfigData)
-        .filter(([id, config]) => config.tipoEmpresa)
+        .filter(([id, config]) => {
+            const isActive = config.estado && config.estado.toString().toUpperCase().trim() === 'ACTIVO';
+            const isEmpresa = config.tipoEmpresa && config.tipoEmpresa.trim() !== '';
+
+            if (isEmpresa && !isActive) {
+                console.log(`❌ Filtrando empresa inactiva: ${config.nombreCorto} (${config.estado})`);
+            }
+
+            return isEmpresa && isActive;
+        })
         .sort((a, b) => {
             if (a[1].tipoEmpresa !== b[1].tipoEmpresa) {
                 return a[1].tipoEmpresa === "Principal" ? -1 : 1;
@@ -2717,19 +2781,30 @@ function processConfigData() {
             return a[1].nombreCorto.localeCompare(b[1].nombreCorto);
         });
 
-    console.log('Empresas procesadas:', empresasData.length);
+    console.log('✅ Empresas activas procesadas:', empresasData.length);
 
-    // Inicializar filtros para mayoristas
-    Object.entries(allConfigData)
-        .filter(([id, config]) => config.tipoCliente === "Mayorista")
-        .forEach(([id, config]) => {
-            mayoristaFilters[id] = {
-                excludedColors: [],
-                excludedTallas: []
-            };
+    // Inicializar filtros para mayoristas (filtrar por Mayorista Y estado Activo)
+    const mayoristas = Object.entries(allConfigData)
+        .filter(([id, config]) => {
+            const isActive = config.estado && config.estado.toString().toUpperCase().trim() === 'ACTIVO';
+            const isMayorista = config.tipoCliente === "Mayorista";
+
+            if (isMayorista && !isActive) {
+                console.log(`❌ Filtrando mayorista inactivo: ${config.nombreCorto} (${config.estado})`);
+            }
+
+            return isMayorista && isActive;
         });
 
-    console.log('Filtros inicializados para', Object.keys(mayoristaFilters).length, 'mayoristas');
+    mayoristaFilters = {}; // Limpiar filtros anteriores
+    mayoristas.forEach(([id, config]) => {
+        mayoristaFilters[id] = {
+            excludedColors: [],
+            excludedTallas: []
+        };
+    });
+
+    console.log('✅ Filtros inicializados para', Object.keys(mayoristaFilters).length, 'mayoristas activos');
 }
 
 // Funciones de UI
@@ -2833,7 +2908,7 @@ function generateEmpresasUI() {
             btnUp.className = 'number-btn';
             btnUp.innerHTML = '<i class="codicon codicon-chevron-up"></i>';
             btnUp.onclick = () => adjustEmpresaValue(id, 1);
-            
+
             // Botón Bajar
             const btnDown = document.createElement('button');
             btnDown.type = 'button';
@@ -2860,7 +2935,7 @@ function adjustGlobalValue(mayoristaId, delta) {
 
     let currentValue = parseInt(input.value) || 0;
     let newValue = Math.max(0, currentValue + delta); // Solo validar min=0
-    
+
     if (newValue !== currentValue) {
         input.value = newValue;
         // Disparar evento para validaciones existentes
@@ -2876,11 +2951,11 @@ function adjustEmpresaValue(empresaId, delta) {
 
     let currentValue = parseInt(input.value) || 0;
     let newValue = currentValue + delta;
-    
+
     // Validar límites 0-100
     if (newValue > 100) newValue = 100;
     if (newValue < 0) newValue = 0;
-    
+
     if (newValue !== currentValue) {
         input.value = newValue;
         // Disparar evento para recalcular porcentajes
@@ -2892,7 +2967,11 @@ function adjustEmpresaValue(empresaId, delta) {
 function generateMayoristasUI() {
     const container = document.getElementById('mayoristasContainer');
     const mayoristas = Object.entries(allConfigData)
-        .filter(([id, config]) => config.tipoCliente === "Mayorista")
+        .filter(([id, config]) => {
+            return config.tipoCliente === "Mayorista" &&
+                config.estado &&
+                config.estado.toString().toUpperCase().trim() === 'ACTIVO';
+        })
         .sort((a, b) => a[1].nombreCorto.localeCompare(b[1].nombreCorto));
 
     if (mayoristas.length === 0) {
@@ -3290,10 +3369,10 @@ function displayDistributionResults(recData) {
 }
 
 function generateDistributionResultsHTML(recData) {
-    let html = '<h3>REC: ' + recData.A + '</h3>';
+    let html = '';
 
     if (!recData.HR || recData.HR.length === 0) {
-        return html + '<p>No hay extensiones para este REC</p>';
+        return '<p>No hay extensiones para este REC</p>';
     }
 
     html += '<table><thead><tr>';
@@ -3310,31 +3389,17 @@ function generateDistributionResultsHTML(recData) {
     });
 
     // Columnas de mayoristas
-    // ... dentro de generateDistributionResultsHTML ...
-    // Columnas de mayoristas
     activeMayoristas.forEach(mayorista => {
         html += `
             <th>
                 <div class="mayorista-column-header">
                     <div class="header-title">${mayorista.nombre}</div>
-                    <div class="header-controls">
-                        <div class="btn-group">
-                            <button class="btn-sm distribute-btn" data-mayorista="${mayorista.id}" title="Distribuir cantidad">
-                                <i class="codicon codicon-symbol-array"></i>
-                            </button>
-                            <button class="btn-sm filter-btn" data-mayorista="${mayorista.id}" title="Filtrar colores/tallas" onclick="openFilterModal(event)">
-                                <i class="codicon codicon-filter"></i>
-                            </button>
-                            <button class="btn-sm clear-btn" data-mayorista="${mayorista.id}" title="Limpiar valores">
-                                <i class="codicon codicon-clear-all"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="input-group">
+                    <div class="header-controls-single-row">
+                        <div class="input-group global-input-group">
                             <input type="number" min="0" class="global-mayorista-input" 
                                     id="global-input-${mayorista.id}"
                                     data-mayorista="${mayorista.id}" value="0" placeholder="0">
-                            <div class="number-controls">
+                            <div class="number-controls global-number-controls">
                                 <button type="button" class="number-btn" 
                                         onclick="adjustGlobalValue('${mayorista.id}', 1)" 
                                         title="Aumentar">
@@ -3347,7 +3412,16 @@ function generateDistributionResultsHTML(recData) {
                                 </button>
                             </div>
                         </div>
-                        </div>
+                        <button class="btn-sm distribute-btn" data-mayorista="${mayorista.id}" title="Distribuir cantidad">
+                            <i class="codicon codicon-symbol-array"></i>
+                        </button>
+                        <button class="btn-sm filter-btn" data-mayorista="${mayorista.id}" title="Filtrar colores/tallas" onclick="openFilterModal(event)">
+                            <i class="codicon codicon-filter"></i>
+                        </button>
+                        <button class="btn-sm clear-btn" data-mayorista="${mayorista.id}" title="Limpiar valores">
+                            <i class="codicon codicon-clear-all"></i>
+                        </button>
+                    </div>
                 </div>
             </th>
         `;
@@ -3382,7 +3456,7 @@ function generateDistributionResultsHTML(recData) {
         activeMayoristas.forEach(mayorista => {
             html += `
                 <td>
-                    <div class="input-group">
+                    <div class="input-group item-input-group">
                         <input type="number" min="0" max="${cantidad}" 
                                 class="mayorista-input" 
                                 id="input-${mayorista.id}-${rowIndex}"
@@ -3391,7 +3465,7 @@ function generateDistributionResultsHTML(recData) {
                                 value="0"
                                 data-color="${color}"
                                 data-talla="${talla}">
-                        <div class="number-controls">
+                        <div class="number-controls item-number-controls">
                             <button type="button" class="number-btn" 
                                     onclick="adjustDistValue('${mayorista.id}', ${rowIndex}, 1)" 
                                     title="Aumentar">
@@ -3442,24 +3516,24 @@ function adjustDistValue(mayoristaId, rowIndex, delta) {
     // 1. Encontrar el input específico
     const inputSelector = `.mayorista-input[data-row="${rowIndex}"][data-mayorista="${mayoristaId}"]`;
     const input = document.querySelector(inputSelector);
-    
+
     if (!input) return;
 
     // 2. Calcular nuevo valor
     let currentValue = parseInt(input.value) || 0;
     let newValue = currentValue + delta;
-    
+
     // 3. Validar límites (min y max)
     const max = parseInt(input.getAttribute('max')) || 999999;
     const min = parseInt(input.getAttribute('min')) || 0;
-    
+
     if (newValue > max) newValue = max;
     if (newValue < min) newValue = min;
-    
+
     // 4. Si el valor cambió, actualizar y disparar eventos
     if (newValue !== currentValue) {
         input.value = newValue;
-        
+
         // Crear y despachar el evento 'input' manualmente para que 
         // updateMayoristaInput detecte el cambio y recalcule totales
         const event = new Event('input', { bubbles: true });
@@ -3577,6 +3651,12 @@ function openFilterModal(event) {
             excludedColors: [],
             excludedTallas: []
         };
+    }
+
+    // Remover modal existente si hay uno (prevenir duplicados)
+    const existingModal = document.querySelector('.filter-modal');
+    if (existingModal) {
+        document.body.removeChild(existingModal);
     }
 
     // Crear modal
@@ -4016,3 +4096,61 @@ function setupDistributionEventListeners() {
         }
     }
 })();
+
+// ============================================
+// FUNCIONES DE DISTRIBUCIÓN DE EMPRESAS
+// ============================================
+
+// Variable para rastrear el estado del ciclo de distribución
+let empresasDistributionState = 0; // 0 = inicial, 1 = 30%, 2 = 0%, 3 = 100%
+
+/**
+ * Distribuye equitativamente entre empresas
+ * Cicla entre: 30% -> 0% -> 100% -> 30% ...
+ */
+function distributeEmpresasEqually() {
+    // Buscar el input de la segunda empresa (secundaria)
+    const empresaInputs = document.querySelectorAll('.empresa-item input[type="number"]:not(.principal-input)');
+
+    if (empresaInputs.length === 0) {
+        console.log('No hay empresas secundarias para distribuir');
+        return;
+    }
+
+    // Tomar el primer input secundario (segunda empresa)
+    const secondEmpresaInput = empresaInputs[0];
+
+    // Ciclar entre los valores: 30 -> 0 -> 100 -> 30
+    const values = [30, 0, 100];
+    empresasDistributionState = (empresasDistributionState + 1) % values.length;
+    const newValue = values[empresasDistributionState];
+
+    // Asignar el valor
+    secondEmpresaInput.value = newValue;
+
+    // Disparar el evento de cambio para actualizar los cálculos
+    const event = new Event('input', { bubbles: true });
+    secondEmpresaInput.dispatchEvent(event);
+
+    console.log(`Distribución de empresas: ${newValue}%`);
+}
+
+/**
+ * Limpia todos los valores de empresas secundarias
+ */
+function clearEmpresasValues() {
+    // Buscar todos los inputs de empresas secundarias
+    const empresaInputs = document.querySelectorAll('.empresa-item input[type="number"]:not(.principal-input)');
+
+    empresaInputs.forEach(input => {
+        input.value = 0;
+        // Disparar el evento de cambio
+        const event = new Event('input', { bubbles: true });
+        input.dispatchEvent(event);
+    });
+
+    // Resetear el estado del ciclo
+    empresasDistributionState = 0;
+
+    console.log('Valores de empresas limpiados');
+}

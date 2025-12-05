@@ -1503,6 +1503,13 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Quitar borde solo del panel de búsqueda de REC */
+.distribution-panel.search-panel {
+    border: none;
+    box-shadow: none;
+    margin-top: 0;
+}
+
 .distribution-panel .panel-header {
     padding: 16px 20px;
     background-color: var(--sidebar);
@@ -1655,6 +1662,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     border-color: var(--primary) !important;
     cursor: not-allowed;
     opacity: 0.8;
+    border-radius: 6px !important;
+    /* Borde completo cuando no tiene controles */
 }
 
 .mayorista-item {
@@ -1779,13 +1788,13 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 
 /* Panel de resultados */
 .results-panel .panel-content {
-    padding: 16px;
+    padding: 20px;
 }
 
 .results-container {
-    max-height: 600px;
+    height: 100%;
     overflow: auto;
-    padding: 20px;
+    padding: 0px;
 }
 
 
@@ -1817,10 +1826,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 .distribution-module th,
 #distribution-result th {
     background: var(--sidebar);
-    position: sticky;
-    top: 0;
     font-weight: 600;
-    z-index: 10;
     text-transform: uppercase;
     font-size: 12px;
     letter-spacing: 0.5px;
@@ -2198,15 +2204,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     gap: 8px;
 }
 
-#distribution-result table {
-    border-collapse: separate;
-    /* Necesario para el sticky header */
-    border-spacing: 0;
-    width: 100%;
-    margin: 0;
-    font-size: 13px;
-    border: 1px solid var(--border);
-}
+
 
 /* Celdas generales */
 #distribution-result th,
@@ -2232,12 +2230,8 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 0.5px;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    /* Mayor z-index para estar sobre el contenido */
-    box-shadow: 0 1px 0 var(--border);
-    /* Borde visual al hacer scroll */
+    white-space: normal;
+    /* Asegura que el texto se ajuste */
 }
 
 /* Filas */
@@ -2253,10 +2247,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 #distribution-result .total-row {
     background-color: var(--sidebar) !important;
     font-weight: 700;
-    position: sticky;
-    bottom: 0;
-    z-index: 15;
-    box-shadow: 0 -1px 0 var(--border);
+    border-top: 2px solid var(--border);
 }
 
 #distribution-result .total-row td {
@@ -2290,55 +2281,111 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 .mayorista-column-header {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     padding: 4px 0;
-    min-width: 140px;
+    /*min-width: 180px;*/
 }
 
 .mayorista-column-header .header-title {
     font-weight: 700;
     color: var(--primary);
     font-size: 12px;
+    text-align: center;
+    width: 100%;
+    /* Ocupar el 100% del ancho del TH */
 }
 
-.mayorista-column-header .header-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    background: var(--bg);
-    padding: 6px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-}
-
-/* Grupo de botones en el header */
-.mayorista-column-header .btn-group {
+/* Nueva clase para input + botones en una sola fila */
+.mayorista-column-header .header-controls-single-row {
     display: flex;
     gap: 4px;
+    align-items: center;
     justify-content: center;
     width: 100%;
 }
 
-.mayorista-column-header .btn-sm {
-    padding: 4px;
-    width: 24px;
-    height: 24px;
+.mayorista-column-header .global-mayorista-input {
+    width: 70px;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 4px 0 0 4px;
+    border-right: none;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.mayorista-column-header .global-mayorista-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+}
+
+.mayorista-column-header .number-controls {
+    display: flex;
+    flex-direction: column;
+    height: 28px;
+}
+
+.mayorista-column-header .number-btn {
+    flex: 1;
+    width: 20px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
-    background-color: var(--editor);
+    background: var(--sidebar);
     color: var(--text-secondary);
-    border-radius: 3px;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.mayorista-column-header .number-btn:first-child {
+    border-radius: 0 4px 0 0;
+    border-bottom: none;
+}
+
+.mayorista-column-header .number-btn:last-child {
+    border-radius: 0 0 4px 0;
+}
+
+.mayorista-column-header .number-btn:hover {
+    background: var(--hover);
+    color: var(--primary);
+}
+
+.mayorista-column-header .number-btn .codicon {
+    font-size: 10px;
+}
+
+/* Botones de acción en el header */
+.mayorista-column-header .btn-sm {
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background-color: var(--sidebar);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .mayorista-column-header .btn-sm:hover {
     background-color: var(--hover);
     color: var(--primary);
     border-color: var(--primary);
+}
+
+.mayorista-column-header .btn-sm .codicon {
+    font-size: 12px;
 }
 
 /* Input Global en el header */
@@ -2381,14 +2428,6 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
    CONTROLES NUMÉRICOS: CLASE BASE REUTILIZABLE
    ============================================ */
 
-/* Clase base para grupos de inputs numéricos */
-.number-input-group,
-.mayorista-column-header .input-group,
-.empresa-item .input-group {
-    display: flex;
-    align-items: stretch;
-}
-
 /* Ocultar flechas nativas en TODOS los inputs numéricos */
 .number-input-group input[type="number"]::-webkit-outer-spin-button,
 .number-input-group input[type="number"]::-webkit-inner-spin-button,
@@ -2410,11 +2449,13 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     -moz-appearance: textfield;
 }
 
-/* Input Global en el Header */
+
+/* Controles numéricos en el Header del Mayorista */
 .mayorista-column-header .input-group {
-    width: 100%;
+    display: flex;
+    align-items: stretch;
     height: 28px;
-    margin-top: 4px;
+    flex: 0 0 auto;
 }
 
 .mayorista-column-header .global-mayorista-input {
@@ -2442,4 +2483,91 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     width: 100%;
 }
 
-/* Reutilizamos los estilos de botones que ya definimos antes (.number-controls y .number-btn) */
+/* Override para input principal (sin controles numéricos) */
+.empresa-item .principal-input {
+    border-radius: 6px !important;
+    border-right: 1px solid var(--primary) !important;
+}
+
+/* Nuevo: Estilo específico para el input y botones globales en el header */
+.mayorista-column-header .global-input-group {
+    /* Mantenemos el input-group, pero ajustamos el ancho del input dentro */
+    height: 32px;
+    /* Aumenta la altura del grupo para armonizar */
+    flex: 0 0 auto;
+    /* No se expande, toma el tamaño de su contenido */
+}
+
+.mayorista-column-header .global-mayorista-input {
+    /* Aumentar el tamaño del texto */
+    font-size: 13px;
+    width: 60px;
+    /* Ajusta el ancho para que sea armonioso */
+    height: 100%;
+    padding: 4px 8px;
+    /* Ajustar padding */
+}
+
+.mayorista-column-header .global-number-controls {
+    height: 100%;
+    /* Mantiene la altura del grupo */
+}
+
+.mayorista-column-header .global-number-controls .number-btn {
+    width: 24px;
+    /* Aumenta el ancho de los botones */
+    padding: 0;
+}
+
+.mayorista-column-header .global-number-controls .number-btn .codicon {
+    font-size: 12px !important;
+    /* Mantiene el tamaño del icono o lo ajusta ligeramente */
+}
+
+/* Ajuste de los botones de acción (Distribuir, Filtrar, Limpiar) */
+.mayorista-column-header .btn-sm {
+    width: 32px;
+    /* Aumentar el ancho de los botones de acción */
+    height: 32px;
+    /* Aumentar la altura de los botones de acción */
+}
+
+.mayorista-column-header .btn-sm .codicon {
+    font-size: 14px !important;
+    /* Aumentar el tamaño del icono */
+}
+
+
+
+
+/* Controles numéricos por fila */
+#distribution-result td .item-input-group {
+    height: 32px;
+    /* Aumenta la altura del grupo para armonizar */
+}
+
+#distribution-result td .mayorista-input {
+    width: 100%;
+    min-width: 60px;
+    max-width: 80px;
+    padding: 6px 8px;
+    /* Ajusta el padding para que se vea mejor */
+    font-size: 13px;
+    /* Mantiene el tamaño de fuente */
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+    /* Ajuste de radio */
+    border-right: none;
+    text-align: center;
+}
+
+#distribution-result td .item-number-controls {
+    height: 100%;
+    /* Mantiene la altura del grupo */
+}
+
+#distribution-result td .item-number-controls .number-btn {
+    width: 24px;
+    /* Aumenta el ancho de los botones */
+    padding: 0;
+}

@@ -468,23 +468,24 @@
                     <!-- Contenedor Principal -->
                     <div id="distribution-main" class="distribution-main" style="display:none">
                         <!-- Panel de Búsqueda -->
-                        <div class="distribution-panel">
+                        <div class="distribution-panel search-panel">
 
 
-                                <div class="form-group">
-                                    <label for="recInput">
-                                        <i class="codicon codicon-search"></i>
-                                        Buscar REC
-                                    </label>
-                                    <div class="search-container">
-                                        <input type="number" id="recInput" class="form-control"
-                                            placeholder="Buscar por número de REC..."
-                                            oninput="searchDistributionRec()">
-                                        <button class="btn-icon" onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();" title="Limpiar búsqueda">
-                                            <i class="codicon codicon-clear-all"></i>
-                                        </button>
-                                    </div>
+                            <div class="form-group">
+                                <label for="recInput">
+                                    <i class="codicon codicon-search"></i>
+                                    Buscar documento
+                                </label>
+                                <div class="search-container">
+                                    <input type="number" id="recInput" class="form-control"
+                                        placeholder="Buscar por número de REC..." oninput="searchDistributionRec()">
+                                    <button class="btn-icon"
+                                        onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();"
+                                        title="Limpiar búsqueda">
+                                        <i class="codicon codicon-clear-all"></i>
+                                    </button>
                                 </div>
+                            </div>
 
                         </div>
 
@@ -503,10 +504,12 @@
                                             <label class="control-label">Asignación Automática</label>
                                             <div class="control-actions">
                                                 <button class="btn-icon distribute-btn"
+                                                    onclick="distributeEmpresasEqually()"
                                                     title="Distribuir equitativamente">
                                                     <i class="codicon codicon-symbol-array"></i>
                                                 </button>
-                                                <button class="btn-icon clear-btn" title="Restablecer valores">
+                                                <button class="btn-icon clear-btn" onclick="clearEmpresasValues()"
+                                                    title="Restablecer valores">
                                                     <i class="codicon codicon-clear-all"></i>
                                                 </button>
                                             </div>
@@ -562,7 +565,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="panel-content">
+                            <div class="panel-content-table">
                                 <div id="distribution-result" class="results-container">
                                     <div class="empty-state">
                                         <i class="codicon codicon-dashboard"></i>
