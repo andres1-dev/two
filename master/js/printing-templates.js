@@ -12,6 +12,9 @@ function print_abrirPlantillaImpresion(datos, options = {}) {
     // Configuración común
     const currentSearchKey = datos.REC || '';
 
+    // Para códigos QR y de barras, limpiamos el sufijo decimal (ej: 1234.1 -> 1234)
+    const recForCode = String(currentSearchKey).split('.')[0];
+
     // Configuración específica para cliente
     const clienteData = isModoCliente ? datos.DISTRIBUCION.Clientes[clienteNombre] : null;
     const clienteId = isModoCliente ? (clienteData.id || '') : '';
@@ -31,11 +34,11 @@ function print_abrirPlantillaImpresion(datos, options = {}) {
     // Construir los códigos QR y de barras
     let qrData;
     if (isModoCliente) {
-        qrData = `REC${currentSearchKey}-${clienteId}`;
+        qrData = `REC${recForCode}-${clienteId}`;
     } else if (proveedorId) {
-        qrData = `REC${currentSearchKey}-${proveedorId}`;
+        qrData = `REC${recForCode}-${proveedorId}`;
     } else {
-        qrData = `REC${currentSearchKey}`;
+        qrData = `REC${recForCode}`;
     }
 
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrData)}`;
@@ -398,7 +401,7 @@ function print_abrirPlantillaImpresion(datos, options = {}) {
             
             <div class="footer">
                 ${isModoCliente
-            ? `Responsable: <span class="info-value">${datos.COLABORADOR || ''}</span> &nbsp;|&nbsp; `
+            ? `Cantidad: <span class="info-value"><strong>${clienteData.distribucion ? clienteData.distribucion.reduce((acc, item) => acc + (parseInt(item.cantidad) || 0), 0) : 0}</strong></span> &nbsp;|&nbsp; Responsable: <span class="info-value">${datos.COLABORADOR || ''}</span> &nbsp;|&nbsp; `
             : ''}
                 Impreso: ${new Date().toLocaleString('es-ES', {
                 weekday: 'long',
