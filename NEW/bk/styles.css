@@ -2255,69 +2255,84 @@ input[type="number"] {
 
 .mayorista-column-header .header-controls {
     display: flex;
-    flex-direction: row;
-    gap: 0;
-    align-items: stretch;
-    justify-content: flex-start;
-    width: auto;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--editor);
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.mayorista-column-header .controls-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
 }
 
 .mayorista-column-header .btn-group {
     display: flex;
-    gap: 0;
-    align-items: stretch;
-    margin-left: 0;
-    border-left: 1px solid var(--border); /* Divisor entre input y botones */
+    gap: 2px;
+}
+
+.mayorista-column-header .input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    max-width: 120px;
 }
 
 .mayorista-column-header .global-mayorista-input {
-    width: 65px;
-    font-size: 12px;
-    height: auto;
-    padding: 4px 8px;
+    width: 100%;
+    font-size: 11px;
+    height: 24px;
+    padding: 2px 6px;
     text-align: center;
-    border: none; /* Quitamos bordes individuales */
-    border-radius: 0;
-    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
     color: var(--text);
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease;
     font-weight: 500;
-    flex-shrink: 0;
-    box-shadow: none;
-    outline: none;
-    margin-right: 0;
 }
 
 .mayorista-column-header .global-mayorista-input:focus {
-    background: var(--bg);
-    box-shadow: inset 0 0 0 2px var(--primary);
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+}
+
+.mayorista-column-header .global-mayorista-input::placeholder {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: normal;
 }
 
 .mayorista-column-header .btn-sm {
     padding: 4px 6px;
-    height: auto;
-    min-width: 26px;
+    font-size: 10px;
+    height: 24px;
+    min-width: 24px;
+    background: var(--sidebar);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0;
-    transition: all 0.2s ease;
-    border: none; /* Quitamos bordes individuales */
-    background: transparent;
 }
 
 .mayorista-column-header .btn-sm:hover {
     background: var(--hover);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
-.mayorista-column-header .btn-sm:not(:last-child) {
-    border-right: 1px solid var(--border); /* Divisor entre botones */
+.mayorista-column-header .btn-sm .codicon {
+    font-size: 12px !important;
+    width: 12px !important;
+    height: 12px !important;
 }
 
 /* Ajustes específicos para la tabla */

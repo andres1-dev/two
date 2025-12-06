@@ -777,8 +777,6 @@ activeMayoristas.forEach(mayorista => {
             <div class="mayorista-column-header compact">
                 <div class="header-title">${mayorista.nombre}</div>
                 <div class="header-controls">
-                    <input type="number" min="0" class="global-mayorista-input" 
-                            data-mayorista="${mayorista.id}" value="0" placeholder="0">
                     <div class="btn-group">
                         <button class="btn-sm distribute-btn" data-mayorista="${mayorista.id}" title="Distribuir cantidad">
                             <i class="codicon codicon-symbol-array"></i>
@@ -790,6 +788,8 @@ activeMayoristas.forEach(mayorista => {
                             <i class="codicon codicon-clear-all"></i>
                         </button>
                     </div>
+                    <input type="number" min="0" class="global-mayorista-input" 
+                            data-mayorista="${mayorista.id}" value="0" placeholder="0">
                 </div>
             </div>
         </th>
