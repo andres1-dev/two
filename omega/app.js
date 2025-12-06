@@ -2945,12 +2945,31 @@ function adjustGlobalValue(mayoristaId, delta) {
 }
 
 // Función para controles de Empresas
-function adjustEmpresaValue(empresaId, delta) {
+/*function adjustEmpresaValue(empresaId, delta) {
     const input = document.getElementById(`empresa-${empresaId}`);
     if (!input || input.readOnly) return;
 
     let currentValue = parseInt(input.value) || 0;
     let newValue = currentValue + delta;
+
+    // Validar límites 0-100
+    if (newValue > 100) newValue = 100;
+    if (newValue < 0) newValue = 0;
+
+    if (newValue !== currentValue) {
+        input.value = newValue;
+        // Disparar evento para recalcular porcentajes
+        const event = new Event('input', { bubbles: true });
+        input.dispatchEvent(event);
+    }
+}*/
+
+function adjustEmpresaValue(empresaId, delta) {
+    const input = document.getElementById(`empresa-${empresaId}`);
+    if (!input || input.readOnly) return;
+
+    let currentValue = parseInt(input.value) || 0;
+    let newValue = currentValue + (delta * 10); // Cambiar de 10 en 10
 
     // Validar límites 0-100
     if (newValue > 100) newValue = 100;
@@ -4102,7 +4121,7 @@ function setupDistributionEventListeners() {
 // ============================================
 
 // Variable para rastrear el estado del ciclo de distribución
-let empresasDistributionState = 0; // 0 = inicial, 1 = 30%, 2 = 0%, 3 = 100%
+let empresasDistributionState = -1; // 0 = inicial, 1 = 30%, 2 = 0%, 3 = 100%
 
 /**
  * Distribuye equitativamente entre empresas
@@ -4156,10 +4175,167 @@ function clearEmpresasValues() {
 }
 
 
-// guardado de distribucion
+// ============================================
+// FUNCIONES DE PREPARACIÓN Y ENVÍO DE DATOS
+// ============================================ 
 
 // Constantes para distribución
-const DISTRIBUTION_GAS_URL = 'https://script.google.com/macros/s/AKfycbzjzmTx_vvl_wGYY9A1_7kP13XH30BGhxgtvf5EXpGDwJ5Wat8DhSOEHM-kx6J2j51DmA/exec';
+const DISTRIBUTION_API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM'; // Tu API Key
+const DISTRIBUTION_SPREADSHEET_ID = '1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE'; // Tu Spreadsheet ID
+const DISTRIBUTION_SHEET_NAME = 'DATA'; // Nombre de la hoja
+const DISTRIBUTION_GAS_URL = 'https://script.google.com/macros/s/AKfycbzjzmTx_vvl_wGYY9A1_7kP13XH30BGhxgtvf5EXpGDwJ5Wat8DhSOEHM-kx6J2j51DmA/exec'; // Tu URL GAS
+
+// Función para consultar si un REC existe (usando API Key de Google Sheets)
+async function checkIfRecExists(recNumber) {
+    try {
+        console.log(`Consultando si REC ${recNumber} existe...`);
+        
+        // Construir URL para buscar en la hoja DATA
+        const range = `${DISTRIBUTION_SHEET_NAME}!A:A`; // Columna A (Documento)
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.values) {
+            console.log('Hoja vacía, REC no existe');
+            return { exists: false, documents: [] };
+        }
+        
+        // Buscar el REC en la columna A
+        const documentos = data.values.flat();
+        const matchingDocuments = documentos.filter(doc => {
+            if (!doc) return false;
+            
+            // Verificar si coincide exactamente o es un parcial (.1, .2, etc)
+            const docStr = doc.toString();
+            const recStr = recNumber.toString();
+            
+            // Coincidencia exacta
+            if (docStr === recStr) return true;
+            
+            // Coincidencia de parcial (ej: 2514.1 cuando buscamos 2514)
+            if (docStr.startsWith(recStr + '.')) return true;
+            
+            return false;
+        });
+        
+        console.log(`Documentos encontrados para ${recNumber}:`, matchingDocuments);
+        
+        return {
+            exists: matchingDocuments.length > 0,
+            documents: matchingDocuments,
+            count: matchingDocuments.length
+        };
+        
+    } catch (error) {
+        console.error('Error consultando REC:', error);
+        return { 
+            exists: false, 
+            error: error.message,
+            documents: []
+        };
+    }
+}
+
+// Función para obtener el próximo sufijo disponible (ej: .1, .2, .3)
+function getNextAvailableSuffix(existingDocuments, baseRecNumber) {
+    // Extraer todos los sufijos existentes
+    const suffixes = existingDocuments
+        .map(doc => {
+            const match = doc.toString().match(new RegExp(`^${baseRecNumber}\\.(\\d+)$`));
+            return match ? parseInt(match[1]) : 0;
+        })
+        .filter(suffix => suffix > 0)
+        .sort((a, b) => a - b);
+    
+    // Encontrar el siguiente número disponible
+    let nextSuffix = 1;
+    for (const suffix of suffixes) {
+        if (suffix === nextSuffix) {
+            nextSuffix++;
+        } else {
+            break;
+        }
+    }
+    
+    return nextSuffix;
+}
+
+// Función para verificar si un documento fue guardado exitosamente
+async function verifyDocumentSaved(recNumber, maxRetries = 3, delay = 1000) {
+    console.log(`Verificando si documento ${recNumber} fue guardado...`);
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Intento ${attempt} de ${maxRetries}...`);
+            
+            // Esperar un momento antes de verificar
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Consultar si el documento existe ahora
+            const checkResult = await checkIfRecExists(recNumber);
+            
+            if (checkResult.exists) {
+                // Encontrar la fila exacta del documento
+                const range = `${DISTRIBUTION_SHEET_NAME}!A:D`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values) {
+                    for (let i = 0; i < data.values.length; i++) {
+                        const row = data.values[i];
+                        if (row[0] && row[0].toString() === recNumber.toString()) {
+                            console.log(`✅ Documento ${recNumber} verificado en fila ${i + 1}`);
+                            return {
+                                success: true,
+                                verified: true,
+                                fila: i + 1,
+                                estado: row[3] || 'DESCONOCIDO',
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    }
+                }
+                
+                return {
+                    success: true,
+                    verified: true,
+                    message: `Documento ${recNumber} existe pero no se pudo ubicar la fila`
+                };
+            }
+            
+            // Si no existe aún, esperar y reintentar
+            if (attempt < maxRetries) {
+                console.log(`Documento no encontrado, reintentando en ${delay}ms...`);
+                delay *= 2; // Exponential backoff
+            }
+            
+        } catch (error) {
+            console.error(`Error en intento ${attempt}:`, error);
+            if (attempt === maxRetries) {
+                return {
+                    success: false,
+                    verified: false,
+                    error: `Error al verificar: ${error.message}`
+                };
+            }
+        }
+    }
+    
+    return {
+        success: false,
+        verified: false,
+        error: `No se pudo verificar el documento ${recNumber} después de ${maxRetries} intentos`
+    };
+}
 
 // Función para preparar datos en el formato específico
 function prepareDistributionDataFormat() {
@@ -4320,9 +4496,9 @@ function prepareDistributionDataFormat() {
     return distributionData;
 }
 
-// Función principal para guardar distribución
+// Función principal para guardar distribución (CONFIRMACIÓN SOLO POR API KEY) - VERSIÓN SIMPLIFICADA
 async function saveDistributionToSheets() {
-    console.log('Iniciando guardado de distribución en formato específico...');
+    console.log('Iniciando proceso de guardado...');
     
     // 1. Preparar datos en formato específico
     const distributionData = prepareDistributionDataFormat();
@@ -4330,116 +4506,197 @@ async function saveDistributionToSheets() {
         showMessage('No hay datos de distribución para guardar', 'warning');
         return;
     }
-
-    // 2. Mostrar resumen para confirmación
+    
+    const baseRecNumber = distributionData.Documento;
+    
+    // 2. CONSULTAR si el REC ya existe
+    const checkResult = await checkIfRecExists(baseRecNumber);
+    
+    let recNumberToUse = baseRecNumber;
+    let actionType = 'crear_nuevo';
+    
+    // Si el REC existe, preguntar al usuario
+    if (checkResult.exists) {
+        console.log(`REC ${baseRecNumber} ya existe con ${checkResult.count} documentos`);
+        
+        let message = `El REC <strong>${baseRecNumber}</strong> ya existe en el sistema.<br><br>`;
+        
+        if (checkResult.documents.length > 0) {
+            message += `<strong>Documentos encontrados:</strong><br>`;
+            message += checkResult.documents.map(doc => `• ${doc}`).join('<br>');
+            message += `<br><br>`;
+        }
+        
+        message += `<strong>¿Qué deseas hacer?</strong><br><br>`;
+        
+        const userChoice = await showQuickChoice(
+            'REC Existente Detectado',
+            message,
+            [
+                {
+                    id: 'actualizar',
+                    text: 'Actualizar documento principal',
+                    description: 'Reemplazará la distribución existente del REC principal',
+                    icon: 'codicon-sync',
+                    color: 'var(--warning)'
+                },
+                {
+                    id: 'parcial',
+                    text: 'Crear documento parcial',
+                    description: `Creará un nuevo documento ${baseRecNumber}.${getNextAvailableSuffix(checkResult.documents, baseRecNumber)}`,
+                    icon: 'codicon-add',
+                    color: 'var(--info)'
+                },
+                {
+                    id: 'cancelar',
+                    text: 'Cancelar',
+                    description: 'No guardar los cambios',
+                    icon: 'codicon-close',
+                    color: 'var(--error)'
+                }
+            ]
+        );
+        
+        if (!userChoice || userChoice === 'cancelar') {
+            console.log('Usuario canceló la operación');
+            return;
+        }
+        
+        if (userChoice === 'actualizar') {
+            actionType = 'actualizar';
+            recNumberToUse = baseRecNumber;
+            
+            const confirmUpdate = await showQuickConfirm(
+                'Confirmar Actualización',
+                `¿Estás seguro de ACTUALIZAR el documento principal ${baseRecNumber}?<br><br>
+                <span style="color: var(--warning);">
+                    ⚠️ Esto reemplazará la distribución existente.
+                </span>`,
+                'Sí, Actualizar',
+                'Cancelar',
+                'warning'
+            );
+            
+            if (!confirmUpdate) return;
+            
+        } else if (userChoice === 'parcial') {
+            actionType = 'crear_parcial';
+            const nextSuffix = getNextAvailableSuffix(checkResult.documents, baseRecNumber);
+            recNumberToUse = `${baseRecNumber}.${nextSuffix}`;
+            
+            const confirmPartial = await showQuickConfirm(
+                'Crear Documento Parcial',
+                `Se creará un nuevo documento: <strong>${recNumberToUse}</strong><br><br>
+                Este será un registro independiente del documento principal.`,
+                'Sí, Crear Parcial',
+                'Cancelar',
+                'info'
+            );
+            
+            if (!confirmPartial) return;
+        }
+    }
+    
+    // 3. Actualizar el número de documento
+    distributionData.Documento = recNumberToUse;
+    
+    // 4. Mostrar resumen final
     const clientesCount = Object.keys(distributionData.Clientes).length;
     let totalItems = 0;
     
-    // Calcular total de items
     Object.values(distributionData.Clientes).forEach(cliente => {
         if (cliente.distribucion) {
             totalItems += cliente.distribucion.length;
         }
     });
     
-    // Crear resumen de clientes
     const clientesResumen = Object.keys(distributionData.Clientes)
         .map(nombre => `• ${nombre}`)
         .join('<br>');
-
-    const confirmed = await showQuickConfirm(
-        'Guardar Distribución',
-        `¿Deseas guardar la distribución del REC <strong>${distributionData.Documento}</strong>?<br><br>
-         <strong>Resumen:</strong><br>
-         • Documento: ${distributionData.Documento}<br>
+    
+    const finalConfirm = await showQuickConfirm(
+        'Confirmar Guardado Final',
+        `<strong>${actionType === 'actualizar' ? 'ACTUALIZACIÓN' : 'NUEVO REGISTRO'}</strong><br><br>
+         • Documento: <strong>${recNumberToUse}</strong><br>
+         • Tipo: ${actionType === 'actualizar' ? 'Actualización' : actionType === 'crear_parcial' ? 'Parcial' : 'Nuevo'}<br>
          • Clientes: ${clientesCount}<br>
          • Items totales: ${totalItems}<br><br>
          <strong>Clientes incluidos:</strong><br>
          ${clientesResumen}`,
-        'Guardar',
+        actionType === 'actualizar' ? 'Actualizar' : 'Guardar',
         'Cancelar',
-        'info'
+        actionType === 'actualizar' ? 'warning' : 'info'
     );
-
-    if (!confirmed) {
+    
+    if (!finalConfirm) {
         return;
     }
-
-    // 3. Mostrar loading
-    const loading = showQuickLoading('Guardando distribución...');
+    
+    // 5. Mostrar loading
+    const loadingMessage = actionType === 'actualizar' 
+        ? `Actualizando documento ${recNumberToUse}...` 
+        : `Guardando documento ${recNumberToUse}...`;
+    
+    const loading = showQuickLoading(loadingMessage);
     const saveBtn = document.getElementById('saveDistributionsBtn');
     if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+        saveBtn.innerHTML = `<span class="loading-spinner"></span>`;
     }
-
+    
     try {
-        // 4. Enviar datos al GAS
-        const response = await sendToDistributionGAS(distributionData);
+        // 6. Enviar datos al GAS (ignorando respuesta)
+        console.log(`Enviando ${recNumberToUse} al GAS...`);
+        await sendToDistributionGAS(distributionData);
         
-        // 5. Manejar respuesta
-        if (response.success) {
-            const mensaje = `✅ Distribución ${distributionData.Documento} guardada exitosamente`;
-            showMessage(mensaje, 'success', 4000);
+        // 7. ESPERAR 2 segundos para que Google Sheets procese
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 8. VERIFICAR usando API Key
+        console.log(`Verificando guardado de ${recNumberToUse}...`);
+        const verification = await verifyDocumentSavedExhaustive(recNumberToUse);
+        
+        if (verification.success && verification.verified) {
+            // ÉXITO COMPLETO - Documento verificado
+            const successType = actionType === 'actualizar' ? 'actualizado' : 'guardado';
+            const successIcon = actionType === 'actualizar' ? 'sync' : 'check';
             
-            // Mostrar detalles en consola
-            console.log('Distribución guardada exitosamente:', {
-                documento: distributionData.Documento,
-                fila: response.details?.fila,
-                clientes: Object.keys(distributionData.Clientes),
-                totalItems: totalItems
+            // NOTIFICACIÓN SIMPLE DE ÉXITO
+            showMessage(
+                `${recNumberToUse} ${successType} exitosamente (Fila: ${verification.fila})`,
+                'success',
+                5000
+            );
+            
+            console.log('Guardado verificado:', {
+                documento: recNumberToUse,
+                fila: verification.fila,
+                estado: verification.estado,
+                accion: actionType
             });
             
-            // Opcional: limpiar o resetear formulario
-            // document.getElementById('recInput').value = '';
-            
-            // Mostrar confirmación en el panel de resultados
-            const resultDiv = document.getElementById('distribution-result');
-            if (resultDiv) {
-                resultDiv.innerHTML = `
-                    <div class="success-state">
-                        <div style="text-align: center; padding: 30px;">
-                            <i class="codicon codicon-check" style="font-size: 48px; color: var(--success); margin-bottom: 16px;"></i>
-                            <h3 style="color: var(--success); margin-bottom: 8px;">Distribución Guardada</h3>
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                                Documento: <strong>${distributionData.Documento}</strong><br>
-                                Guardado en fila: <strong>${response.details?.fila || 'N/A'}</strong>
-                            </p>
-                            <div style="background: var(--sidebar); padding: 12px; border-radius: 6px; margin-top: 16px;">
-                                <p style="font-size: 12px; margin: 0; color: var(--text-secondary);">
-                                    <strong>Clientes incluidos:</strong><br>
-                                    ${Object.keys(distributionData.Clientes).join(', ')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
         } else {
-            // Si es duplicado, preguntar si desea actualizar
-            if (response.duplicate && response.row) {
-                const updateConfirmed = confirm(
-                    `El documento ${distributionData.Documento} ya existe en la fila ${response.row}.\n\n¿Deseas actualizarlo?`
-                );
-                
-                if (updateConfirmed) {
-                    // Forzar actualización enviando de nuevo
-                    const updateResponse = await sendToDistributionGAS(distributionData);
-                    if (updateResponse.success) {
-                        showMessage(`✅ Documento ${distributionData.Documento} actualizado`, 'success', 3000);
-                    } else {
-                        throw new Error(updateResponse.message || 'Error al actualizar');
-                    }
-                }
-            } else {
-                throw new Error(response.message || 'Error desconocido');
-            }
+            // Advertencia - No se pudo verificar automáticamente
+            console.warn('No se pudo verificar automáticamente:', verification);
+            
+            // NOTIFICACIÓN SIMPLE DE ADVERTENCIA
+            showMessage(
+                `⚠️ ${recNumberToUse} enviado al sistema (verificación falló)`,
+                'warning',
+                5000
+            );
         }
+        
     } catch (error) {
-        console.error('Error guardando distribución:', error);
-        showMessage(`❌ Error al guardar: ${error.message}`, 'error', 4000);
+        console.error('Error inesperado:', error);
+        // NOTIFICACIÓN SIMPLE DE ERROR
+        showMessage(
+            `❌ Error: ${error.message}`,
+            'error',
+            5000
+        );
     } finally {
-        // 6. Restaurar UI
+        // 9. Restaurar UI
         loading.close();
         if (saveBtn) {
             saveBtn.disabled = false;
@@ -4449,39 +4706,251 @@ async function saveDistributionToSheets() {
     }
 }
 
+// Función de verificación EXHAUSTIVA
+async function verifyDocumentSavedExhaustive(recNumber, maxRetries = 5, initialDelay = 1000) {
+    console.log(`Verificación exhaustiva para ${recNumber}...`);
+    
+    let delay = initialDelay;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Intento ${attempt}/${maxRetries} (espera: ${delay}ms)...`);
+            
+            // Esperar antes de verificar
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Consultar la hoja completa
+            const range = `${DISTRIBUTION_SHEET_NAME}!A:E`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.values || data.values.length === 0) {
+                console.log('Hoja vacía en intento', attempt);
+                continue;
+            }
+            
+            // Buscar el documento
+            for (let i = 0; i < data.values.length; i++) {
+                const row = data.values[i];
+                if (row[0] && row[0].toString() === recNumber.toString()) {
+                    console.log(`✅ Documento encontrado en fila ${i + 1}`);
+                    
+                    return {
+                        success: true,
+                        verified: true,
+                        fila: i + 1,
+                        documento: recNumber,
+                        estado: row[3] || 'DESCONOCIDO',
+                        comentarios: row[4] || '',
+                        timestamp: new Date().toISOString(),
+                        verificationMethod: 'Google Sheets API',
+                        attempt: attempt
+                    };
+                }
+            }
+            
+            console.log(`Documento ${recNumber} no encontrado en intento ${attempt}`);
+            
+            // Aumentar delay exponencialmente
+            delay *= 2;
+            
+        } catch (error) {
+            console.error(`Error en intento ${attempt}:`, error);
+            
+            if (attempt === maxRetries) {
+                return {
+                    success: false,
+                    verified: false,
+                    error: `Error después de ${maxRetries} intentos: ${error.message}`,
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            delay *= 2; // Backoff exponencial
+        }
+    }
+    
+    return {
+        success: false,
+        verified: false,
+        error: `No se encontró el documento ${recNumber} después de ${maxRetries} intentos`,
+        timestamp: new Date().toISOString()
+    };
+}
+
+// Función para mostrar opciones al usuario
+function showQuickChoice(title, message, options) {
+    return new Promise((resolve) => {
+        const modal = createModal(title, `
+            <div style="padding: 24px; max-width: 500px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 16px 0; color: var(--text);">${title}</h3>
+                    <div style="color: var(--text-secondary); line-height: 1.5;">${message}</div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+                    ${options.map(option => `
+                        <button class="choice-option" data-choice="${option.id}" 
+                                style="text-align: left; padding: 12px 16px; border: 1px solid var(--border); 
+                                       border-radius: 6px; background: var(--sidebar); cursor: pointer;
+                                       transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="color: ${option.color};">
+                                    <i class="codicon ${option.icon}"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--text);">${option.text}</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                        ${option.description}
+                                    </div>
+                                </div>
+                                <i class="codicon codicon-chevron-right" style="color: var(--text-secondary);"></i>
+                            </div>
+                        </button>
+                    `).join('')}
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeChoiceModal(null)">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        `, false);
+        
+        // Añadir estilos para las opciones
+        const style = document.createElement('style');
+        style.textContent = `
+            .choice-option:hover {
+                background: var(--hover) !important;
+                border-color: var(--primary) !important;
+                transform: translateY(-1px);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Manejar clics en opciones
+        modal.querySelectorAll('.choice-option').forEach(button => {
+            button.addEventListener('click', function() {
+                const choice = this.dataset.choice;
+                closeChoiceModal(choice);
+            });
+        });
+        
+        // Función para cerrar el modal
+        window.closeChoiceModal = function(choice) {
+            if (style && style.parentNode) {
+                style.remove();
+            }
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+            resolve(choice);
+        };
+    });
+}
+
+// Función para actualizar la UI con resultados
+function updateDistributionResultUI(details) {
+    const resultDiv = document.getElementById('distribution-result');
+    if (!resultDiv) return;
+    
+    const estadoColor = details.estado === 'DIRECTO' ? 'var(--success)' : 'var(--warning)';
+    
+    resultDiv.innerHTML = `
+        <div class="success-state">
+            <div style="text-align: center; padding: 30px;">
+                <i class="codicon codicon-check" style="font-size: 48px; color: ${estadoColor}; margin-bottom: 16px;"></i>
+                <h3 style="color: ${estadoColor}; margin-bottom: 8px;">
+                    ${details.accion === 'actualizar' ? 'ACTUALIZADO' : 'GUARDADO'}
+                </h3>
+                
+                <div style="background: var(--sidebar); padding: 16px; border-radius: 8px; margin: 20px 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left;">
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Documento</div>
+                            <div style="font-weight: 600; font-size: 18px;">${details.documento}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Fila</div>
+                            <div style="font-weight: 600;">${details.fila || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Estado</div>
+                            <div style="font-weight: 600; color: ${estadoColor};">${details.estado}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Hora</div>
+                            <div style="font-weight: 600;">${details.timestamp}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="color: var(--text-secondary); font-size: 13px;">
+                    ${details.accion === 'actualizar' 
+                        ? 'La distribución existente ha sido actualizada.' 
+                        : details.accion === 'crear_parcial'
+                        ? 'Se ha creado un nuevo documento parcial.'
+                        : 'Se ha creado un nuevo documento.'}
+                </p>
+                
+                <button class="btn-secondary" onclick="searchDistributionRec()" style="margin-top: 20px;">
+                    <i class="codicon codicon-refresh"></i> Buscar Otro REC
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 // Función para enviar datos al GAS (actualizada)
+// Función para enviar datos al GAS (SIEMPRE devuelve éxito)
 async function sendToDistributionGAS(data) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
         const url = DISTRIBUTION_GAS_URL;
         
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.timeout = 30000; // 30 segundos timeout
+        xhr.timeout = 10000; // 10 segundos
         
+        // SIEMPRE resolver como éxito, ignorar cualquier error
         xhr.onload = function() {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                resolve(response);
-            } catch (error) {
-                console.error('Error parsing response:', error, 'Raw:', xhr.responseText);
-                reject(new Error('Error al parsear respuesta del servidor'));
-            }
+            console.log('GAS respondió (ignorando contenido):', xhr.status);
+            resolve({
+                success: true,
+                message: 'Datos enviados al servidor',
+                httpStatus: xhr.status
+            });
         };
         
         xhr.onerror = function() {
-            reject(new Error('Error de conexión con el servidor'));
+            console.log('Error de conexión con GAS (ignorado)');
+            resolve({
+                success: true, // IMPORTANTE: SIEMPRE true
+                message: 'Datos enviados (error de conexión ignorado)'
+            });
         };
         
         xhr.ontimeout = function() {
-            reject(new Error('Tiempo de espera agotado (30 segundos)'));
+            console.log('Timeout con GAS (ignorado)');
+            resolve({
+                success: true, // IMPORTANTE: SIEMPRE true
+                message: 'Datos enviados (timeout ignorado)'
+            });
         };
         
-        // Enviar datos en formato URL-encoded
+        // Enviar datos
         const params = new URLSearchParams();
         params.append('datos', JSON.stringify(data));
         
-        console.log('Enviando datos al GAS:', data);
+        console.log('Enviando datos al GAS (ignorando respuesta):', data.Documento);
         xhr.send(params.toString());
     });
 }
@@ -4627,3 +5096,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+

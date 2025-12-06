@@ -2945,12 +2945,31 @@ function adjustGlobalValue(mayoristaId, delta) {
 }
 
 // Función para controles de Empresas
-function adjustEmpresaValue(empresaId, delta) {
+/*function adjustEmpresaValue(empresaId, delta) {
     const input = document.getElementById(`empresa-${empresaId}`);
     if (!input || input.readOnly) return;
 
     let currentValue = parseInt(input.value) || 0;
     let newValue = currentValue + delta;
+
+    // Validar límites 0-100
+    if (newValue > 100) newValue = 100;
+    if (newValue < 0) newValue = 0;
+
+    if (newValue !== currentValue) {
+        input.value = newValue;
+        // Disparar evento para recalcular porcentajes
+        const event = new Event('input', { bubbles: true });
+        input.dispatchEvent(event);
+    }
+}*/
+
+function adjustEmpresaValue(empresaId, delta) {
+    const input = document.getElementById(`empresa-${empresaId}`);
+    if (!input || input.readOnly) return;
+
+    let currentValue = parseInt(input.value) || 0;
+    let newValue = currentValue + (delta * 10); // Cambiar de 10 en 10
 
     // Validar límites 0-100
     if (newValue > 100) newValue = 100;
@@ -4102,7 +4121,7 @@ function setupDistributionEventListeners() {
 // ============================================
 
 // Variable para rastrear el estado del ciclo de distribución
-let empresasDistributionState = 0; // 0 = inicial, 1 = 30%, 2 = 0%, 3 = 100%
+let empresasDistributionState = -1; // 0 = inicial, 1 = 30%, 2 = 0%, 3 = 100%
 
 /**
  * Distribuye equitativamente entre empresas
@@ -4154,3 +4173,928 @@ function clearEmpresasValues() {
 
     console.log('Valores de empresas limpiados');
 }
+
+
+// ============================================
+// FUNCIONES DE PREPARACIÓN Y ENVÍO DE DATOS
+// ============================================ 
+
+// Constantes para distribución
+const DISTRIBUTION_API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM'; // Tu API Key
+const DISTRIBUTION_SPREADSHEET_ID = '1d5dCCCgiWXfM6vHu3zGGKlvK2EycJtT7Uk4JqUjDOfE'; // Tu Spreadsheet ID
+const DISTRIBUTION_SHEET_NAME = 'DATA'; // Nombre de la hoja
+const DISTRIBUTION_GAS_URL = 'https://script.google.com/macros/s/AKfycbzjzmTx_vvl_wGYY9A1_7kP13XH30BGhxgtvf5EXpGDwJ5Wat8DhSOEHM-kx6J2j51DmA/exec'; // Tu URL GAS
+
+// Función para consultar si un REC existe (usando API Key de Google Sheets)
+async function checkIfRecExists(recNumber) {
+    try {
+        console.log(`Consultando si REC ${recNumber} existe...`);
+        
+        // Construir URL para buscar en la hoja DATA
+        const range = `${DISTRIBUTION_SHEET_NAME}!A:A`; // Columna A (Documento)
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.values) {
+            console.log('Hoja vacía, REC no existe');
+            return { exists: false, documents: [] };
+        }
+        
+        // Buscar el REC en la columna A
+        const documentos = data.values.flat();
+        const matchingDocuments = documentos.filter(doc => {
+            if (!doc) return false;
+            
+            // Verificar si coincide exactamente o es un parcial (.1, .2, etc)
+            const docStr = doc.toString();
+            const recStr = recNumber.toString();
+            
+            // Coincidencia exacta
+            if (docStr === recStr) return true;
+            
+            // Coincidencia de parcial (ej: 2514.1 cuando buscamos 2514)
+            if (docStr.startsWith(recStr + '.')) return true;
+            
+            return false;
+        });
+        
+        console.log(`Documentos encontrados para ${recNumber}:`, matchingDocuments);
+        
+        return {
+            exists: matchingDocuments.length > 0,
+            documents: matchingDocuments,
+            count: matchingDocuments.length
+        };
+        
+    } catch (error) {
+        console.error('Error consultando REC:', error);
+        return { 
+            exists: false, 
+            error: error.message,
+            documents: []
+        };
+    }
+}
+
+// Función para obtener el próximo sufijo disponible (ej: .1, .2, .3)
+function getNextAvailableSuffix(existingDocuments, baseRecNumber) {
+    // Extraer todos los sufijos existentes
+    const suffixes = existingDocuments
+        .map(doc => {
+            const match = doc.toString().match(new RegExp(`^${baseRecNumber}\\.(\\d+)$`));
+            return match ? parseInt(match[1]) : 0;
+        })
+        .filter(suffix => suffix > 0)
+        .sort((a, b) => a - b);
+    
+    // Encontrar el siguiente número disponible
+    let nextSuffix = 1;
+    for (const suffix of suffixes) {
+        if (suffix === nextSuffix) {
+            nextSuffix++;
+        } else {
+            break;
+        }
+    }
+    
+    return nextSuffix;
+}
+
+// Función para verificar si un documento fue guardado exitosamente
+async function verifyDocumentSaved(recNumber, maxRetries = 3, delay = 1000) {
+    console.log(`Verificando si documento ${recNumber} fue guardado...`);
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Intento ${attempt} de ${maxRetries}...`);
+            
+            // Esperar un momento antes de verificar
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Consultar si el documento existe ahora
+            const checkResult = await checkIfRecExists(recNumber);
+            
+            if (checkResult.exists) {
+                // Encontrar la fila exacta del documento
+                const range = `${DISTRIBUTION_SHEET_NAME}!A:D`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values) {
+                    for (let i = 0; i < data.values.length; i++) {
+                        const row = data.values[i];
+                        if (row[0] && row[0].toString() === recNumber.toString()) {
+                            console.log(`✅ Documento ${recNumber} verificado en fila ${i + 1}`);
+                            return {
+                                success: true,
+                                verified: true,
+                                fila: i + 1,
+                                estado: row[3] || 'DESCONOCIDO',
+                                timestamp: new Date().toISOString()
+                            };
+                        }
+                    }
+                }
+                
+                return {
+                    success: true,
+                    verified: true,
+                    message: `Documento ${recNumber} existe pero no se pudo ubicar la fila`
+                };
+            }
+            
+            // Si no existe aún, esperar y reintentar
+            if (attempt < maxRetries) {
+                console.log(`Documento no encontrado, reintentando en ${delay}ms...`);
+                delay *= 2; // Exponential backoff
+            }
+            
+        } catch (error) {
+            console.error(`Error en intento ${attempt}:`, error);
+            if (attempt === maxRetries) {
+                return {
+                    success: false,
+                    verified: false,
+                    error: `Error al verificar: ${error.message}`
+                };
+            }
+        }
+    }
+    
+    return {
+        success: false,
+        verified: false,
+        error: `No se pudo verificar el documento ${recNumber} después de ${maxRetries} intentos`
+    };
+}
+
+// Función para preparar datos en el formato específico
+function prepareDistributionDataFormat() {
+    if (!currentRecData) {
+        showMessage('No hay datos de REC cargados', 'error');
+        return null;
+    }
+
+    const recNumber = document.getElementById('recInput').value.trim();
+    if (!recNumber) {
+        showMessage('Ingrese un número de REC', 'error');
+        return null;
+    }
+
+    // Obtener todos los inputs de empresas para calcular totales
+    const empresaInputs = document.querySelectorAll('#empresasContainer input[type="number"]');
+    let totalPorcentaje = 0;
+    
+    // Calcular el porcentaje total asignado
+    empresaInputs.forEach(input => {
+        if (input.value) {
+            totalPorcentaje += parseInt(input.value) || 0;
+        }
+    });
+
+    // Estructura base
+    const distributionData = {
+        Documento: recNumber,
+        Clientes: {}
+    };
+
+    // 1. Procesar empresas como Clientes principales
+    // Primero, calcular porcentaje para la empresa principal (resta)
+    const empresaPrincipal = empresasData.find(([id, config]) => config.tipoEmpresa === "Principal");
+    const empresasSecundarias = empresasData.filter(([id, config]) => config.tipoEmpresa === "Secundaria");
+    
+    let porcentajePrincipal = 100;
+    
+    // Restar porcentajes de empresas secundarias
+    empresasSecundarias.forEach(([id, config]) => {
+        const input = document.getElementById(`empresa-${id}`);
+        if (input && input.value) {
+            porcentajePrincipal -= parseInt(input.value) || 0;
+        }
+    });
+    
+    // Asegurar que no sea negativo
+    porcentajePrincipal = Math.max(0, porcentajePrincipal);
+    
+    // Ahora procesar cada empresa con porcentajes corregidos
+    empresasData.forEach(([id, config]) => {
+        const clienteNombre = config.nombreCorto;
+        
+        // Determinar porcentaje correcto
+        let porcentajeCliente;
+        if (config.tipoEmpresa === "Principal") {
+            porcentajeCliente = porcentajePrincipal;
+        } else {
+            const input = document.getElementById(`empresa-${id}`);
+            porcentajeCliente = input ? parseInt(input.value) || 0 : 0;
+        }
+        
+        // Obtener total de esta empresa
+        let totalEmpresa = 0;
+        
+        if (config.tipoEmpresa === "Principal") {
+            const totalElement = document.querySelector('.principal-total');
+            totalEmpresa = parseInt(totalElement?.textContent) || 0;
+        } else {
+            const totalElement = document.querySelector(`.secundaria-total[data-empresa="${id}"]`);
+            totalEmpresa = parseInt(totalElement?.textContent) || 0;
+        }
+
+        // Si tiene asignación, procesar detalle por fila
+        if (totalEmpresa > 0 && currentRecData.HR) {
+            const distribucion = [];
+            
+            currentRecData.HR.forEach((row, rowIndex) => {
+                const codigo = row[0] || '';
+                const color = row[1] || '';
+                const talla = row[2] || '';
+                
+                // Obtener cantidad asignada a esta empresa
+                let cantidadEmpresa = 0;
+                
+                if (config.tipoEmpresa === "Principal") {
+                    const principalCell = document.querySelector(`.principal-cell[data-row="${rowIndex}"]`);
+                    cantidadEmpresa = parseInt(principalCell?.textContent) || 0;
+                } else {
+                    const secundariaCell = document.querySelector(`.secundaria-cell[data-row="${rowIndex}"][data-empresa="${id}"]`);
+                    cantidadEmpresa = parseInt(secundariaCell?.textContent) || 0;
+                }
+                
+                if (cantidadEmpresa > 0) {
+                    distribucion.push({
+                        codigo: codigo,
+                        color: color,
+                        talla: talla,
+                        cantidad: cantidadEmpresa
+                    });
+                }
+            });
+            
+            if (distribucion.length > 0) {
+                // Solo incluir porcentaje si es mayor que 0
+                const clienteData = {
+                    id: id,
+                    distribucion: distribucion
+                };
+                
+                if (porcentajeCliente > 0) {
+                    clienteData.porcentaje = `${porcentajeCliente}%`;
+                }
+                
+                distributionData.Clientes[clienteNombre] = clienteData;
+            }
+        }
+    });
+
+    // 2. Procesar mayoristas como Clientes adicionales
+    activeMayoristas.forEach(mayorista => {
+        const totalElement = document.querySelector(`.mayorista-total[data-mayorista="${mayorista.id}"]`);
+        const totalMayorista = parseInt(totalElement?.textContent) || 0;
+
+        if (totalMayorista > 0 && currentRecData.HR) {
+            const distribucion = [];
+            
+            currentRecData.HR.forEach((row, rowIndex) => {
+                const codigo = row[0] || '';
+                const color = row[1] || '';
+                const talla = row[2] || '';
+                
+                // Obtener cantidad para este mayorista
+                const input = document.querySelector(`.mayorista-input[data-row="${rowIndex}"][data-mayorista="${mayorista.id}"]`);
+                const cantidadMayorista = parseInt(input?.value) || 0;
+                
+                if (cantidadMayorista > 0) {
+                    distribucion.push({
+                        codigo: codigo,
+                        color: color,
+                        talla: talla,
+                        cantidad: cantidadMayorista
+                    });
+                }
+            });
+            
+            if (distribucion.length > 0) {
+                // Mayoristas no llevan porcentaje
+                distributionData.Clientes[mayorista.nombre] = {
+                    id: mayorista.id,
+                    distribucion: distribucion
+                };
+            }
+        }
+    });
+
+    console.log('Datos preparados en formato específico:', distributionData);
+    return distributionData;
+}
+
+// Función principal para guardar distribución (CONFIRMACIÓN SOLO POR API KEY) - VERSIÓN SIMPLIFICADA
+async function saveDistributionToSheets() {
+    console.log('Iniciando proceso de guardado...');
+    
+    // 1. Preparar datos en formato específico
+    const distributionData = prepareDistributionDataFormat();
+    if (!distributionData || Object.keys(distributionData.Clientes).length === 0) {
+        showMessage('No hay datos de distribución para guardar', 'warning');
+        return;
+    }
+    
+    const baseRecNumber = distributionData.Documento;
+    
+    // 2. CONSULTAR si el REC ya existe
+    const checkResult = await checkIfRecExists(baseRecNumber);
+    
+    let recNumberToUse = baseRecNumber;
+    let actionType = 'crear_nuevo';
+    
+    // Si el REC existe, preguntar al usuario
+    if (checkResult.exists) {
+        console.log(`REC ${baseRecNumber} ya existe con ${checkResult.count} documentos`);
+        
+        let message = `El REC <strong>${baseRecNumber}</strong> ya existe en el sistema.<br><br>`;
+        
+        if (checkResult.documents.length > 0) {
+            message += `<strong>Documentos encontrados:</strong><br>`;
+            message += checkResult.documents.map(doc => `• ${doc}`).join('<br>');
+            message += `<br><br>`;
+        }
+        
+        message += `<strong>¿Qué deseas hacer?</strong><br><br>`;
+        
+        const userChoice = await showQuickChoice(
+            'REC Existente Detectado',
+            message,
+            [
+                {
+                    id: 'actualizar',
+                    text: 'Actualizar documento principal',
+                    description: 'Reemplazará la distribución existente del REC principal',
+                    icon: 'codicon-sync',
+                    color: 'var(--warning)'
+                },
+                {
+                    id: 'parcial',
+                    text: 'Crear documento parcial',
+                    description: `Creará un nuevo documento ${baseRecNumber}.${getNextAvailableSuffix(checkResult.documents, baseRecNumber)}`,
+                    icon: 'codicon-add',
+                    color: 'var(--info)'
+                },
+                {
+                    id: 'cancelar',
+                    text: 'Cancelar',
+                    description: 'No guardar los cambios',
+                    icon: 'codicon-close',
+                    color: 'var(--error)'
+                }
+            ]
+        );
+        
+        if (!userChoice || userChoice === 'cancelar') {
+            console.log('Usuario canceló la operación');
+            return;
+        }
+        
+        if (userChoice === 'actualizar') {
+            actionType = 'actualizar';
+            recNumberToUse = baseRecNumber;
+            
+            const confirmUpdate = await showQuickConfirm(
+                'Confirmar Actualización',
+                `¿Estás seguro de ACTUALIZAR el documento principal ${baseRecNumber}?<br><br>
+                <span style="color: var(--warning);">
+                    ⚠️ Esto reemplazará la distribución existente.
+                </span>`,
+                'Sí, Actualizar',
+                'Cancelar',
+                'warning'
+            );
+            
+            if (!confirmUpdate) return;
+            
+        } else if (userChoice === 'parcial') {
+            actionType = 'crear_parcial';
+            const nextSuffix = getNextAvailableSuffix(checkResult.documents, baseRecNumber);
+            recNumberToUse = `${baseRecNumber}.${nextSuffix}`;
+            
+            const confirmPartial = await showQuickConfirm(
+                'Crear Documento Parcial',
+                `Se creará un nuevo documento: <strong>${recNumberToUse}</strong><br><br>
+                Este será un registro independiente del documento principal.`,
+                'Sí, Crear Parcial',
+                'Cancelar',
+                'info'
+            );
+            
+            if (!confirmPartial) return;
+        }
+    }
+    
+    // 3. Actualizar el número de documento
+    distributionData.Documento = recNumberToUse;
+    
+    // 4. Mostrar resumen final
+    const clientesCount = Object.keys(distributionData.Clientes).length;
+    let totalItems = 0;
+    
+    Object.values(distributionData.Clientes).forEach(cliente => {
+        if (cliente.distribucion) {
+            totalItems += cliente.distribucion.length;
+        }
+    });
+    
+    const clientesResumen = Object.keys(distributionData.Clientes)
+        .map(nombre => `• ${nombre}`)
+        .join('<br>');
+    
+    const finalConfirm = await showQuickConfirm(
+        'Confirmar Guardado Final',
+        `<strong>${actionType === 'actualizar' ? 'ACTUALIZACIÓN' : 'NUEVO REGISTRO'}</strong><br><br>
+         • Documento: <strong>${recNumberToUse}</strong><br>
+         • Tipo: ${actionType === 'actualizar' ? 'Actualización' : actionType === 'crear_parcial' ? 'Parcial' : 'Nuevo'}<br>
+         • Clientes: ${clientesCount}<br>
+         • Items totales: ${totalItems}<br><br>
+         <strong>Clientes incluidos:</strong><br>
+         ${clientesResumen}`,
+        actionType === 'actualizar' ? 'Actualizar' : 'Guardar',
+        'Cancelar',
+        actionType === 'actualizar' ? 'warning' : 'info'
+    );
+    
+    if (!finalConfirm) {
+        return;
+    }
+    
+    // 5. Mostrar loading
+    const loadingMessage = actionType === 'actualizar' 
+        ? `Actualizando documento ${recNumberToUse}...` 
+        : `Guardando documento ${recNumberToUse}...`;
+    
+    const loading = showQuickLoading(loadingMessage);
+    const saveBtn = document.getElementById('saveDistributionsBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="loading-spinner"></span>`;
+    }
+    
+    try {
+        // 6. Enviar datos al GAS (ignorando respuesta)
+        console.log(`Enviando ${recNumberToUse} al GAS...`);
+        await sendToDistributionGAS(distributionData);
+        
+        // 7. ESPERAR 2 segundos para que Google Sheets procese
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 8. VERIFICAR usando API Key
+        console.log(`Verificando guardado de ${recNumberToUse}...`);
+        const verification = await verifyDocumentSavedExhaustive(recNumberToUse);
+        
+        if (verification.success && verification.verified) {
+            // ÉXITO COMPLETO - Documento verificado
+            const successType = actionType === 'actualizar' ? 'actualizado' : 'guardado';
+            const successIcon = actionType === 'actualizar' ? 'sync' : 'check';
+            
+            // NOTIFICACIÓN SIMPLE DE ÉXITO
+            showMessage(
+                `${recNumberToUse} ${successType} exitosamente (Fila: ${verification.fila})`,
+                'success',
+                5000
+            );
+            
+            console.log('Guardado verificado:', {
+                documento: recNumberToUse,
+                fila: verification.fila,
+                estado: verification.estado,
+                accion: actionType
+            });
+            
+        } else {
+            // Advertencia - No se pudo verificar automáticamente
+            console.warn('No se pudo verificar automáticamente:', verification);
+            
+            // NOTIFICACIÓN SIMPLE DE ADVERTENCIA
+            showMessage(
+                `⚠️ ${recNumberToUse} enviado al sistema (verificación falló)`,
+                'warning',
+                5000
+            );
+        }
+        
+    } catch (error) {
+        console.error('Error inesperado:', error);
+        // NOTIFICACIÓN SIMPLE DE ERROR
+        showMessage(
+            `❌ Error: ${error.message}`,
+            'error',
+            5000
+        );
+    } finally {
+        // 9. Restaurar UI
+        loading.close();
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="codicon codicon-save"></i>';
+            saveBtn.title = "Guardar distribución";
+        }
+    }
+}
+
+// Función de verificación EXHAUSTIVA
+async function verifyDocumentSavedExhaustive(recNumber, maxRetries = 5, initialDelay = 1000) {
+    console.log(`Verificación exhaustiva para ${recNumber}...`);
+    
+    let delay = initialDelay;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Intento ${attempt}/${maxRetries} (espera: ${delay}ms)...`);
+            
+            // Esperar antes de verificar
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Consultar la hoja completa
+            const range = `${DISTRIBUTION_SHEET_NAME}!A:E`;
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${DISTRIBUTION_SPREADSHEET_ID}/values/${range}?key=${DISTRIBUTION_API_KEY}`;
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.values || data.values.length === 0) {
+                console.log('Hoja vacía en intento', attempt);
+                continue;
+            }
+            
+            // Buscar el documento
+            for (let i = 0; i < data.values.length; i++) {
+                const row = data.values[i];
+                if (row[0] && row[0].toString() === recNumber.toString()) {
+                    console.log(`✅ Documento encontrado en fila ${i + 1}`);
+                    
+                    return {
+                        success: true,
+                        verified: true,
+                        fila: i + 1,
+                        documento: recNumber,
+                        estado: row[3] || 'DESCONOCIDO',
+                        comentarios: row[4] || '',
+                        timestamp: new Date().toISOString(),
+                        verificationMethod: 'Google Sheets API',
+                        attempt: attempt
+                    };
+                }
+            }
+            
+            console.log(`Documento ${recNumber} no encontrado en intento ${attempt}`);
+            
+            // Aumentar delay exponencialmente
+            delay *= 2;
+            
+        } catch (error) {
+            console.error(`Error en intento ${attempt}:`, error);
+            
+            if (attempt === maxRetries) {
+                return {
+                    success: false,
+                    verified: false,
+                    error: `Error después de ${maxRetries} intentos: ${error.message}`,
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            delay *= 2; // Backoff exponencial
+        }
+    }
+    
+    return {
+        success: false,
+        verified: false,
+        error: `No se encontró el documento ${recNumber} después de ${maxRetries} intentos`,
+        timestamp: new Date().toISOString()
+    };
+}
+
+// Función para mostrar opciones al usuario
+function showQuickChoice(title, message, options) {
+    return new Promise((resolve) => {
+        const modal = createModal(title, `
+            <div style="padding: 24px; max-width: 500px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 16px 0; color: var(--text);">${title}</h3>
+                    <div style="color: var(--text-secondary); line-height: 1.5;">${message}</div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+                    ${options.map(option => `
+                        <button class="choice-option" data-choice="${option.id}" 
+                                style="text-align: left; padding: 12px 16px; border: 1px solid var(--border); 
+                                       border-radius: 6px; background: var(--sidebar); cursor: pointer;
+                                       transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="color: ${option.color};">
+                                    <i class="codicon ${option.icon}"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: var(--text);">${option.text}</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                        ${option.description}
+                                    </div>
+                                </div>
+                                <i class="codicon codicon-chevron-right" style="color: var(--text-secondary);"></i>
+                            </div>
+                        </button>
+                    `).join('')}
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="closeChoiceModal(null)">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        `, false);
+        
+        // Añadir estilos para las opciones
+        const style = document.createElement('style');
+        style.textContent = `
+            .choice-option:hover {
+                background: var(--hover) !important;
+                border-color: var(--primary) !important;
+                transform: translateY(-1px);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Manejar clics en opciones
+        modal.querySelectorAll('.choice-option').forEach(button => {
+            button.addEventListener('click', function() {
+                const choice = this.dataset.choice;
+                closeChoiceModal(choice);
+            });
+        });
+        
+        // Función para cerrar el modal
+        window.closeChoiceModal = function(choice) {
+            if (style && style.parentNode) {
+                style.remove();
+            }
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+            resolve(choice);
+        };
+    });
+}
+
+// Función para actualizar la UI con resultados
+function updateDistributionResultUI(details) {
+    const resultDiv = document.getElementById('distribution-result');
+    if (!resultDiv) return;
+    
+    const estadoColor = details.estado === 'DIRECTO' ? 'var(--success)' : 'var(--warning)';
+    
+    resultDiv.innerHTML = `
+        <div class="success-state">
+            <div style="text-align: center; padding: 30px;">
+                <i class="codicon codicon-check" style="font-size: 48px; color: ${estadoColor}; margin-bottom: 16px;"></i>
+                <h3 style="color: ${estadoColor}; margin-bottom: 8px;">
+                    ${details.accion === 'actualizar' ? 'ACTUALIZADO' : 'GUARDADO'}
+                </h3>
+                
+                <div style="background: var(--sidebar); padding: 16px; border-radius: 8px; margin: 20px 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left;">
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Documento</div>
+                            <div style="font-weight: 600; font-size: 18px;">${details.documento}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Fila</div>
+                            <div style="font-weight: 600;">${details.fila || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Estado</div>
+                            <div style="font-weight: 600; color: ${estadoColor};">${details.estado}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Hora</div>
+                            <div style="font-weight: 600;">${details.timestamp}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="color: var(--text-secondary); font-size: 13px;">
+                    ${details.accion === 'actualizar' 
+                        ? 'La distribución existente ha sido actualizada.' 
+                        : details.accion === 'crear_parcial'
+                        ? 'Se ha creado un nuevo documento parcial.'
+                        : 'Se ha creado un nuevo documento.'}
+                </p>
+                
+                <button class="btn-secondary" onclick="searchDistributionRec()" style="margin-top: 20px;">
+                    <i class="codicon codicon-refresh"></i> Buscar Otro REC
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Función para enviar datos al GAS (actualizada)
+// Función para enviar datos al GAS (SIEMPRE devuelve éxito)
+async function sendToDistributionGAS(data) {
+    return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const url = DISTRIBUTION_GAS_URL;
+        
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.timeout = 10000; // 10 segundos
+        
+        // SIEMPRE resolver como éxito, ignorar cualquier error
+        xhr.onload = function() {
+            console.log('GAS respondió (ignorando contenido):', xhr.status);
+            resolve({
+                success: true,
+                message: 'Datos enviados al servidor',
+                httpStatus: xhr.status
+            });
+        };
+        
+        xhr.onerror = function() {
+            console.log('Error de conexión con GAS (ignorado)');
+            resolve({
+                success: true, // IMPORTANTE: SIEMPRE true
+                message: 'Datos enviados (error de conexión ignorado)'
+            });
+        };
+        
+        xhr.ontimeout = function() {
+            console.log('Timeout con GAS (ignorado)');
+            resolve({
+                success: true, // IMPORTANTE: SIEMPRE true
+                message: 'Datos enviados (timeout ignorado)'
+            });
+        };
+        
+        // Enviar datos
+        const params = new URLSearchParams();
+        params.append('datos', JSON.stringify(data));
+        
+        console.log('Enviando datos al GAS (ignorando respuesta):', data.Documento);
+        xhr.send(params.toString());
+    });
+}
+
+// Función para ver formato generado (para depuración)
+function previewDistributionFormat() {
+    const data = prepareDistributionDataFormat();
+    if (!data) return;
+    
+    // Mostrar en consola
+    console.log('Preview del formato JSON:', JSON.stringify(data, null, 2));
+    
+    // Mostrar en modal para revisión
+    createModal('Previsualización del Formato', `
+        <div style="max-height: 500px; overflow-y: auto;">
+            <h4>Documento: ${data.Documento}</h4>
+            <p><strong>Total Clientes:</strong> ${Object.keys(data.Clientes).length}</p>
+            
+            <div style="margin: 20px 0;">
+                <h5>Clientes incluidos:</h5>
+                <ul>
+                    ${Object.entries(data.Clientes).map(([nombre, cliente]) => `
+                        <li>
+                            <strong>${nombre}</strong> (ID: ${cliente.id})
+                            <br>
+                            Porcentaje: ${cliente.porcentaje || 'N/A'}
+                            <br>
+                            Items: ${cliente.distribucion ? cliente.distribucion.length : 0}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            <div style="background: var(--sidebar); padding: 12px; border-radius: 6px; margin-top: 20px;">
+                <h5>JSON Minificado:</h5>
+                <pre style="font-size: 10px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;">
+${JSON.stringify(data)}
+                </pre>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn-secondary" onclick="this.closest('.modal').remove()">Cerrar</button>
+                <button class="btn-primary" onclick="saveDistributionToSheets(); this.closest('.modal').remove()">
+                    <i class="codicon codicon-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    `);
+}
+
+// Agregar botón de previsualización a la interfaz
+function addPreviewButton() {
+    const headerActions = document.querySelector('#distribution-content .header-actions');
+    if (headerActions && !document.getElementById('previewFormatBtn')) {
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn-icon';
+        previewBtn.id = 'previewFormatBtn';
+        previewBtn.title = 'Previsualizar formato JSON';
+        previewBtn.innerHTML = '<i class="codicon codicon-eye"></i>';
+        previewBtn.addEventListener('click', previewDistributionFormat);
+        
+        headerActions.insertBefore(previewBtn, headerActions.firstChild);
+    }
+}
+
+// Actualizar setupDistributionEventListeners
+function setupDistributionEventListeners() {
+    // Botón de recarga
+    const reloadBtn = document.getElementById('reloadDataBtn');
+    if (reloadBtn) {
+        reloadBtn.addEventListener('click', reloadAllDistributionData);
+    }
+
+    // Botón de guardar - CONECTAR A LA NUEVA FUNCIÓN
+    const saveBtn = document.getElementById('saveDistributionsBtn');
+    if (saveBtn) {
+        saveBtn.removeEventListener('click', saveAllDistributionsFast);
+        saveBtn.addEventListener('click', saveDistributionToSheets);
+        saveBtn.title = "Guardar distribución en Google Sheets";
+    }
+
+    // Botón de configuración
+    const configBtn = document.getElementById('moduleConfigBtn');
+    if (configBtn) {
+        configBtn.addEventListener('click', showModuleSettings);
+    }
+
+    // Agregar botón de previsualización
+    addPreviewButton();
+
+    // Atajo de teclado Ctrl+S para guardar
+    document.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            event.preventDefault();
+            if (document.getElementById('distribution-content').classList.contains('active')) {
+                saveDistributionToSheets();
+            }
+        }
+    });
+}
+
+// CSS adicional para el estado de éxito
+const successCSS = `
+.success-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--editor);
+    border-radius: 6px;
+    border: 2px solid var(--success);
+}
+
+.success-state h3 {
+    color: var(--success);
+    margin-bottom: 16px;
+}
+
+.success-state p {
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.success-state .codicon {
+    font-size: 64px;
+    margin-bottom: 24px;
+    color: var(--success);
+}
+`;
+
+// Agregar CSS al documento
+if (!document.getElementById('success-css')) {
+    const style = document.createElement('style');
+    style.id = 'success-css';
+    style.textContent = successCSS;
+    document.head.appendChild(style);
+}
+
+// Llamar a addPreviewButton cuando se active la pestaña
+document.addEventListener('DOMContentLoaded', function() {
+    // Escuchar cambios en las pestañas
+    document.querySelectorAll('[data-tab="distribution"]').forEach(element => {
+        element.addEventListener('click', function() {
+            setTimeout(addPreviewButton, 100);
+        });
+    });
+});
+
+
