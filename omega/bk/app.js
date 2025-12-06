@@ -2928,6 +2928,49 @@ function generateEmpresasUI() {
     });
 }
 
+/**
+ * Función para ajustar el valor del input REC de 1 en 1
+ */
+function adjustRecInput(delta) {
+    const recInput = document.getElementById('recInput');
+    if (!recInput) return;
+    
+    let currentValue = parseInt(recInput.value) || 0;
+    let newValue = currentValue + delta;
+    
+    // Evitar valores negativos
+    if (newValue < 0) newValue = 0;
+    
+    recInput.value = newValue;
+    
+    // Disparar el evento de búsqueda automáticamente
+    searchDistributionRec();
+    
+    // Enfocar el input después del cambio
+    recInput.focus();
+}
+
+/**
+ * Función para agregar soporte de teclado (flechas arriba/abajo)
+ */
+function setupRecInputKeyboardSupport() {
+    const recInput = document.getElementById('recInput');
+    if (!recInput) return;
+    
+    recInput.addEventListener('keydown', function(event) {
+        // Flecha arriba: +1
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            adjustRecInput(1);
+        }
+        // Flecha abajo: -1
+        else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            adjustRecInput(-1);
+        }
+    });
+}
+
 // Función para controles del Input Global de Mayorista
 function adjustGlobalValue(mayoristaId, delta) {
     const input = document.getElementById(`global-input-${mayoristaId}`);
@@ -2945,25 +2988,6 @@ function adjustGlobalValue(mayoristaId, delta) {
 }
 
 // Función para controles de Empresas
-/*function adjustEmpresaValue(empresaId, delta) {
-    const input = document.getElementById(`empresa-${empresaId}`);
-    if (!input || input.readOnly) return;
-
-    let currentValue = parseInt(input.value) || 0;
-    let newValue = currentValue + delta;
-
-    // Validar límites 0-100
-    if (newValue > 100) newValue = 100;
-    if (newValue < 0) newValue = 0;
-
-    if (newValue !== currentValue) {
-        input.value = newValue;
-        // Disparar evento para recalcular porcentajes
-        const event = new Event('input', { bubbles: true });
-        input.dispatchEvent(event);
-    }
-}*/
-
 function adjustEmpresaValue(empresaId, delta) {
     const input = document.getElementById(`empresa-${empresaId}`);
     if (!input || input.readOnly) return;

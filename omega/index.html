@@ -476,12 +476,15 @@
                                     <i class="codicon codicon-search"></i>
                                     Buscar documento
                                 </label>
+                                <!-- En la pestaña de Distribución, busca este div con id="recInput" -->
                                 <div class="search-container">
-                                    <input type="number" id="recInput" class="form-control"
-                                        placeholder="Buscar por número de REC..." oninput="searchDistributionRec()">
-                                    <button class="btn-icon"
-                                        onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();"
-                                        title="Limpiar búsqueda">
+                                    <input type="number" id="recInput" class="form-control" 
+                                        placeholder="Buscar por número de REC..." 
+                                        oninput="searchDistributionRec()">
+                                    
+                                    <button class="btn-icon" 
+                                            onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();" 
+                                            title="Limpiar búsqueda">
                                         <i class="codicon codicon-clear-all"></i>
                                     </button>
                                 </div>
