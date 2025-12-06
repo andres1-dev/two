@@ -4321,546 +4321,169 @@ function prepareDistributionDataFormat() {
 }
 
 // Función principal para guardar distribución
-// Función principal para guardar distribución - VERSIÓN CORREGIDA
 async function saveDistributionToSheets() {
-  console.log('=== INICIANDO saveDistributionToSheets ===');
-  
-  // Variables para controlar el estado
-  let loadingNotification = null;
-  let saveBtn = document.getElementById('saveDistributionsBtn');
-  let saveBtnOriginalHTML = saveBtn ? saveBtn.innerHTML : '';
-  let saveBtnOriginalTitle = saveBtn ? saveBtn.title : '';
-  
-  try {
+    console.log('Iniciando guardado de distribución en formato específico...');
+    
     // 1. Preparar datos en formato específico
     const distributionData = prepareDistributionDataFormat();
     if (!distributionData || Object.keys(distributionData.Clientes).length === 0) {
-      showMessage('No hay datos de distribución para guardar', 'warning');
-      return;
+        showMessage('No hay datos de distribución para guardar', 'warning');
+        return;
     }
 
     // 2. Mostrar resumen para confirmación
     const clientesCount = Object.keys(distributionData.Clientes).length;
-    const totalItems = Object.values(distributionData.Clientes).reduce((sum, cliente) => 
-      sum + (cliente.distribucion ? cliente.distribucion.length : 0), 0);
+    let totalItems = 0;
     
-    const clientesResumen = Object.keys(distributionData.Clientes)
-      .map(nombre => `• ${nombre}`)
-      .join('<br>');
-
-    const confirmed = await showQuickConfirm(
-      'Guardar Distribución',
-      `¿Deseas guardar la distribución del REC <strong>${distributionData.Documento}</strong>?<br><br>
-       <strong>Resumen:</strong><br>
-       • Documento: ${distributionData.Documento}<br>
-       • Clientes: ${clientesCount}<br>
-       • Items totales: ${totalItems}<br><br>
-       <strong>Clientes incluidos:</strong><br>
-       ${clientesResumen}`,
-      'Guardar',
-      'Cancelar',
-      'info'
-    );
-
-    if (!confirmed) {
-      console.log('Guardado cancelado por el usuario');
-      return;
-    }
-
-    // 3. Mostrar loading - ESTO ES IMPORTANTE: guardar referencia
-    loadingNotification = showQuickLoading('Guardando distribución...');
-    console.log('Loading notification creada:', loadingNotification);
-    
-    // Deshabilitar botón de guardar
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
-      saveBtn.title = "Guardando...";
-    }
-
-    console.log('Enviando datos al servidor...');
-    console.log('Datos a enviar:', distributionData);
-    
-    // 4. Enviar datos al GAS
-    const response = await sendToDistributionGAS(distributionData);
-    
-    console.log('Respuesta recibida del servidor:', response);
-    
-    // 5. CERRAR EL LOADING PRIMERO - Esto es clave
-    if (loadingNotification && typeof loadingNotification.close === 'function') {
-      console.log('Cerrando loading notification');
-      loadingNotification.close();
-      loadingNotification = null;
-    }
-    
-    // 6. Manejar respuesta del servidor
-    if (response && response.success) {
-      // ÉXITO: Mostrar mensaje de éxito
-      const successMessage = response.message || `Distribución ${distributionData.Documento} guardada exitosamente`;
-      console.log('Operación exitosa:', successMessage);
-      
-      // Mostrar notificación de éxito
-      showMessage(`✅ ${successMessage}`, 'success', 4000);
-      
-      // Actualizar la interfaz con los detalles
-      updateDistributionUIAfterSave(distributionData, response);
-      
-    } else if (response && response.duplicate) {
-      // DOCUMENTO DUPLICADO: Preguntar si actualizar
-      console.log('Documento duplicado detectado');
-      
-      const updateConfirmed = confirm(
-        `El documento ${distributionData.Documento} ya existe en la fila ${response.row}.\n\n¿Deseas actualizarlo?`
-      );
-      
-      if (updateConfirmed) {
-        // Mostrar nuevo loading para la actualización
-        loadingNotification = showQuickLoading('Actualizando distribución...');
-        
-        // Re-enviar datos para actualizar
-        const updateResponse = await sendToDistributionGAS(distributionData);
-        
-        // Cerrar loading de actualización
-        if (loadingNotification && typeof loadingNotification.close === 'function') {
-          loadingNotification.close();
-          loadingNotification = null;
+    // Calcular total de items
+    Object.values(distributionData.Clientes).forEach(cliente => {
+        if (cliente.distribucion) {
+            totalItems += cliente.distribucion.length;
         }
-        
-        if (updateResponse && updateResponse.success) {
-          showMessage(`✅ Documento ${distributionData.Documento} actualizado`, 'success', 3000);
-          updateDistributionUIAfterSave(distributionData, updateResponse);
-        } else {
-          throw new Error(updateResponse?.message || 'Error al actualizar documento');
-        }
-      } else {
-        showMessage('Operación cancelada', 'info', 2000);
-      }
-      
-    } else {
-      // ERROR: Lanzar excepción
-      const errorMsg = response?.message || 'Error desconocido del servidor';
-      console.error('Error del servidor:', errorMsg);
-      throw new Error(errorMsg);
-    }
-    
-  } catch (error) {
-    console.error('Error en saveDistributionToSheets:', error);
-    
-    // Asegurarse de cerrar el loading si hay error
-    if (loadingNotification && typeof loadingNotification.close === 'function') {
-      loadingNotification.close();
-      loadingNotification = null;
-    }
-    
-    // Mostrar mensaje de error apropiado
-    let errorMessage = error.message;
-    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
-      errorMessage = 'Error de conexión. Verifica tu internet.';
-    } else if (error.message.includes('timeout')) {
-      errorMessage = 'El servidor tardó demasiado en responder.';
-    }
-    
-    showMessage(`❌ ${errorMessage}`, 'error', 5000);
-    
-  } finally {
-    // 7. RESTAURAR INTERFAZ - Esto siempre se ejecuta
-    console.log('Restaurando interfaz...');
-    
-    // Cerrar cualquier loading pendiente (por si acaso)
-    if (loadingNotification && typeof loadingNotification.close === 'function') {
-      console.log('Cerrando loading pendiente en finally');
-      loadingNotification.close();
-    }
-    
-    // También cerrar cualquier notificación de loading visible
-    const loadingNotifications = document.querySelectorAll('.loading-notification');
-    loadingNotifications.forEach(notification => {
-      if (notification.parentElement) {
-        notification.remove();
-      }
     });
     
-    // Restaurar botón de guardar
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = saveBtnOriginalHTML;
-      saveBtn.title = saveBtnOriginalTitle;
-    }
-    
-    console.log('=== FIN saveDistributionToSheets ===');
-  }
-}
+    // Crear resumen de clientes
+    const clientesResumen = Object.keys(distributionData.Clientes)
+        .map(nombre => `• ${nombre}`)
+        .join('<br>');
 
-// Función auxiliar para actualizar la UI después de guardar
-function updateDistributionUIAfterSave(distributionData, response) {
-  console.log('Actualizando UI después de guardar:', { distributionData, response });
-  
-  const resultDiv = document.getElementById('distribution-result');
-  if (!resultDiv) {
-    console.warn('No se encontró el elemento distribution-result');
-    return;
-  }
-  
-  const details = response.details || {};
-  const estado = details.estado || 'N/A';
-  const comentarios = details.comentarios || '';
-  const fila = details.fila || 'N/A';
-  const accion = details.accion || 'guardado';
-  
-  // Crear HTML para mostrar resultados
-  const html = `
-    <div class="success-state" style="animation: fadeIn 0.5s ease-in;">
-      <div style="text-align: center; padding: 30px 20px;">
-        <i class="codicon codicon-check" style="font-size: 64px; color: var(--success); margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: var(--success); margin-bottom: 16px; font-size: 24px;">
-          ${accion === 'actualizado' ? '¡Actualizado!' : '¡Guardado Exitoso!'}
-        </h3>
-        
-        <div style="background: var(--sidebar); border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid var(--success);">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left;">
-            <div>
-              <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 13px;">
-                <strong>Documento:</strong>
-              </p>
-              <p style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text);">
-                ${distributionData.Documento}
-              </p>
-            </div>
-            
-            <div>
-              <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 13px;">
-                <strong>Fila en Sheets:</strong>
-              </p>
-              <p style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text);">
-                ${fila}
-              </p>
-            </div>
-            
-            <div>
-              <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 13px;">
-                <strong>Estado:</strong>
-              </p>
-              <p style="margin: 0; font-size: 16px; font-weight: 600; 
-                 color: ${estado === 'DIRECTO' ? 'var(--success)' : 'var(--warning)'};">
-                ${estado}
-                ${estado === 'DIRECTO' ? ' ✓' : ''}
-              </p>
-            </div>
-            
-            ${comentarios ? `
-              <div>
-                <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 13px;">
-                  <strong>Comentarios:</strong>
-                </p>
-                <p style="margin: 0; font-size: 14px; font-style: italic; color: var(--text);">
-                  ${comentarios}
-                </p>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-        
-        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
-          <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 14px;">
-            <strong>Resumen de la distribución:</strong>
-          </p>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-            ${Object.entries(distributionData.Clientes).map(([nombre, cliente]) => `
-              <span style="background: var(--hover); padding: 6px 12px; border-radius: 16px; 
-                     font-size: 12px; color: var(--text);">
-                ${nombre}${cliente.porcentaje ? ` (${cliente.porcentaje})` : ''}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-        
-        <p style="margin-top: 24px; color: var(--text-secondary); font-size: 13px;">
-          ${response.message || 'Operación completada exitosamente'}
-        </p>
-        
-        <div style="margin-top: 24px;">
-          <button class="btn-primary" onclick="document.getElementById('recInput').value=''; searchDistributionRec();" 
-                  style="padding: 10px 20px; font-size: 14px;">
-            <i class="codicon codicon-refresh"></i>
-            Nueva Búsqueda
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Actualizar el contenido con animación
-  resultDiv.style.opacity = '0';
-  resultDiv.innerHTML = html;
-  
-  // Animar la aparición
-  setTimeout(() => {
-    resultDiv.style.transition = 'opacity 0.3s ease-in';
-    resultDiv.style.opacity = '1';
-  }, 50);
-  
-  console.log('UI actualizada exitosamente');
-}
-
-// Agregar animación CSS
-const successAnimationCSS = `
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.success-state {
-  animation: fadeIn 0.5s ease-in;
-}
-`;
-
-// Inyectar CSS si no existe
-if (!document.getElementById('success-animation-css')) {
-  const style = document.createElement('style');
-  style.id = 'success-animation-css';
-  style.textContent = successAnimationCSS;
-  document.head.appendChild(style);
-}
-
-// Función para enviar datos al GAS (actualizada)
-// Función para enviar datos al GAS (REVISADA)
-async function sendToDistributionGAS(data) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const url = DISTRIBUTION_GAS_URL;
-    
-    console.log('Enviando datos al GAS:', data);
-    console.log('URL:', url);
-    
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.timeout = 60000; // 60 segundos timeout
-    
-    xhr.onload = function() {
-      console.log('Respuesta del servidor recibida');
-      console.log('Status:', xhr.status);
-      console.log('Status text:', xhr.statusText);
-      console.log('Response headers:', xhr.getAllResponseHeaders());
-      console.log('Response text:', xhr.responseText);
-      
-      try {
-        // Intentar parsear como JSON
-        let response;
-        try {
-          response = JSON.parse(xhr.responseText);
-        } catch (parseError) {
-          console.error('Error parseando JSON:', parseError);
-          // Intentar limpiar respuesta si tiene BOM o caracteres extraños
-          const cleanedResponse = xhr.responseText.replace(/^\uFEFF/, '').trim();
-          response = JSON.parse(cleanedResponse);
-        }
-        
-        console.log('Respuesta parseada:', response);
-        
-        // Verificar si la respuesta indica éxito
-        if (xhr.status >= 200 && xhr.status < 300) {
-          if (response && response.success !== undefined) {
-            resolve(response);
-          } else {
-            // El servidor respondió pero no en el formato esperado
-            resolve({
-              success: true,
-              message: 'Guardado exitoso (respuesta no estándar)',
-              rawResponse: response
-            });
-          }
-        } else {
-          reject(new Error(`Error HTTP ${xhr.status}: ${xhr.statusText}`));
-        }
-      } catch (error) {
-        console.error('Error procesando respuesta:', error);
-        console.error('Raw response:', xhr.responseText);
-        reject(new Error('Error al procesar respuesta del servidor: ' + error.message));
-      }
-    };
-    
-    xhr.onerror = function() {
-      console.error('Error de conexión XHR');
-      console.error('Ready state:', xhr.readyState);
-      reject(new Error('Error de conexión con el servidor. Verifica la URL y tu conexión a internet.'));
-    };
-    
-    xhr.ontimeout = function() {
-      console.error('Timeout de conexión');
-      reject(new Error('Tiempo de espera agotado (60 segundos). El servidor no respondió.'));
-    };
-    
-    xhr.onreadystatechange = function() {
-      console.log('Ready state changed:', xhr.readyState);
-    };
-    
-    // Preparar y enviar datos
-    const params = new URLSearchParams();
-    params.append('datos', JSON.stringify(data));
-    
-    console.log('Enviando parámetros:', params.toString());
-    
-    try {
-      xhr.send(params.toString());
-      console.log('Solicitud enviada exitosamente');
-    } catch (sendError) {
-      console.error('Error enviando solicitud:', sendError);
-      reject(new Error('Error al enviar solicitud: ' + sendError.message));
-    }
-  });
-}
-
-// Función principal para guardar distribución (REVISADA)
-async function saveDistributionToSheets() {
-  console.log('=== INICIANDO saveDistributionToSheets ===');
-  
-  try {
-    // 1. Preparar datos en formato específico
-    const distributionData = prepareDistributionDataFormat();
-    if (!distributionData || Object.keys(distributionData.Clientes).length === 0) {
-      showMessage('No hay datos de distribución para guardar', 'warning');
-      return;
-    }
-
-    // 2. Mostrar resumen para confirmación
-    const clientesCount = Object.keys(distributionData.Clientes).length;
-    
     const confirmed = await showQuickConfirm(
-      'Guardar Distribución',
-      `¿Deseas guardar la distribución del REC <strong>${distributionData.Documento}</strong>?<br><br>
-       <strong>Resumen:</strong><br>
-       • Documento: ${distributionData.Documento}<br>
-       • Clientes: ${clientesCount}<br>
-       • Items: ${Object.values(distributionData.Clientes).reduce((sum, cliente) => 
-         sum + (cliente.distribucion ? cliente.distribucion.length : 0), 0)}`,
-      'Guardar',
-      'Cancelar',
-      'info'
+        'Guardar Distribución',
+        `¿Deseas guardar la distribución del REC <strong>${distributionData.Documento}</strong>?<br><br>
+         <strong>Resumen:</strong><br>
+         • Documento: ${distributionData.Documento}<br>
+         • Clientes: ${clientesCount}<br>
+         • Items totales: ${totalItems}<br><br>
+         <strong>Clientes incluidos:</strong><br>
+         ${clientesResumen}`,
+        'Guardar',
+        'Cancelar',
+        'info'
     );
 
     if (!confirmed) {
-      console.log('Guardado cancelado por el usuario');
-      return;
+        return;
     }
 
     // 3. Mostrar loading
     const loading = showQuickLoading('Guardando distribución...');
     const saveBtn = document.getElementById('saveDistributionsBtn');
     if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
     }
 
-    console.log('Enviando datos al servidor...');
-    
     try {
-      // 4. Enviar datos al GAS
-      const response = await sendToDistributionGAS(distributionData);
-      
-      console.log('Respuesta recibida del servidor:', response);
-      
-      // 5. Manejar respuesta
-      if (response.success) {
-        const mensaje = `✅ Distribución ${distributionData.Documento} guardada exitosamente`;
-        showMessage(mensaje, 'success', 4000);
+        // 4. Enviar datos al GAS
+        const response = await sendToDistributionGAS(distributionData);
         
-        // Mostrar detalles
-        console.log('Distribución guardada exitosamente:', {
-          documento: distributionData.Documento,
-          fila: response.details?.fila,
-          estado: response.details?.estado,
-          comentarios: response.details?.comentarios
-        });
-        
-        // Actualizar UI
-        const resultDiv = document.getElementById('distribution-result');
-        if (resultDiv) {
-          resultDiv.innerHTML = `
-            <div class="success-state">
-              <div style="text-align: center; padding: 30px;">
-                <i class="codicon codicon-check" style="font-size: 48px; color: var(--success); margin-bottom: 16px;"></i>
-                <h3 style="color: var(--success); margin-bottom: 8px;">¡Guardado Exitoso!</h3>
-                <div style="background: var(--sidebar); padding: 16px; border-radius: 6px; margin: 16px 0;">
-                  <p style="margin: 8px 0;">
-                    <strong>Documento:</strong> ${distributionData.Documento}
-                  </p>
-                  <p style="margin: 8px 0;">
-                    <strong>Fila:</strong> ${response.details?.fila || 'N/A'}
-                  </p>
-                  <p style="margin: 8px 0;">
-                    <strong>Estado:</strong> ${response.details?.estado || 'N/A'}
-                  </p>
-                  ${response.details?.comentarios ? `
-                    <p style="margin: 8px 0;">
-                      <strong>Comentarios:</strong> ${response.details.comentarios}
-                    </p>
-                  ` : ''}
-                </div>
-                <p style="color: var(--text-secondary); font-size: 14px;">
-                  ${response.message || 'Guardado completado'}
-                </p>
-              </div>
-            </div>
-          `;
-        }
-        
-      } else {
-        // Si es duplicado, preguntar si desea actualizar
-        if (response.duplicate && response.row) {
-          const updateConfirmed = confirm(
-            `El documento ${distributionData.Documento} ya existe en la fila ${response.row}.\n\n¿Deseas actualizarlo?`
-          );
-          
-          if (updateConfirmed) {
-            // Forzar actualización enviando de nuevo
-            console.log('Actualizando documento existente...');
-            const updateResponse = await sendToDistributionGAS(distributionData);
+        // 5. Manejar respuesta
+        if (response.success) {
+            const mensaje = `✅ Distribución ${distributionData.Documento} guardada exitosamente`;
+            showMessage(mensaje, 'success', 4000);
             
-            if (updateResponse.success) {
-              showMessage(`✅ Documento ${distributionData.Documento} actualizado`, 'success', 3000);
-            } else {
-              throw new Error(updateResponse.message || 'Error al actualizar');
+            // Mostrar detalles en consola
+            console.log('Distribución guardada exitosamente:', {
+                documento: distributionData.Documento,
+                fila: response.details?.fila,
+                clientes: Object.keys(distributionData.Clientes),
+                totalItems: totalItems
+            });
+            
+            // Opcional: limpiar o resetear formulario
+            // document.getElementById('recInput').value = '';
+            
+            // Mostrar confirmación en el panel de resultados
+            const resultDiv = document.getElementById('distribution-result');
+            if (resultDiv) {
+                resultDiv.innerHTML = `
+                    <div class="success-state">
+                        <div style="text-align: center; padding: 30px;">
+                            <i class="codicon codicon-check" style="font-size: 48px; color: var(--success); margin-bottom: 16px;"></i>
+                            <h3 style="color: var(--success); margin-bottom: 8px;">Distribución Guardada</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                Documento: <strong>${distributionData.Documento}</strong><br>
+                                Guardado en fila: <strong>${response.details?.fila || 'N/A'}</strong>
+                            </p>
+                            <div style="background: var(--sidebar); padding: 12px; border-radius: 6px; margin-top: 16px;">
+                                <p style="font-size: 12px; margin: 0; color: var(--text-secondary);">
+                                    <strong>Clientes incluidos:</strong><br>
+                                    ${Object.keys(distributionData.Clientes).join(', ')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
-          } else {
-            console.log('Actualización cancelada por el usuario');
-          }
         } else {
-          // Otro tipo de error
-          throw new Error(response.message || 'Error desconocido del servidor');
+            // Si es duplicado, preguntar si desea actualizar
+            if (response.duplicate && response.row) {
+                const updateConfirmed = confirm(
+                    `El documento ${distributionData.Documento} ya existe en la fila ${response.row}.\n\n¿Deseas actualizarlo?`
+                );
+                
+                if (updateConfirmed) {
+                    // Forzar actualización enviando de nuevo
+                    const updateResponse = await sendToDistributionGAS(distributionData);
+                    if (updateResponse.success) {
+                        showMessage(`✅ Documento ${distributionData.Documento} actualizado`, 'success', 3000);
+                    } else {
+                        throw new Error(updateResponse.message || 'Error al actualizar');
+                    }
+                }
+            } else {
+                throw new Error(response.message || 'Error desconocido');
+            }
         }
-      }
     } catch (error) {
-      console.error('Error en saveDistributionToSheets:', error);
-      
-      // Mensaje más específico según el tipo de error
-      let errorMessage = error.message;
-      if (error.message.includes('conexión') || error.message.includes('timeout')) {
-        errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-      } else if (error.message.includes('parsear')) {
-        errorMessage = 'Error procesando respuesta del servidor. Contacta al administrador.';
-      }
-      
-      showMessage(`❌ ${errorMessage}`, 'error', 5000);
+        console.error('Error guardando distribución:', error);
+        showMessage(`❌ Error al guardar: ${error.message}`, 'error', 4000);
+    } finally {
+        // 6. Restaurar UI
+        loading.close();
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="codicon codicon-save"></i>';
+            saveBtn.title = "Guardar distribución";
+        }
     }
-  } catch (error) {
-    console.error('Error general en saveDistributionToSheets:', error);
-    showMessage(`❌ Error: ${error.message}`, 'error', 4000);
-  } finally {
-    // 6. Restaurar UI
-    const loadingElements = document.querySelectorAll('.loading-notification');
-    loadingElements.forEach(el => {
-      if (el.parentElement) el.parentElement.remove();
+}
+
+// Función para enviar datos al GAS (actualizada)
+async function sendToDistributionGAS(data) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const url = DISTRIBUTION_GAS_URL;
+        
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.timeout = 30000; // 30 segundos timeout
+        
+        xhr.onload = function() {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response);
+            } catch (error) {
+                console.error('Error parsing response:', error, 'Raw:', xhr.responseText);
+                reject(new Error('Error al parsear respuesta del servidor'));
+            }
+        };
+        
+        xhr.onerror = function() {
+            reject(new Error('Error de conexión con el servidor'));
+        };
+        
+        xhr.ontimeout = function() {
+            reject(new Error('Tiempo de espera agotado (30 segundos)'));
+        };
+        
+        // Enviar datos en formato URL-encoded
+        const params = new URLSearchParams();
+        params.append('datos', JSON.stringify(data));
+        
+        console.log('Enviando datos al GAS:', data);
+        xhr.send(params.toString());
     });
-    
-    const saveBtn = document.getElementById('saveDistributionsBtn');
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = '<i class="codicon codicon-save"></i>';
-      saveBtn.title = "Guardar distribución";
-    }
-    
-    console.log('=== FIN saveDistributionToSheets ===');
-  }
 }
 
 // Función para ver formato generado (para depuración)
