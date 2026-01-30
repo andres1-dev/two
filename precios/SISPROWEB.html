@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cargar Excel a Google Sheets</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body{font-family:system-ui;max-width:800px;margin:20px auto;padding:20px}
+        .upload-area{border:2px dashed #3498db;border-radius:8px;padding:40px;text-align:center;margin-bottom:20px}
+        .file-input{display:none}
+        .upload-btn{background:#3498db;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer}
+        .process-btn{background:#27ae60;color:white;border:none;padding:12px;border-radius:5px;cursor:pointer;width:100%;margin:10px 0}
+        .process-btn:disabled{background:#95a5a6;cursor:not-allowed}
+        .status{padding:10px;border-radius:5px;margin:10px 0}
+        .success{background:#d4edda;color:#155724}
+        .error{background:#f8d7da;color:#721c24}
+        .processing{background:#cce7ff;color:#004085}
+        .hidden{display:none}
+        .preview{margin-top:20px;overflow-x:auto}
+        table{border-collapse:collapse;width:100%}
+        th,td{border:1px solid #ddd;padding:8px;text-align:left}
+        th{background:#f2f2f2}
+    </style>
+</head>
+<body>
+    <h3>Cargar Excel - Columnas C, AJ, AK, AL</h3>
+    
+    <div class="upload-area" id="uploadArea">
+        <p>Selecciona archivo Excel</p>
+        <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx">
+        <button class="upload-btn" id="uploadBtn">Seleccionar</button>
+    </div>
+
+    <button class="process-btn" id="processBtn" disabled>Enviar a Google Sheets</button>
+    <div class="status hidden" id="status"></div>
+    
+    <div id="preview" class="preview hidden"></div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbynUt4GdCEYaGSqnbctsNXaib52MTm0cVQlehGnt0-6B7fOTv31HoYWjCLRndiQi8r1Pg/exec';
+        let filteredData = [];
+
+        document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+        
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            if (!e.target.files[0]) return;
+            await handleFile(e.target.files[0]);
+        });
+
+        document.getElementById('processBtn').addEventListener('click', processFile);
+
+        // Normalizar columna AJ
+        function normalizarAJ(texto) {
+            if (!texto || typeof texto !== 'string') return '';
+            
+            let normalizado = texto.toUpperCase().trim();
+            
+            // Reemplazar "_" por " " primero
+            normalizado = normalizado.replace(/_/g, ' ');
+            
+            // Caso especial: "SALIDAS DE BAÑO" -> "SALIDA DE BAÑO"
+            if (normalizado === 'SALIDAS DE BAÑO') {
+                return 'SALIDA DE BAÑO';
+            }
+            
+            // También manejar variantes del caso especial
+            if (normalizado.includes('SALIDAS DE BAÑO')) {
+                normalizado = normalizado.replace('SALIDAS DE BAÑO', 'SALIDA DE BAÑO');
+            }
+            
+            // Tomar solo primer valor antes de comas
+            if (normalizado.includes(',')) {
+                normalizado = normalizado.split(',')[0].trim();
+            }
+            
+            // Eliminar PROMOCION y todas sus variantes (manteniendo palabras alrededor)
+            normalizado = normalizado.replace(/\b(PROMOCION|PROMO|PROMOCI[ÓO]N|POMOCION|PROMOCIO)\b/gi, '').trim();
+            
+            // También eliminar "CIO" específicamente si está al final
+            normalizado = normalizado.replace(/\s*CIO\s*$/i, '').trim();
+            
+            // REGLAS ESPECÍFICAS PARA SINGULAR/PLURAL:
+            if (normalizado.endsWith('ES')) {
+                // Caso especial: "PANTALONES" -> quitar "ES" completo
+                if (normalizado === 'PANTALONES') {
+                    normalizado = 'PANTALON';
+                } 
+                // Para otras palabras que terminen en "ES" y no sean "LEGGINS"
+                else if (!normalizado.endsWith('LEGGINS') && !normalizado.endsWith('LEGGIN')) {
+                    normalizado = normalizado.slice(0, -2);
+                }
+            } 
+            else if (normalizado.endsWith('S')) {
+                // Para palabras que terminen en "S" pero NO sean "LEGGINS"
+                if (normalizado !== 'LEGGINS' && normalizado !== 'LEGGIN') {
+                    // No quitar la S si la palabra es "LEGGINS"
+                    normalizado = normalizado.slice(0, -1);
+                }
+            }
+            
+            // Limpiar espacios extra múltiples
+            normalizado = normalizado.replace(/\s+/g, ' ').trim();
+            
+            return normalizado;
+        }
+
+        async function handleFile(file) {
+            if (!file.name.match(/\.(xls|xlsx)$/)) {
+                showStatus('Solo archivos Excel (.xls, .xlsx)', 'error');
+                return;
+            }
+
+            try {
+                showStatus('Procesando archivo...', 'processing');
+                const arrayBuffer = await readFileAsArrayBuffer(file);
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                filteredData = procesarDatosExcel(jsonData);
+                
+                if (filteredData.length > 0) {
+                    showStatus(`Listo: ${filteredData.length} registros procesados`, 'success');
+                    mostrarVistaPrevia(filteredData);
+                    document.getElementById('processBtn').disabled = false;
+                } else {
+                    showStatus('No hay datos para procesar', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function procesarDatosExcel(data) {
+            if (data.length < 3) return [];
+            
+            const datosFiltrados = [];
+            
+            // Función auxiliar para limpiar columna C
+            function limpiarColumnaC(valor) {
+                if (!valor || typeof valor !== 'string') return valor || '';
+                
+                let limpio = valor.toString().trim();
+                
+                // Reemplazar "_" por " " 
+                limpio = limpio.replace(/_/g, ' ');
+                
+                // Remover variantes de promoción con límites de palabra
+                limpio = limpio.replace(/\b(promocion|promo|promoci[óo]n|pomocion|promocio)\b/gi, '').trim();
+                
+                // Remover "CIO" específicamente si está al final
+                limpio = limpio.replace(/\s*cio\s*$/i, '').trim();
+                
+                return limpio;
+            }
+            
+            for (let i = 2; i < data.length; i++) {
+                const fila = data[i];
+                if (fila && fila.length >= 38) {
+                    const columnaC = limpiarColumnaC(fila[2] || '');
+                    const columnaAJ = fila[35] || '';
+                    const columnaAK = fila[36] || '';
+                    const columnaAL = fila[37] || '';
+                    
+                    if (columnaC && columnaC.toString().trim() !== '') {
+                        datosFiltrados.push({
+                            'Columna C': columnaC,
+                            'Columna AJ': normalizarAJ(columnaAJ),
+                            'Columna AK': columnaAK,
+                            'Columna AL': columnaAL
+                        });
+                    }
+                }
+            }
+            
+            return datosFiltrados;
+        }
+
+        function mostrarVistaPrevia(datos) {
+            const previewDiv = document.getElementById('preview');
+            let html = '<h4>Vista previa (primeros 10 registros):</h4>';
+            html += '<table>';
+            html += '<tr><th>Columna C</th><th>Columna AJ</th><th>Columna AK</th><th>Columna AL</th></tr>';
+            
+            datos.slice(0, 10).forEach(fila => {
+                html += `<tr>
+                    <td>${fila['Columna C']}</td>
+                    <td><strong>${fila['Columna AJ']}</strong></td>
+                    <td>${fila['Columna AK']}</td>
+                    <td>${fila['Columna AL']}</td>
+                </tr>`;
+            });
+            
+            if (datos.length > 10) {
+                html += `<tr><td colspan="4">... y ${datos.length - 10} registros más</td></tr>`;
+            }
+            
+            html += '</table>';
+            previewDiv.innerHTML = html;
+            previewDiv.classList.remove('hidden');
+        }
+
+        async function processFile() {
+            if (filteredData.length === 0) return;
+            
+            document.getElementById('processBtn').disabled = true;
+            showStatus('Enviando datos a Google Sheets...', 'processing');
+
+            try {
+                // Usar EXACTAMENTE el mismo formato que funciona
+                const formData = new URLSearchParams();
+                formData.append('action', 'appendData');
+                formData.append('datos', JSON.stringify(filteredData));
+
+                console.log('Enviando datos:', filteredData.length, 'registros');
+                
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                console.log('Respuesta recibida, status:', response.status);
+                
+                const result = await response.json();
+                console.log('Resultado GAS:', result);
+                
+                if (result.success) {
+                    const registrosNuevos = result.data?.registrosNuevos || 0;
+                    const registrosDuplicados = result.data?.registrosDuplicados || 0;
+                    
+                    showStatus(
+                        `✅ ${registrosNuevos} registros nuevos agregados (${registrosDuplicados} duplicados omitidos)`, 
+                        'success'
+                    );
+                    
+                    // Deshabilitar y limpiar
+                    setTimeout(() => {
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('processBtn').disabled = true;
+                        document.getElementById('preview').classList.add('hidden');
+                        filteredData = [];
+                        showStatus('', 'success');
+                    }, 5000);
+                    
+                } else {
+                    throw new Error(result.message || 'Error desconocido del servidor');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                document.getElementById('processBtn').disabled = false;
+                console.error('Error detallado:', error);
+            }
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Error leyendo archivo'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.toggle('hidden', !message);
+        }
+    </script>
+</body>
+</html>

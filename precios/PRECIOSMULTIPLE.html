@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cargar Excel - Filtro Valor 1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body{font-family:system-ui;max-width:600px;margin:20px auto;padding:20px}
+        .upload-area{border:2px dashed #3498db;border-radius:8px;padding:40px;text-align:center;margin-bottom:20px}
+        .file-input{display:none}
+        .upload-btn{background:#3498db;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer}
+        .process-btn{background:#27ae60;color:white;border:none;padding:12px;border-radius:5px;cursor:pointer;width:100%;margin:10px 0}
+        .process-btn:disabled{background:#95a5a6;cursor:not-allowed}
+        .status{padding:10px;border-radius:5px;margin:10px 0}
+        .success{background:#d4edda;color:#155724}
+        .error{background:#f8d7da;color:#721c24}
+        .processing{background:#cce7ff;color:#004085}
+        .hidden{display:none}
+        .queue-info{margin:10px 0;padding:10px;background:#f8f9fa;border-radius:5px}
+        .file-list{padding:5px 0}
+        .file-item{padding:8px;margin:3px 0;background:#e9ecef;border-radius:3px;display:flex;align-items:center}
+        .file-icon{margin-right:10px;width:20px;text-align:center}
+        .current-processing{background:#cce7ff !important}
+        .file-completed{background:#d4edda !important}
+        .file-failed{background:#f8d7da !important}
+        .file-text{flex:1}
+    </style>
+</head>
+<body>
+    <h3><i class="fas fa-file-excel" style="color:#27ae60; margin-right:10px;"></i>Cargar Excel - Filtro Valor 1</h3>
+    
+    <div class="upload-area" id="uploadArea">
+        <p><i class="fas fa-cloud-upload-alt fa-2x" style="color:#3498db; margin-bottom:10px;"></i></p>
+        <p>Selecciona archivos Excel</p>
+        <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx" multiple>
+        <button class="upload-btn" id="uploadBtn"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
+    </div>
+
+    <div class="queue-info hidden" id="queueInfo">
+        <div><strong><i class="fas fa-list-ol"></i> Cola de procesamiento:</strong></div>
+        <div id="fileQueue" class="file-list"></div>
+        <div id="queueStatus"></div>
+    </div>
+
+    <button class="process-btn" id="processBtn" disabled>
+        <i class="fas fa-play-circle"></i> Procesar Archivos en Cola
+    </button>
+    <div class="status hidden" id="status"></div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJg4AmMdaqQP10URzvZQ9yN-o5IkmQ6ZEBTIoCTpMvFxAs3RsYvuOXtwGJ7p4y6uYKzQ/exec';
+        
+        let fileQueue = []; // Array para almacenar archivos en cola
+        let isProcessing = false; // Bandera para controlar procesamiento
+        let currentFileIndex = 0; // Índice del archivo actual
+
+        document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+        
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            addFilesToQueue(e.target.files);
+        });
+
+        document.getElementById('processBtn').addEventListener('click', processQueue);
+
+        // Agregar archivos a la cola
+        function addFilesToQueue(files) {
+            const validFiles = Array.from(files).filter(file => file.name.match(/\.(xls|xlsx)$/));
+            
+            if (validFiles.length === 0) {
+                showStatus('<i class="fas fa-exclamation-triangle"></i> Solo archivos Excel (.xls, .xlsx)', 'error');
+                return;
+            }
+            
+            validFiles.forEach(file => {
+                fileQueue.push({
+                    file: file,
+                    status: 'pending', // pending, processing, completed, failed
+                    data: null
+                });
+            });
+            
+            showStatus(`<i class="fas fa-check-circle"></i> ${validFiles.length} archivo(s) agregado(s) a la cola`, 'success');
+            updateQueueDisplay();
+            document.getElementById('processBtn').disabled = false;
+            document.getElementById('queueInfo').classList.remove('hidden');
+        }
+
+        // Actualizar la visualización de la cola
+        function updateQueueDisplay() {
+            const queueElement = document.getElementById('fileQueue');
+            queueElement.innerHTML = '';
+            
+            fileQueue.forEach((item, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = `file-item ${item.status}`;
+                
+                let iconClass = 'fas fa-pause';
+                let iconColor = '#6c757d';
+                
+                if (item.status === 'processing') {
+                    iconClass = 'fas fa-spinner fa-spin';
+                    iconColor = '#3498db';
+                    fileItem.classList.add('current-processing');
+                } else if (item.status === 'completed') {
+                    iconClass = 'fas fa-check-circle';
+                    iconColor = '#27ae60';
+                    fileItem.classList.add('file-completed');
+                } else if (item.status === 'failed') {
+                    iconClass = 'fas fa-times-circle';
+                    iconColor = '#e74c3c';
+                    fileItem.classList.add('file-failed');
+                }
+                
+                fileItem.innerHTML = `
+                    <div class="file-icon">
+                        <i class="${iconClass}" style="color:${iconColor}"></i>
+                    </div>
+                    <div class="file-text">
+                        ${index + 1}. ${item.file.name}
+                    </div>
+                `;
+                queueElement.appendChild(fileItem);
+            });
+            
+            const pendingCount = fileQueue.filter(f => f.status === 'pending').length;
+            const processingCount = fileQueue.filter(f => f.status === 'processing').length;
+            const completedCount = fileQueue.filter(f => f.status === 'completed').length;
+            const failedCount = fileQueue.filter(f => f.status === 'failed').length;
+            
+            document.getElementById('queueStatus').innerHTML = `
+                <small>
+                    <i class="fas fa-clock"></i> Pendientes: ${pendingCount} | 
+                    <i class="fas fa-spinner fa-spin"></i> Procesando: ${processingCount} | 
+                    <i class="fas fa-check"></i> Completados: ${completedCount} | 
+                    <i class="fas fa-times"></i> Fallados: ${failedCount}
+                </small>
+            `;
+        }
+
+        // Procesar la cola de archivos
+        async function processQueue() {
+            if (isProcessing || fileQueue.length === 0) return;
+            
+            isProcessing = true;
+            document.getElementById('processBtn').disabled = true;
+            document.getElementById('processBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            showStatus('<i class="fas fa-spinner fa-spin"></i> Iniciando procesamiento de archivos...', 'processing');
+            
+            // Reiniciar índices
+            currentFileIndex = 0;
+            
+            // Procesar archivos uno por uno
+            for (let i = 0; i < fileQueue.length; i++) {
+                currentFileIndex = i;
+                
+                if (fileQueue[i].status === 'completed' || fileQueue[i].status === 'failed') {
+                    continue; // Saltar archivos ya procesados
+                }
+                
+                // Marcar como procesando
+                fileQueue[i].status = 'processing';
+                updateQueueDisplay();
+                
+                try {
+                    // Procesar el archivo
+                    const result = await processSingleFile(fileQueue[i].file);
+                    
+                    if (result.success) {
+                        fileQueue[i].status = 'completed';
+                        fileQueue[i].data = result.filteredData;
+                        
+                        // Enviar a Google Sheets si hay datos
+                        if (result.filteredData.length > 0) {
+                            await sendToGoogleSheets(result.filteredData, fileQueue[i].file.name);
+                        }
+                        
+                        showStatus(`<i class="fas fa-check-circle"></i> ${fileQueue[i].file.name}: ${result.filteredData.length} registros válidos encontrados`, 'success');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    fileQueue[i].status = 'failed';
+                    showStatus(`<i class="fas fa-times-circle"></i> ${fileQueue[i].file.name}: ${error.message}`, 'error');
+                }
+                
+                updateQueueDisplay();
+                
+                // Pequeña pausa entre archivos (opcional)
+                if (i < fileQueue.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+            
+            // Procesamiento completado
+            const completedCount = fileQueue.filter(f => f.status === 'completed').length;
+            const failedCount = fileQueue.filter(f => f.status === 'failed').length;
+            
+            let finalMessage = '';
+            let finalType = 'success';
+            
+            if (failedCount === 0 && completedCount > 0) {
+                finalMessage = `<i class="fas fa-check-circle"></i> Procesamiento completado: ${completedCount} archivo(s) procesado(s) exitosamente`;
+                finalType = 'success';
+            } else if (failedCount > 0 && completedCount > 0) {
+                finalMessage = `<i class="fas fa-exclamation-triangle"></i> Procesamiento completado: ${completedCount} exitoso(s), ${failedCount} fallado(s)`;
+                finalType = 'error';
+            } else if (failedCount > 0) {
+                finalMessage = `<i class="fas fa-times-circle"></i> Todos los archivos fallaron`;
+                finalType = 'error';
+            } else {
+                finalMessage = `<i class="fas fa-info-circle"></i> No se procesaron archivos`;
+                finalType = 'processing';
+            }
+            
+            showStatus(finalMessage, finalType);
+            
+            isProcessing = false;
+            document.getElementById('processBtn').disabled = false;
+            document.getElementById('processBtn').innerHTML = '<i class="fas fa-play-circle"></i> Procesar Archivos en Cola';
+        }
+
+        // Procesar un solo archivo
+        async function processSingleFile(file) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const arrayBuffer = await readFileAsArrayBuffer(file);
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    const filteredData = filterVLData(jsonData);
+                    
+                    resolve({
+                        success: true,
+                        filteredData: filteredData,
+                        fileName: file.name
+                    });
+                } catch (error) {
+                    resolve({
+                        success: false,
+                        error: error.message
+                    });
+                }
+            });
+        }
+
+        // Función de filtrado MEJORADA
+        function filterVLData(data) {
+            if (data.length === 0) return [];
+            const headers = data[0];
+            
+            const referenIndex = headers.findIndex(h => h.toString().toLowerCase().includes('referen'));
+            const precioIndex = headers.findIndex(h => h.toString().toLowerCase().includes('precio'));
+            const listaalterIndex = headers.findIndex(h => h.toString().toLowerCase().includes('listaalter'));
+            
+            if (referenIndex === -1) throw new Error('No se encuentra columna referen');
+            if (precioIndex === -1) throw new Error('No se encuentra columna precio');
+            if (listaalterIndex === -1) throw new Error('No se encuentra columna listaalter');
+            
+            const filtered = [];
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                
+                // Verificar si tiene valor 1 en listaalter
+                if (row[listaalterIndex] && row[listaalterIndex].toString().trim() === '1') {
+                    
+                    // Limpiar y obtener el valor de referen
+                    const referenValue = row[referenIndex] ? 
+                        row[referenIndex].toString().trim() : '';
+                    
+                    // Obtener el valor de precio
+                    const precioValue = row[precioIndex];
+                    
+                    // Validar que precio no esté vacío, nulo, indefinido o sea 0
+                    if (isValidPrecio(precioValue)) {
+                        filtered.push({
+                            referen: referenValue, // Ya está trimado
+                            precio: precioValue
+                        });
+                    }
+                    // Si precio no es válido, NO se agrega a filtered
+                }
+            }
+            return filtered;
+        }
+
+        // Función para validar el precio (EXCLUYE 0)
+        function isValidPrecio(precioValue) {
+            if (precioValue === null || precioValue === undefined) {
+                return false;
+            }
+            
+            // Convertir a string y trim
+            const precioStr = precioValue.toString().trim();
+            
+            // Verificar si está vacío
+            if (precioStr === '') {
+                return false;
+            }
+            
+            // Intentar convertir a número
+            const precioNum = parseFloat(precioStr);
+            
+            // Verificar si es un número válido Y no es 0
+            if (isNaN(precioNum)) {
+                return false; // No es un número válido
+            }
+            
+            // Verificar que no sea 0 (cero)
+            if (precioNum === 0) {
+                return false;
+            }
+            
+            return true; // Acepta cualquier número distinto de 0
+        }
+
+        // Enviar datos a Google Sheets
+        async function sendToGoogleSheets(data, fileName) {
+            try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'pegarDatos');
+                formData.append('datos', JSON.stringify(data));
+                formData.append('fileName', fileName); // Agregar nombre del archivo
+                
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    console.warn(`Advertencia en ${fileName}: ${result.message}`);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error(`Error enviando ${fileName}:`, error);
+                throw error;
+            }
+        }
+
+        // Función auxiliar para leer archivo
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Error leyendo archivo'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Mostrar estado
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+            status.classList.toggle('hidden', !message);
+        }
+    </script>
+</body>
+</html>

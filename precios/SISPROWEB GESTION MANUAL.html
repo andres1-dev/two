@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Carga - SISPROWEB</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #f8fafc;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            background-color: #edf7ff;
+            border-color: #2980b9;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #219653;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
+        .btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .processing {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .preview {
+            margin-top: 20px;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e1e5e9;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        
+        td {
+            border: 1px solid #e1e5e9;
+            padding: 10px;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #2c3e50; text-align: center; margin-bottom: 10px;">Sistema de Carga - SISPROWEB</h1>
+    <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">Gestión de datos OP - Prenda - Línea - Género</p>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('cargaExcel')">Carga desde Excel</button>
+        <button class="tab" onclick="switchTab('cargaManual')">Carga Manual</button>
+        <button class="tab" onclick="switchTab('consultas')">Consultas</button>
+    </div>
+    
+    <!-- Pestaña 1: Carga desde Excel -->
+    <div id="cargaExcel" class="tab-content active">
+        <div class="card">
+            <h3>Cargar Excel - Columnas C, AJ, AK, AL</h3>
+            
+            <div class="upload-area" id="uploadArea">
+                <p style="font-size: 18px; margin-bottom: 20px; color: #2c3e50;">📁 Arrastra o selecciona archivo Excel</p>
+                <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx">
+                <button class="btn btn-primary" id="uploadBtn">
+                    <span>📂 Seleccionar Archivo</span>
+                </button>
+                <p style="color: #7f8c8d; margin-top: 15px; font-size: 14px;">Formatos soportados: .xls, .xlsx</p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Registros Procesados</div>
+                    <div class="stat-value" id="countRegistros">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Columnas Incluidas</div>
+                    <div class="stat-value">4</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-success" id="processBtn" disabled style="width: 100%; padding: 15px; font-size: 18px;">
+                <span>🚀 Enviar a Google Sheets</span>
+            </button>
+            
+            <div class="status" id="status"></div>
+            
+            <div id="preview" class="preview hidden"></div>
+        </div>
+    </div>
+    
+    <!-- Pestaña 2: Carga Manual -->
+    <div id="cargaManual" class="tab-content">
+        <div class="card">
+            <h3>📝 Carga Manual de Datos</h3>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Agregar registros individuales de OP, Prenda, Línea, Género</p>
+            
+            <form id="manualForm">
+                <div class="form-group">
+                    <label for="op">OP (Número de Orden) *</label>
+                    <input type="text" id="op" class="form-control" placeholder="Ej: OP-2024-001" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="prenda">Prenda *</label>
+                    <select id="prenda" class="form-control" required>
+                        <option value="">Seleccionar prenda...</option>
+                        <!-- Opciones se cargarán desde Google Sheets -->
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">
+                        Valores únicos de la columna B de Google Sheets
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="linea">Línea *</label>
+                    <select id="linea" class="form-control" required>
+                        <option value="">Seleccionar línea...</option>
+                        <!-- Opciones se cargarán desde Google Sheets -->
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">
+                        Valores únicos de la columna C de Google Sheets
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="genero">Género *</label>
+                    <select id="genero" class="form-control" required>
+                        <option value="">Seleccionar género...</option>
+                        <!-- Opciones se cargarán desde Google Sheets -->
+                    </select>
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">
+                        Valores únicos de la columna D de Google Sheets
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notas">Notas adicionales (opcional)</label>
+                    <textarea id="notas" class="form-control" rows="3" placeholder="Observaciones o comentarios..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%; padding: 15px;">
+                    <span>💾 Guardar Registro Manual</span>
+                </button>
+            </form>
+            
+            <div class="status" id="manualStatus"></div>
+        </div>
+    </div>
+    
+    <!-- Pestaña 3: Consultas -->
+    <div id="consultas" class="tab-content">
+        <div class="card">
+            <h3>🔍 Consultar Datos Existentes</h3>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Valores únicos actuales en Google Sheets</p>
+            
+            <div class="form-group">
+                <label for="filtroConsulta">Filtrar por tipo:</label>
+                <select id="filtroConsulta" class="form-control" onchange="filtrarConsulta()">
+                    <option value="all">Todos los datos</option>
+                    <option value="prendas">Prendas (Columna B)</option>
+                    <option value="lineas">Líneas (Columna C)</option>
+                    <option value="generos">Géneros (Columna D)</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" onclick="cargarDatosGoogleSheets()" style="margin-bottom: 20px;">
+                <span>🔄 Actualizar Datos</span>
+            </button>
+            
+            <div id="consultaResultados"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración
+        const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+        const SPREADSHEET_ID = '133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI';
+        const SHEET_NAME = 'SISPROWEB';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbynUt4GdCEYaGSqnbctsNXaib52MTm0cVQlehGnt0-6B7fOTv31HoYWjCLRndiQi8r1Pg/exec';
+        
+        let filteredData = [];
+        let datosUnicos = {
+            prendas: new Set(),
+            lineas: new Set(),
+            generos: new Set()
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDatosGoogleSheets();
+            
+            // Event listeners para carga Excel
+            document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('fileInput').addEventListener('change', async (e) => {
+                if (!e.target.files[0]) return;
+                await handleFile(e.target.files[0]);
+            });
+            document.getElementById('processBtn').addEventListener('click', processFile);
+            
+            // Event listener para formulario manual
+            document.getElementById('manualForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await guardarRegistroManual();
+            });
+        });
+
+        // Función para cargar datos únicos de Google Sheets
+        async function cargarDatosGoogleSheets() {
+            try {
+                showStatusInfo('Cargando datos de Google Sheets...');
+                
+                // Consultar datos de las columnas B, C, D
+                const columnas = ['B', 'C', 'D'];
+                
+                for (let i = 0; i < columnas.length; i++) {
+                    const columna = columnas[i];
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!${columna}:${columna}?key=${API_KEY}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.values) {
+                        // Filtrar valores únicos (omitir encabezado si existe)
+                        const valores = data.values
+                            .slice(1) // Omitir primera fila si es encabezado
+                            .filter(val => val && val[0] && val[0].toString().trim() !== '')
+                            .map(val => val[0].toString().trim());
+                        
+                        const valoresUnicos = [...new Set(valores)];
+                        
+                        // Almacenar en objeto
+                        switch(columna) {
+                            case 'B':
+                                datosUnicos.prendas = new Set(valoresUnicos);
+                                break;
+                            case 'C':
+                                datosUnicos.lineas = new Set(valoresUnicos);
+                                break;
+                            case 'D':
+                                datosUnicos.generos = new Set(valoresUnicos);
+                                break;
+                        }
+                    }
+                }
+                
+                // Actualizar selects del formulario manual
+                actualizarSelectsFormulario();
+                
+                // Mostrar resultados en pestaña de consultas
+                mostrarResultadosConsulta();
+                
+                showStatusSuccess('Datos cargados exitosamente de Google Sheets');
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showStatusError('Error cargando datos de Google Sheets: ' + error.message);
+            }
+        }
+
+        // Actualizar selects del formulario manual
+        function actualizarSelectsFormulario() {
+            const selectPrenda = document.getElementById('prenda');
+            const selectLinea = document.getElementById('linea');
+            const selectGenero = document.getElementById('genero');
+            
+            // Limpiar opciones excepto la primera
+            [selectPrenda, selectLinea, selectGenero].forEach(select => {
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+            });
+            
+            // Agregar opciones de prendas
+            if (datosUnicos.prendas.size > 0) {
+                Array.from(datosUnicos.prendas).sort().forEach(prenda => {
+                    const option = document.createElement('option');
+                    option.value = prenda;
+                    option.textContent = prenda;
+                    selectPrenda.appendChild(option);
+                });
+                
+                // Agregar opción para nueva prenda
+                const nuevaPrendaOption = document.createElement('option');
+                nuevaPrendaOption.value = '_nueva';
+                nuevaPrendaOption.textContent = '➕ Agregar nueva prenda...';
+                selectPrenda.appendChild(nuevaPrendaOption);
+            }
+            
+            // Agregar opciones de líneas
+            if (datosUnicos.lineas.size > 0) {
+                Array.from(datosUnicos.lineas).sort().forEach(linea => {
+                    const option = document.createElement('option');
+                    option.value = linea;
+                    option.textContent = linea;
+                    selectLinea.appendChild(option);
+                });
+                
+                const nuevaLineaOption = document.createElement('option');
+                nuevaLineaOption.value = '_nueva';
+                nuevaLineaOption.textContent = '➕ Agregar nueva línea...';
+                selectLinea.appendChild(nuevaLineaOption);
+            }
+            
+            // Agregar opciones de géneros
+            if (datosUnicos.generos.size > 0) {
+                Array.from(datosUnicos.generos).sort().forEach(genero => {
+                    const option = document.createElement('option');
+                    option.value = genero;
+                    option.textContent = genero;
+                    selectGenero.appendChild(option);
+                });
+                
+                const nuevoGeneroOption = document.createElement('option');
+                nuevoGeneroOption.value = '_nueva';
+                nuevoGeneroOption.textContent = '➕ Agregar nuevo género...';
+                selectGenero.appendChild(nuevoGeneroOption);
+            }
+            
+            // Agregar event listeners para nueva opción
+            selectPrenda.addEventListener('change', function() {
+                if (this.value === '_nueva') {
+                    const nuevaPrenda = prompt('Ingrese el nombre de la nueva prenda:');
+                    if (nuevaPrenda && nuevaPrenda.trim() !== '') {
+                        const option = document.createElement('option');
+                        option.value = nuevaPrenda.trim();
+                        option.textContent = nuevaPrenda.trim();
+                        option.selected = true;
+                        this.insertBefore(option, this.lastChild);
+                        datosUnicos.prendas.add(nuevaPrenda.trim());
+                    } else {
+                        this.value = '';
+                    }
+                }
+            });
+            
+            selectLinea.addEventListener('change', function() {
+                if (this.value === '_nueva') {
+                    const nuevaLinea = prompt('Ingrese el nombre de la nueva línea:');
+                    if (nuevaLinea && nuevaLinea.trim() !== '') {
+                        const option = document.createElement('option');
+                        option.value = nuevaLinea.trim();
+                        option.textContent = nuevaLinea.trim();
+                        option.selected = true;
+                        this.insertBefore(option, this.lastChild);
+                        datosUnicos.lineas.add(nuevaLinea.trim());
+                    } else {
+                        this.value = '';
+                    }
+                }
+            });
+            
+            selectGenero.addEventListener('change', function() {
+                if (this.value === '_nueva') {
+                    const nuevoGenero = prompt('Ingrese el nuevo género:');
+                    if (nuevoGenero && nuevoGenero.trim() !== '') {
+                        const option = document.createElement('option');
+                        option.value = nuevoGenero.trim();
+                        option.textContent = nuevoGenero.trim();
+                        option.selected = true;
+                        this.insertBefore(option, this.lastChild);
+                        datosUnicos.generos.add(nuevoGenero.trim());
+                    } else {
+                        this.value = '';
+                    }
+                }
+            });
+        }
+
+        // Mostrar resultados en pestaña de consultas
+        function mostrarResultadosConsulta() {
+            const resultadosDiv = document.getElementById('consultaResultados');
+            let html = '<div class="stats">';
+            
+            html += `
+                <div class="stat-card">
+                    <div class="stat-label">Prendas Únicas</div>
+                    <div class="stat-value">${datosUnicos.prendas.size}</div>
+                    <div style="max-height: 200px; overflow-y: auto; margin-top: 10px; text-align: left;">
+                        ${Array.from(datosUnicos.prendas).sort().map(p => `<div style="padding: 5px; border-bottom: 1px solid #eee;">${p}</div>`).join('')}
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Líneas Únicas</div>
+                    <div class="stat-value">${datosUnicos.lineas.size}</div>
+                    <div style="max-height: 200px; overflow-y: auto; margin-top: 10px; text-align: left;">
+                        ${Array.from(datosUnicos.lineas).sort().map(l => `<div style="padding: 5px; border-bottom: 1px solid #eee;">${l}</div>`).join('')}
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Géneros Únicos</div>
+                    <div class="stat-value">${datosUnicos.generos.size}</div>
+                    <div style="max-height: 200px; overflow-y: auto; margin-top: 10px; text-align: left;">
+                        ${Array.from(datosUnicos.generos).sort().map(g => `<div style="padding: 5px; border-bottom: 1px solid #eee;">${g}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            html += '</div>';
+            resultadosDiv.innerHTML = html;
+        }
+
+        function filtrarConsulta() {
+            const filtro = document.getElementById('filtroConsulta').value;
+            const resultadosDiv = document.getElementById('consultaResultados');
+            
+            let html = '<div style="max-height: 400px; overflow-y: auto;">';
+            
+            if (filtro === 'prendas' || filtro === 'all') {
+                html += `<h4>Prendas (${datosUnicos.prendas.size})</h4>`;
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">';
+                Array.from(datosUnicos.prendas).sort().forEach(prenda => {
+                    html += `<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; border-left: 4px solid #3498db;">${prenda}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (filtro === 'lineas' || filtro === 'all') {
+                html += `<h4>Líneas (${datosUnicos.lineas.size})</h4>`;
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">';
+                Array.from(datosUnicos.lineas).sort().forEach(linea => {
+                    html += `<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; border-left: 4px solid #27ae60;">${linea}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (filtro === 'generos' || filtro === 'all') {
+                html += `<h4>Géneros (${datosUnicos.generos.size})</h4>`;
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">';
+                Array.from(datosUnicos.generos).sort().forEach(genero => {
+                    html += `<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; border-left: 4px solid #f39c12;">${genero}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            resultadosDiv.innerHTML = html;
+        }
+
+        // Función para guardar registro manual
+        async function guardarRegistroManual() {
+            const op = document.getElementById('op').value.trim();
+            const prenda = document.getElementById('prenda').value.trim();
+            const linea = document.getElementById('linea').value.trim();
+            const genero = document.getElementById('genero').value.trim();
+            const notas = document.getElementById('notas').value.trim();
+            
+            if (!op || !prenda || !linea || !genero) {
+                showManualStatus('Por favor complete todos los campos requeridos', 'error');
+                return;
+            }
+            
+            try {
+                showManualStatus('Guardando registro...', 'processing');
+                
+                const registro = [{
+                    'Columna C': op,
+                    'Columna AJ': prenda,
+                    'Columna AK': linea,
+                    'Columna AL': genero,
+                    'Notas': notas
+                }];
+                
+                const formData = new URLSearchParams();
+                formData.append('action', 'appendData');
+                formData.append('datos', JSON.stringify(registro));
+                
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showManualStatus('✅ Registro guardado exitosamente', 'success');
+                    
+                    // Limpiar formulario
+                    document.getElementById('manualForm').reset();
+                    
+                    // Actualizar datos de Google Sheets
+                    setTimeout(() => cargarDatosGoogleSheets(), 1000);
+                    
+                    // Ocultar mensaje después de 3 segundos
+                    setTimeout(() => {
+                        document.getElementById('manualStatus').classList.remove('show');
+                    }, 3000);
+                } else {
+                    throw new Error(result.message || 'Error al guardar');
+                }
+            } catch (error) {
+                showManualStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Funciones de manejo de archivos Excel (sin cambios)
+        function normalizarAJ(texto) {
+            if (!texto || typeof texto !== 'string') return '';
+            let normalizado = texto.toUpperCase().trim();
+            normalizado = normalizado.replace(/_/g, ' ');
+            if (normalizado === 'SALIDAS DE BAÑO') return 'SALIDA DE BAÑO';
+            if (normalizado.includes('SALIDAS DE BAÑO')) normalizado = normalizado.replace('SALIDAS DE BAÑO', 'SALIDA DE BAÑO');
+            if (normalizado.includes(',')) normalizado = normalizado.split(',')[0].trim();
+            normalizado = normalizado.replace(/\b(PROMOCION|PROMO|PROMOCI[ÓO]N|POMOCION|PROMOCIO)\b/gi, '').trim();
+            normalizado = normalizado.replace(/\s*CIO\s*$/i, '').trim();
+            
+            if (normalizado.endsWith('ES')) {
+                if (normalizado === 'PANTALONES') normalizado = 'PANTALON';
+                else if (!normalizado.endsWith('LEGGINS') && !normalizado.endsWith('LEGGIN')) {
+                    normalizado = normalizado.slice(0, -2);
+                }
+            } else if (normalizado.endsWith('S')) {
+                if (normalizado !== 'LEGGINS' && normalizado !== 'LEGGIN') {
+                    normalizado = normalizado.slice(0, -1);
+                }
+            }
+            
+            return normalizado.replace(/\s+/g, ' ').trim();
+        }
+
+        async function handleFile(file) {
+            if (!file.name.match(/\.(xls|xlsx)$/)) {
+                showStatus('Solo archivos Excel (.xls, .xlsx)', 'error');
+                return;
+            }
+
+            try {
+                showStatus('Procesando archivo...', 'processing');
+                const arrayBuffer = await readFileAsArrayBuffer(file);
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                filteredData = procesarDatosExcel(jsonData);
+                
+                if (filteredData.length > 0) {
+                    showStatus(`Listo: ${filteredData.length} registros procesados`, 'success');
+                    document.getElementById('countRegistros').textContent = filteredData.length;
+                    mostrarVistaPrevia(filteredData);
+                    document.getElementById('processBtn').disabled = false;
+                } else {
+                    showStatus('No hay datos para procesar', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function procesarDatosExcel(data) {
+            if (data.length < 3) return [];
+            const datosFiltrados = [];
+            
+            function limpiarColumnaC(valor) {
+                if (!valor || typeof valor !== 'string') return valor || '';
+                let limpio = valor.toString().trim();
+                limpio = limpio.replace(/_/g, ' ');
+                limpio = limpio.replace(/\b(promocion|promo|promoci[óo]n|pomocion|promocio)\b/gi, '').trim();
+                limpio = limpio.replace(/\s*cio\s*$/i, '').trim();
+                return limpio;
+            }
+            
+            for (let i = 2; i < data.length; i++) {
+                const fila = data[i];
+                if (fila && fila.length >= 38) {
+                    const columnaC = limpiarColumnaC(fila[2] || '');
+                    const columnaAJ = fila[35] || '';
+                    const columnaAK = fila[36] || '';
+                    const columnaAL = fila[37] || '';
+                    
+                    if (columnaC && columnaC.toString().trim() !== '') {
+                        datosFiltrados.push({
+                            'Columna C': columnaC,
+                            'Columna AJ': normalizarAJ(columnaAJ),
+                            'Columna AK': columnaAK,
+                            'Columna AL': columnaAL
+                        });
+                    }
+                }
+            }
+            return datosFiltrados;
+        }
+
+        function mostrarVistaPrevia(datos) {
+            const previewDiv = document.getElementById('preview');
+            let html = '<h4>Vista previa (primeros 10 registros):</h4>';
+            html += '<table>';
+            html += '<tr><th>OP (Col C)</th><th>Prenda (Col AJ)</th><th>Línea (Col AK)</th><th>Género (Col AL)</th></tr>';
+            
+            datos.slice(0, 10).forEach(fila => {
+                html += `<tr>
+                    <td>${fila['Columna C']}</td>
+                    <td><strong>${fila['Columna AJ']}</strong></td>
+                    <td>${fila['Columna AK']}</td>
+                    <td>${fila['Columna AL']}</td>
+                </tr>`;
+            });
+            
+            if (datos.length > 10) {
+                html += `<tr><td colspan="4">... y ${datos.length - 10} registros más</td></tr>`;
+            }
+            
+            html += '</table>';
+            previewDiv.innerHTML = html;
+            previewDiv.classList.remove('hidden');
+        }
+
+        async function processFile() {
+            if (filteredData.length === 0) return;
+            
+            document.getElementById('processBtn').disabled = true;
+            showStatus('Enviando datos a Google Sheets...', 'processing');
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'appendData');
+                formData.append('datos', JSON.stringify(filteredData));
+                
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const registrosNuevos = result.data?.registrosNuevos || 0;
+                    const registrosDuplicados = result.data?.registrosDuplicados || 0;
+                    
+                    showStatus(
+                        `✅ ${registrosNuevos} registros nuevos agregados (${registrosDuplicados} duplicados omitidos)`, 
+                        'success'
+                    );
+                    
+                    // Actualizar datos después de enviar
+                    setTimeout(() => cargarDatosGoogleSheets(), 1000);
+                    
+                    setTimeout(() => {
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('processBtn').disabled = true;
+                        document.getElementById('preview').classList.add('hidden');
+                        document.getElementById('countRegistros').textContent = '0';
+                        filteredData = [];
+                        showStatus('', 'success');
+                    }, 5000);
+                    
+                } else {
+                    throw new Error(result.message || 'Error desconocido del servidor');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        // Funciones auxiliares
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Error leyendo archivo'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.add('show');
+        }
+
+        function showManualStatus(message, type) {
+            const status = document.getElementById('manualStatus');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.add('show');
+        }
+
+        function showStatusSuccess(message) {
+            showStatus(message, 'success');
+            setTimeout(() => document.getElementById('status').classList.remove('show'), 3000);
+        }
+
+        function showStatusError(message) {
+            showStatus(message, 'error');
+        }
+
+        function showStatusInfo(message) {
+            showStatus(message, 'info');
+        }
+
+        function switchTab(tabName) {
+            // Ocultar todas las pestañas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar pestaña seleccionada
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // Si es la pestaña de consultas, actualizar datos
+            if (tabName === 'consultas') {
+                mostrarResultadosConsulta();
+            }
+        }
+    </script>
+</body>
+</html>
