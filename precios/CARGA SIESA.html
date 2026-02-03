@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iLogistics Pro | Cargador de Archivos</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Estilos personalizados -->
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: #eef2ff;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-600: #6c757d;
+            --gray-800: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+        
+        .app-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #3a56d4 100%);
+            color: white;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            z-index: 1;
+        }
+        
+        .app-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .app-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .app-content {
+            padding: 2rem;
+        }
+        
+        /* Tarjeta de estado */
+        .status-card {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-left: 4px solid var(--gray-600);
+        }
+        
+        .status-card.connected {
+            border-left-color: var(--success-color);
+            background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .status-card.disconnected {
+            border-left-color: var(--danger-color);
+            background: linear-gradient(90deg, #fef2f2 0%, #ffffff 100%);
+        }
+        
+        /* Área de carga */
+        .upload-area {
+            border: 3px dashed var(--gray-200);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--gray-100);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .upload-area.active {
+            border-color: var(--success-color);
+            background: #f0fdf4;
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        
+        .upload-area:hover .upload-icon {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        
+        /* Lista de archivos */
+        .files-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            display: none;
+        }
+        
+        .files-header {
+            background: var(--gray-100);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: background 0.2s;
+        }
+        
+        .file-item:hover {
+            background: var(--gray-100);
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+        
+        .file-icon.csv {
+            color: var(--success-color);
+        }
+        
+        .file-icon.xlsx {
+            color: var(--primary-color);
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .file-meta {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+        
+        .file-status {
+            min-width: 100px;
+            text-align: right;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-waiting {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+        
+        .status-processing {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #047857;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        /* Botón principal */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #3a56d4 100%);
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Sección de resultados */
+        .results-section {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            margin-top: 2rem;
+            display: none;
+        }
+        
+        .results-header {
+            background: var(--gray-100);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .results-content {
+            padding: 1.5rem;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary-light) 0%, #eef2ff 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+        
+        .file-result {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid;
+            background: white;
+        }
+        
+        .file-result.success {
+            border-left-color: var(--success-color);
+            background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        
+        .file-result.error {
+            border-left-color: var(--danger-color);
+            background: linear-gradient(90deg, #fef2f2 0%, #ffffff 100%);
+        }
+        
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                margin: 1rem;
+                border-radius: 16px;
+            }
+            
+            .app-header {
+                padding: 1.5rem 1rem;
+            }
+            
+            .app-title {
+                font-size: 2rem;
+            }
+            
+            .app-content {
+                padding: 1.5rem 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .file-status {
+                text-align: left;
+                min-width: auto;
+            }
+        }
+        
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Scrollbar personalizado */
+        .file-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .file-list::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+        
+        .file-list::-webkit-scrollbar-thumb {
+            background: var(--gray-400);
+            border-radius: 3px;
+        }
+        
+        .file-list::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-500);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1 class="app-title">
+                <i class="bi bi-box-seam me-2"></i>iLogistics Pro
+            </h1>
+            <p class="app-subtitle">
+                Cargador inteligente de archivos CSV y XLSX
+            </p>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="app-content">
+            <!-- Estado de conexión -->
+            <div class="status-card" id="statusCard">
+                <i class="bi bi-circle-fill text-muted" id="statusIcon"></i>
+                <div>
+                    <div class="fw-semibold" id="statusTitle">Conectando al servidor...</div>
+                    <small class="text-muted" id="statusMessage">Verificando conexión con la API</small>
+                </div>
+            </div>
+            
+            <!-- Área de carga -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <h4 class="fw-semibold mb-2">Arrastra tus archivos aquí</h4>
+                <p class="text-muted mb-3">o haz clic para seleccionar archivos</p>
+                <button class="btn btn-outline-primary" id="btnSelectFiles">
+                    <i class="bi bi-folder2-open me-2"></i>Seleccionar Archivos
+                </button>
+                <p class="text-muted small mt-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Formatos soportados: CSV, XLSX • Máximo 10MB por archivo
+                </p>
+                <input type="file" id="fileInput" multiple accept=".csv,.xlsx" style="display: none;">
+            </div>
+            
+            <!-- Lista de archivos -->
+            <div class="files-container" id="filesContainer">
+                <div class="files-header">
+                    <div>
+                        <h5 class="fw-semibold mb-0">Archivos seleccionados</h5>
+                        <small class="text-muted" id="filesCount">0 archivos</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" id="btnClearAll">
+                        <i class="bi bi-trash me-1"></i>Limpiar todo
+                    </button>
+                </div>
+                <div class="file-list" id="fileList">
+                    <!-- Los archivos se agregarán aquí dinámicamente -->
+                </div>
+            </div>
+            
+            <!-- Botón de procesar -->
+            <button class="btn btn-primary" id="btnProcess" disabled>
+                <i class="bi bi-play-circle"></i>
+                <span>PROCESAR ARCHIVOS</span>
+                <span id="processingSpinner" style="display: none;">
+                    <span class="spinner"></span>
+                </span>
+            </button>
+            
+            <!-- Resultados -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-header">
+                    <h5 class="fw-semibold mb-0">
+                        <i class="bi bi-graph-up me-2"></i>Resultados del Procesamiento
+                    </h5>
+                </div>
+                <div class="results-content">
+                    <div id="resultsContent">
+                        <!-- Los resultados se mostrarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // CONFIGURACIÓN
+        const API_URL = 'https://script.google.com/macros/s/AKfycbz2nUpMXcqkHZwv3qDzC4dEPw60AFeLtRh_viUOD6rupYc-CaWqNslHxtINDsszOG3D/exec';
+        
+        // ESTADO
+        let selectedFiles = [];
+        let isProcessing = false;
+        
+        // INICIALIZAR
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 iLogistics Pro iniciado');
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            setupEventListeners();
+            setupDragAndDrop();
+            testConnection();
+        }
+        
+        function setupEventListeners() {
+            // Botón para seleccionar archivos
+            document.getElementById('btnSelectFiles').addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+            
+            // Input de archivos
+            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+            
+            // Botón de procesar
+            document.getElementById('btnProcess').addEventListener('click', processFiles);
+            
+            // Botón limpiar todo
+            document.getElementById('btnClearAll').addEventListener('click', clearAllFiles);
+        }
+        
+        function setupDragAndDrop() {
+            const dropzone = document.getElementById('uploadArea');
+            
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('active');
+            });
+            
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('active');
+            });
+            
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('active');
+                handleDroppedFiles(e.dataTransfer.files);
+            });
+        }
+        
+        // PROBAR CONEXIÓN
+        async function testConnection() {
+            const statusCard = document.getElementById('statusCard');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            try {
+                console.log('🔌 Probando conexión con la API...');
+                
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Conexión exitosa
+                    statusCard.className = 'status-card connected fade-in';
+                    statusIcon.className = 'bi bi-check-circle-fill text-success';
+                    statusTitle.textContent = '✅ Conectado al servidor';
+                    statusMessage.textContent = 'API lista para recibir archivos';
+                    
+                    console.log('✅ Conexión establecida');
+                } else {
+                    throw new Error(data.message || 'Error en la respuesta');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error de conexión:', error);
+                
+                statusCard.className = 'status-card disconnected fade-in';
+                statusIcon.className = 'bi bi-x-circle-fill text-danger';
+                statusTitle.textContent = '❌ Error de conexión';
+                statusMessage.textContent = 'No se pudo conectar con el servidor';
+                
+                // Mostrar ayuda después de 2 segundos
+                setTimeout(() => {
+                    showAlert(
+                        'info',
+                        'Solución de problemas',
+                        'Si este es tu primer acceso, por favor:\n\n1. Abre este enlace en otra pestaña:\n' + API_URL + '\n\n2. Autoriza la aplicación si se te solicita\n3. Vuelve aquí y recarga la página'
+                    );
+                }, 2000);
+            }
+        }
+        
+        // MANEJAR ARCHIVOS SELECCIONADOS
+        function handleFileSelect(e) {
+            handleDroppedFiles(e.target.files);
+            e.target.value = '';
+        }
+        
+        function handleDroppedFiles(fileList) {
+            const files = Array.from(fileList);
+            console.log(`📁 ${files.length} archivo(s) seleccionado(s)`);
+            
+            files.forEach(file => {
+                // Validar tipo
+                const fileType = getFileType(file.name);
+                if (!fileType) {
+                    showAlert('warning', 'Formato no soportado', 
+                        `"${file.name}" no es un archivo válido.\nSolo se aceptan archivos .csv y .xlsx`);
+                    return;
+                }
+                
+                // Validar tamaño (10MB máximo)
+                if (file.size > 10 * 1024 * 1024) {
+                    showAlert('warning', 'Archivo muy grande',
+                        `"${file.name}" excede el límite de 10MB.\nTamaño: ${formatFileSize(file.size)}`);
+                    return;
+                }
+                
+                // Evitar duplicados
+                const isDuplicate = selectedFiles.some(f => 
+                    f.name === file.name && f.size === file.size
+                );
+                
+                if (isDuplicate) {
+                    showAlert('info', 'Archivo duplicado', 
+                        `"${file.name}" ya está en la lista`);
+                    return;
+                }
+                
+                // Agregar archivo
+                selectedFiles.push({
+                    file: file,
+                    name: file.name,
+                    type: fileType,
+                    size: file.size,
+                    status: 'waiting'
+                });
+            });
+            
+            updateFileList();
+            updateProcessButton();
+        }
+        
+        function getFileType(fileName) {
+            const extension = fileName.toLowerCase().split('.').pop();
+            if (extension === 'csv') return 'csv';
+            if (extension === 'xlsx') return 'xlsx';
+            return null;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // ACTUALIZAR LISTA DE ARCHIVOS
+        function updateFileList() {
+            const container = document.getElementById('filesContainer');
+            const list = document.getElementById('fileList');
+            const count = document.getElementById('filesCount');
+            
+            // Limpiar lista
+            list.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar contenedor
+            container.style.display = 'block';
+            count.textContent = `${selectedFiles.length} archivo(s)`;
+            
+            // Agregar cada archivo a la lista
+            selectedFiles.forEach((file, index) => {
+                const fileElement = document.createElement('div');
+                fileElement.className = 'file-item fade-in';
+                fileElement.innerHTML = `
+                    <div class="file-icon ${file.type}">
+                        <i class="bi ${file.type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-xlsx'}"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-meta">
+                            <i class="bi bi-hdd me-1"></i>${formatFileSize(file.size)}
+                            <span class="mx-2">•</span>
+                            <i class="bi bi-calendar me-1"></i>${new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+                    <div class="file-status">
+                        <span class="status-badge status-${file.status}">
+                            <i class="bi ${getStatusIcon(file.status)}"></i>
+                            ${getStatusText(file.status)}
+                        </span>
+                        <button class="btn btn-sm btn-link text-danger ms-2" onclick="removeFile(${index})" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(fileElement);
+            });
+        }
+        
+        function getStatusIcon(status) {
+            const icons = {
+                'waiting': 'bi-clock',
+                'processing': 'bi-arrow-repeat',
+                'success': 'bi-check-circle',
+                'error': 'bi-exclamation-circle'
+            };
+            return icons[status] || 'bi-question-circle';
+        }
+        
+        function getStatusText(status) {
+            const texts = {
+                'waiting': 'En espera',
+                'processing': 'Procesando',
+                'success': 'Completado',
+                'error': 'Error'
+            };
+            return texts[status] || status;
+        }
+        
+        // REMOVER ARCHIVO
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+            updateProcessButton();
+        };
+        
+        // LIMPIAR TODOS LOS ARCHIVOS
+        function clearAllFiles() {
+            if (selectedFiles.length === 0) return;
+            
+            if (confirm(`¿Estás seguro de que quieres eliminar todos los archivos (${selectedFiles.length})?`)) {
+                selectedFiles = [];
+                updateFileList();
+                updateProcessButton();
+                showAlert('info', 'Lista limpiada', 'Todos los archivos han sido eliminados de la lista.');
+            }
+        }
+        
+        // ACTUALIZAR BOTÓN DE PROCESAR
+        function updateProcessButton() {
+            const btn = document.getElementById('btnProcess');
+            const hasFiles = selectedFiles.length > 0;
+            const hasWaitingFiles = selectedFiles.some(f => f.status === 'waiting');
+            
+            btn.disabled = !hasFiles || !hasWaitingFiles || isProcessing;
+        }
+        
+        // PROCESAR ARCHIVOS
+        async function processFiles() {
+            if (isProcessing || selectedFiles.length === 0) return;
+            
+            isProcessing = true;
+            updateProcessButton();
+            
+            const btn = document.getElementById('btnProcess');
+            const spinner = document.getElementById('processingSpinner');
+            
+            // Mostrar spinner
+            spinner.style.display = 'inline-block';
+            btn.querySelector('span').textContent = 'PROCESANDO...';
+            
+            // Ocultar resultados anteriores
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            try {
+                console.log('⚙️ Iniciando procesamiento de archivos...');
+                
+                // 1. Leer contenido de archivos
+                const filesData = [];
+                
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    
+                    if (file.status === 'waiting') {
+                        // Actualizar estado visual
+                        selectedFiles[i].status = 'processing';
+                        updateFileList();
+                        
+                        // Leer archivo
+                        console.log(`📖 Leyendo archivo: ${file.name}`);
+                        const content = await readFileContent(file.file, file.type);
+                        filesData.push({
+                            fileName: file.name,
+                            fileType: file.type,
+                            content: content
+                        });
+                    }
+                }
+                
+                // 2. Enviar al servidor (USANDO FormData como en el ejemplo funcional)
+                console.log(`📤 Enviando ${filesData.length} archivo(s) al servidor...`);
+                
+                const formData = new FormData();
+                formData.append('action', 'uploadFiles');
+                formData.append('datos', JSON.stringify(filesData));
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('📥 Respuesta del servidor:', result);
+                
+                if (result.success) {
+                    displayResults(result.data || result);
+                } else {
+                    throw new Error(result.message || 'Error desconocido del servidor');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error procesando archivos:', error);
+                showAlert('error', 'Error de procesamiento', error.message);
+            } finally {
+                // Finalizar procesamiento
+                isProcessing = false;
+                spinner.style.display = 'none';
+                btn.querySelector('span').textContent = 'PROCESAR ARCHIVOS';
+                updateProcessButton();
+            }
+        }
+        
+        // LEER CONTENIDO DEL ARCHIVO
+        async function readFileContent(file, fileType) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        if (fileType === 'csv') {
+                            // Para CSV, devolver texto plano
+                            resolve(e.target.result);
+                        } else {
+                            // Para XLSX, convertir a JSON array
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            resolve(jsonData);
+                        }
+                    } catch (error) {
+                        reject(new Error(`Error procesando ${fileType.toUpperCase()}: ${error.message}`));
+                    }
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error('Error leyendo el archivo'));
+                };
+                
+                if (fileType === 'csv') {
+                    reader.readAsText(file, 'UTF-8');
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+        }
+        
+        // MOSTRAR RESULTADOS
+        function displayResults(data) {
+            const section = document.getElementById('resultsSection');
+            const content = document.getElementById('resultsContent');
+            
+            let html = `
+                <div class="summary-card fade-in">
+                    <h5 class="fw-semibold mb-3">
+                        <i class="bi bi-clipboard-check me-2"></i>Resumen del Proceso
+                    </h5>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.totalFiles || 0}</div>
+                            <div class="stat-label">Total Archivos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-success">${data.successful || 0}</div>
+                            <div class="stat-label">Exitosos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value text-danger">${data.failed || 0}</div>
+                            <div class="stat-label">Fallidos</div>
+                        </div>
+                    </div>
+                    <p class="mt-3 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>${data.message || 'Procesamiento completado'}</strong>
+                    </p>
+                </div>
+            `;
+            
+            // Detalles por archivo
+            if (data.fileResults && data.fileResults.length > 0) {
+                html += '<h6 class="fw-semibold mb-3">Detalles por archivo:</h6>';
+                
+                data.fileResults.forEach(fileResult => {
+                    const statusClass = fileResult.status === 'success' ? 'success' : 'error';
+                    const icon = fileResult.status === 'success' ? 'bi-check-circle-fill text-success' : 'bi-exclamation-circle-fill text-danger';
+                    
+                    html += `
+                        <div class="file-result ${statusClass} fade-in">
+                            <div class="d-flex align-items-start mb-2">
+                                <i class="${icon} me-2 fs-5"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">${fileResult.fileName}</div>
+                                    <small class="text-muted">${fileResult.message}</small>
+                                </div>
+                            </div>
+                            ${fileResult.details ? `
+                                <div class="d-flex gap-3 mt-2">
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-list-check me-1"></i>
+                                        ${fileResult.details.totalRecords || 0} registros
+                                    </span>
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-plus-circle me-1"></i>
+                                        ${fileResult.details.newRecords || 0} nuevos
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+            
+            content.innerHTML = html;
+            section.style.display = 'block';
+            
+            // Desplazar a resultados
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Actualizar estados en la lista
+            if (data.fileResults) {
+                data.fileResults.forEach(fileResult => {
+                    const fileIndex = selectedFiles.findIndex(f => f.name === fileResult.fileName);
+                    if (fileIndex !== -1) {
+                        selectedFiles[fileIndex].status = fileResult.status;
+                    }
+                });
+                updateFileList();
+            }
+        }
+        
+        // FUNCIONES DE UTILIDAD
+        function showAlert(type, title, message) {
+            const icon = {
+                'success': 'bi-check-circle-fill',
+                'error': 'bi-exclamation-circle-fill',
+                'warning': 'bi-exclamation-triangle-fill',
+                'info': 'bi-info-circle-fill'
+            }[type] || 'bi-info-circle-fill';
+            
+            const color = {
+                'success': '#10b981',
+                'error': '#ef4444',
+                'warning': '#f59e0b',
+                'info': '#4361ee'
+            }[type] || '#4361ee';
+            
+            // Crear alerta temporal
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} fade-in position-fixed`;
+            alertDiv.style.cssText = `
+                top: 20px;
+                right: 20px;
+                min-width: 300px;
+                max-width: 400px;
+                z-index: 1000;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+                border: none;
+                border-left: 4px solid ${color};
+            `;
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-start">
+                    <i class="${icon} me-2 fs-4" style="color: ${color}"></i>
+                    <div class="flex-grow-1">
+                        <h6 class="alert-heading mb-1">${title}</h6>
+                        <p class="mb-0 small">${message.replace(/\n/g, '<br>')}</p>
+                    </div>
+                    <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remover después de 5 segundos
+            setTimeout(() => {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        // EXPONER FUNCIONES PARA DEBUG
+        window.debug = {
+            getFiles: () => selectedFiles,
+            clearFiles: clearAllFiles,
+            testAPI: async () => {
+                try {
+                    const response = await fetch(API_URL);
+                    return await response.json();
+                } catch (error) {
+                    console.error('Debug error:', error);
+                    return { error: error.message };
+                }
+            }
+        };
+        
+        console.log('📋 Comandos de depuración disponibles:');
+        console.log('- debug.getFiles() - Ver archivos seleccionados');
+        console.log('- debug.clearFiles() - Limpiar todos los archivos');
+        console.log('- debug.testAPI() - Probar conexión con la API');
+    </script>
+</body>
+</html>
