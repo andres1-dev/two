@@ -62,7 +62,7 @@ document.querySelectorAll('.config-btn').forEach(btn => {
 // Función para cargar datos
 async function loadData() {
     const status = document.getElementById('status');
-    
+
     try {
         const response = await fetch('https://script.google.com/macros/s/AKfycbz67OzWNpeM9SJR-Tx8A-4quLGLie5VXy8At4kG4qylhDRQHoE4zfgrpgk0N7aFs-glzw/exec');
         allData = await response.json();
@@ -80,9 +80,9 @@ loadData();
 // Función para aplicar filtros
 function applyFilters() {
     if (!allData) return;
-    
+
     filteredData = [...allData];
-    
+
     // Filtrar por descripción
     const filterDesc = document.getElementById('filterDesc').checked;
     if (filterDesc) {
@@ -91,16 +91,16 @@ function applyFilters() {
             return desc.toString().trim() !== '';
         });
     }
-    
+
     // Filtrar por rango de fechas
     const selectedDates = datePicker.selectedDates;
     if (selectedDates.length === 2) {
         const startDate = new Date(selectedDates[0]);
         const endDate = new Date(selectedDates[1]);
-        
+
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
-        
+
         filteredData = filteredData.filter(item => {
             if (!item['FECHA']) return false;
             const itemDate = toColombiaDate(item['FECHA']);
@@ -108,7 +108,7 @@ function applyFilters() {
             return itemDate >= startDate && itemDate <= endDate;
         });
     }
-    
+
     // Actualizar estado
     const status = document.getElementById('status');
     if (allData) {
@@ -128,16 +128,16 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
         document.getElementById('status').textContent = '✗ No hay datos';
         return;
     }
-    
+
     const headers = [
-        'DOCUMENTO', 'FECHA', 'TALLER', 'LINEA', 'AUDITOR', 
+        'DOCUMENTO', 'FECHA', 'TALLER', 'LINEA', 'AUDITOR',
         'ESCANER', 'LOTE', 'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD',
         'REFERENCIA', 'TIPO', 'PVP', 'PRENDA', 'GENERO', 'GESTOR',
         'PROVEEDOR', 'CLASE', 'FUENTE'
     ];
-    
+
     let csv = headers.join(separator) + '\n';
-    
+
     filteredData.forEach(item => {
         const row = headers.map(header => {
             let value = item[header] || '';
@@ -149,18 +149,18 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
         });
         csv += row.join(separator) + '\n';
     });
-    
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    
-    const dateStr = new Date().toISOString().slice(0,10);
+
+    const dateStr = new Date().toISOString().slice(0, 10);
     link.download = `datos_${dateStr}.csv`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     document.getElementById('status').textContent = '✓ CSV exportado';
 });
 
@@ -180,22 +180,22 @@ const toastDismissBtn = document.getElementById('toastDismissBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    
+
     // Mostrar botón de instalación en header
     installBtn.style.display = 'flex';
-    
+
     // Mostrar toast después de 3 segundos
     setTimeout(() => {
         if (deferredPrompt) {
             installToast.classList.add('show');
         }
     }, 3000);
-    
+
     // Botón de instalación en header
     installBtn.addEventListener('click', () => {
         showInstallPrompt();
     });
-    
+
     // Botón de instalación en toast
     toastInstallBtn.addEventListener('click', () => {
         showInstallPrompt();
@@ -205,9 +205,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // Mostrar prompt de instalación
 function showInstallPrompt() {
     if (!deferredPrompt) return;
-    
+
     deferredPrompt.prompt();
-    
+
     deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
             console.log('Usuario aceptó la instalación');
@@ -216,7 +216,7 @@ function showInstallPrompt() {
         } else {
             console.log('Usuario rechazó la instalación');
         }
-        
+
         deferredPrompt = null;
         installToast.classList.remove('show');
     });
@@ -234,18 +234,7 @@ window.addEventListener('appinstalled', () => {
     installToast.classList.remove('show');
 });
 
-// Registrar Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registrado:', registration.scope);
-            })
-            .catch(error => {
-                console.log('Error registrando ServiceWorker:', error);
-            });
-    });
-}
+// El Service Worker se registra ahora en index.html
 
 // Detectar si ya está instalado
 if (window.matchMedia('(display-mode: standalone)').matches) {

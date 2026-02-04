@@ -1,3 +1,4 @@
+const CACHE_NAME = 'csv-export-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -46,24 +47,24 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
-        
+
         // Clona la petición
         const fetchRequest = event.request.clone();
-        
+
         return fetch(fetchRequest).then(response => {
           // Verifica si la respuesta es válida
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-          
+
           // Clona la respuesta
           const responseToCache = response.clone();
-          
+
           caches.open(CACHE_NAME)
             .then(cache => {
               cache.put(event.request, responseToCache);
             });
-          
+
           return response;
         });
       })
