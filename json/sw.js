@@ -1,4 +1,4 @@
-const CACHE_NAME = 'csv-export-v9';
+const CACHE_NAME = 'csv-export-v10';
 const urlsToCache = [
   './',
   './index.html',
@@ -8,11 +8,13 @@ const urlsToCache = [
   './icons/icon-512.png',
   'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css',
   'https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css',
-  'https://cdn.jsdelivr.net/npm/flatpickr'
+  'https://cdn.jsdelivr.net/npm/flatpickr',
+  'https://cdn.jsdelivr.net/npm/tsparticles-slim@2.0.6/tsparticles.slim.bundle.min.js'
 ];
 
 // Instalar Service Worker
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Forzar activación inmediata
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -34,7 +36,7 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
