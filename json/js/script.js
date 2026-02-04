@@ -248,14 +248,14 @@ if (typeof tsParticles !== 'undefined') {
     tsParticles.load('tsparticles', {
         particles: {
             number: {
-                value: 80,
+                value: 100,
                 density: {
                     enable: true,
                     value_area: 800
                 }
             },
             color: {
-                value: "#4a5568"
+                value: "#ffffff"
             },
             shape: {
                 type: "circle"
@@ -271,7 +271,7 @@ if (typeof tsParticles !== 'undefined') {
             links: {
                 enable: true,
                 distance: 150,
-                color: "#4a5568",
+                color: "#ffffff",
                 opacity: 0.4,
                 width: 1
             },
@@ -298,11 +298,11 @@ if (typeof tsParticles !== 'undefined') {
             },
             modes: {
                 repulse: {
-                    distance: 100,
+                    distance: 200,
                     duration: 0.4
                 },
                 push: {
-                    particles_nb: 4
+                    quantity: 4
                 }
             }
         },
