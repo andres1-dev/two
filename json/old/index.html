@@ -1,24 +1,8 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4299e1">
     <title>CSV Export</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="CSV Export">
-    
-    <!-- Icons for iOS -->
-    <link rel="apple-touch-icon" href="icon-152x152.png">
-    <link rel="apple-touch-startup-image" href="icon-512x512.png">
-    
-    <!-- Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="style.css">
@@ -28,9 +12,6 @@
         <div class="header">
             <h2><span class="mdi mdi-file-export"></span> CSV Export</h2>
             <div class="header-actions">
-                <button class="icon-btn" id="installBtn" style="display: none;">
-                    <span class="mdi mdi-download-circle"></span>
-                </button>
                 <button class="icon-btn" id="configBtn">
                     <span class="mdi mdi-cog"></span>
                 </button>
@@ -70,16 +51,6 @@
         </button>
         
         <div class="status" id="status">Cargando datos...</div>
-    </div>
-
-    <!-- Install Toast -->
-    <div id="installToast" class="install-toast">
-        <div class="toast-content">
-            <span class="mdi mdi-cellphone"></span>
-            <span>Instalar aplicación para mejor experiencia</span>
-        </div>
-        <button class="toast-btn" id="toastInstallBtn">Instalar</button>
-        <button class="toast-btn dismiss" id="toastDismissBtn">Cerrar</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

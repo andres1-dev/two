@@ -163,3 +163,92 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     
     document.getElementById('status').textContent = '✓ CSV exportado';
 });
+
+
+
+
+
+
+// === PWA INSTALLATION ===
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+const installToast = document.getElementById('installToast');
+const toastInstallBtn = document.getElementById('toastInstallBtn');
+const toastDismissBtn = document.getElementById('toastDismissBtn');
+
+// Evento antes de instalar
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostrar botón de instalación en header
+    installBtn.style.display = 'flex';
+    
+    // Mostrar toast después de 3 segundos
+    setTimeout(() => {
+        if (deferredPrompt) {
+            installToast.classList.add('show');
+        }
+    }, 3000);
+    
+    // Botón de instalación en header
+    installBtn.addEventListener('click', () => {
+        showInstallPrompt();
+    });
+    
+    // Botón de instalación en toast
+    toastInstallBtn.addEventListener('click', () => {
+        showInstallPrompt();
+    });
+});
+
+// Mostrar prompt de instalación
+function showInstallPrompt() {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    
+    deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+            console.log('Usuario aceptó la instalación');
+            installBtn.style.display = 'none';
+            installToast.classList.remove('show');
+        } else {
+            console.log('Usuario rechazó la instalación');
+        }
+        
+        deferredPrompt = null;
+        installToast.classList.remove('show');
+    });
+}
+
+// Cerrar toast
+toastDismissBtn.addEventListener('click', () => {
+    installToast.classList.remove('show');
+});
+
+// Evento después de instalar
+window.addEventListener('appinstalled', () => {
+    console.log('Aplicación instalada');
+    installBtn.style.display = 'none';
+    installToast.classList.remove('show');
+});
+
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registrado:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Error registrando ServiceWorker:', error);
+            });
+    });
+}
+
+// Detectar si ya está instalado
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('App en modo standalone');
+    installBtn.style.display = 'none';
+}

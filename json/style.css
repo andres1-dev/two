@@ -227,3 +227,76 @@ body {
     color: #2d3748;
     font-weight: 500;
 }
+
+
+
+
+
+/* Install Toast */
+.install-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.install-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #2d3748;
+    flex: 1;
+}
+
+.toast-content .mdi {
+    font-size: 24px;
+    color: #4299e1;
+}
+
+.toast-btn {
+    background: #4299e1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.2s;
+}
+
+.toast-btn:hover {
+    background: #3182ce;
+}
+
+.toast-btn.dismiss {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.toast-btn.dismiss:hover {
+    background: #cbd5e0;
+}
+
+/* Install button in header */
+#installBtn .mdi-download-circle {
+    color: #48bb78;
+}
