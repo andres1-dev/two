@@ -1,4 +1,4 @@
-const CACHE_NAME = 'csv-export-v5';
+const CACHE_NAME = 'csv-export-v8';
 const urlsToCache = [
   './',
   './index.html',

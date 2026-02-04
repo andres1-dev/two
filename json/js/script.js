@@ -242,3 +242,72 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
     console.log('App en modo standalone');
     installBtn.style.display = 'none';
 }
+
+// Initialize particles
+if (typeof tsParticles !== 'undefined') {
+    tsParticles.load('tsparticles', {
+        particles: {
+            number: {
+                value: 80,
+                density: {
+                    enable: true,
+                    value_area: 800
+                }
+            },
+            color: {
+                value: "#4a5568"
+            },
+            shape: {
+                type: "circle"
+            },
+            opacity: {
+                value: 0.5,
+                random: false
+            },
+            size: {
+                value: 3,
+                random: true
+            },
+            links: {
+                enable: true,
+                distance: 150,
+                color: "#4a5568",
+                opacity: 0.4,
+                width: 1
+            },
+            move: {
+                enable: true,
+                speed: 6,
+                direction: "none",
+                random: false,
+                straight: false,
+                outModes: "out"
+            }
+        },
+        interactivity: {
+            events: {
+                onHover: {
+                    enable: true,
+                    mode: "repulse"
+                },
+                onClick: {
+                    enable: true,
+                    mode: "push"
+                },
+                resize: true
+            },
+            modes: {
+                repulse: {
+                    distance: 100,
+                    duration: 0.4
+                },
+                push: {
+                    particles_nb: 4
+                }
+            }
+        },
+        detectRetina: true
+    }).catch(error => {
+        console.error("Error loading particles:", error);
+    });
+}
