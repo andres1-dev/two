@@ -1,9 +1,9 @@
 const CACHE_NAME = 'csv-export-v1';
 const urlsToCache = [
-  './',
+  /*'./',
   './index.html',
   './style.css',
-  './script.js',
+  './script.js',*/
   'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css',
   'https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css',
   'https://cdn.jsdelivr.net/npm/flatpickr'
