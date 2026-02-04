@@ -136,7 +136,8 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
         'PROVEEDOR', 'CLASE', 'FUENTE'
     ];
 
-    let csv = headers.join(separator) + '\n';
+    let finalHeaders = headers.map(h => h === 'DESCRIPCIÓN' ? 'DESCRIPCION' : h);
+    let csv = finalHeaders.join(separator) + '\n';
 
     filteredData.forEach(item => {
         const row = headers.map(header => {
