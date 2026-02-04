@@ -1,0 +1,165 @@
+let allData = null;
+let filteredData = null;
+let separator = ';';
+
+// Función para convertir fecha a zona horaria de Colombia
+function toColombiaDate(dateString) {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day, 5, 0, 0));
+    return date;
+}
+
+// Inicializar Flatpickr
+const datePicker = flatpickr("#dateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    locale: {
+        firstDayOfWeek: 1,
+        weekdays: {
+            shorthand: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+            longhand: [
+                "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
+            ]
+        },
+        months: {
+            shorthand: [
+                "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+            ],
+            longhand: [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ]
+        }
+    }
+});
+
+// Toggle panels
+document.getElementById('filterBtn').addEventListener('click', () => {
+    const panel = document.getElementById('filtersPanel');
+    const configPanel = document.getElementById('configPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    configPanel.style.display = 'none';
+});
+
+document.getElementById('configBtn').addEventListener('click', () => {
+    const panel = document.getElementById('configPanel');
+    const filterPanel = document.getElementById('filtersPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    filterPanel.style.display = 'none';
+});
+
+// Configurar separadores
+document.querySelectorAll('.config-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.config-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        separator = btn.dataset.sep;
+    });
+});
+
+// Función para cargar datos
+async function loadData() {
+    const status = document.getElementById('status');
+    
+    try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbz67OzWNpeM9SJR-Tx8A-4quLGLie5VXy8At4kG4qylhDRQHoE4zfgrpgk0N7aFs-glzw/exec');
+        allData = await response.json();
+        applyFilters();
+        status.textContent = `✓ ${filteredData.length} registros cargados`;
+        document.getElementById('downloadBtn').disabled = false;
+    } catch (error) {
+        status.textContent = '✗ Error al cargar datos';
+    }
+}
+
+// Cargar datos automáticamente al iniciar
+loadData();
+
+// Función para aplicar filtros
+function applyFilters() {
+    if (!allData) return;
+    
+    filteredData = [...allData];
+    
+    // Filtrar por descripción
+    const filterDesc = document.getElementById('filterDesc').checked;
+    if (filterDesc) {
+        filteredData = filteredData.filter(item => {
+            const desc = item['DESCRIPCIÓN'] || '';
+            return desc.toString().trim() !== '';
+        });
+    }
+    
+    // Filtrar por rango de fechas
+    const selectedDates = datePicker.selectedDates;
+    if (selectedDates.length === 2) {
+        const startDate = new Date(selectedDates[0]);
+        const endDate = new Date(selectedDates[1]);
+        
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        filteredData = filteredData.filter(item => {
+            if (!item['FECHA']) return false;
+            const itemDate = toColombiaDate(item['FECHA']);
+            if (!itemDate) return false;
+            return itemDate >= startDate && itemDate <= endDate;
+        });
+    }
+    
+    // Actualizar estado
+    const status = document.getElementById('status');
+    if (allData) {
+        status.textContent = `✓ ${filteredData.length} de ${allData.length} registros`;
+    }
+}
+
+// Listeners para filtros
+document.getElementById('filterDesc').addEventListener('change', applyFilters);
+datePicker.config.onChange.push(() => {
+    setTimeout(applyFilters, 100);
+});
+
+// Descargar CSV
+document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (!filteredData || filteredData.length === 0) {
+        document.getElementById('status').textContent = '✗ No hay datos';
+        return;
+    }
+    
+    const headers = [
+        'DOCUMENTO', 'FECHA', 'TALLER', 'LINEA', 'AUDITOR', 
+        'ESCANER', 'LOTE', 'REFPROV', 'DESCRIPCIÓN', 'CANTIDAD',
+        'REFERENCIA', 'TIPO', 'PVP', 'PRENDA', 'GENERO', 'GESTOR',
+        'PROVEEDOR', 'CLASE', 'FUENTE'
+    ];
+    
+    let csv = headers.join(separator) + '\n';
+    
+    filteredData.forEach(item => {
+        const row = headers.map(header => {
+            let value = item[header] || '';
+            if (typeof value === 'number') value = value.toString();
+            if (value.includes(separator) || value.includes('"') || value.includes('\n')) {
+                value = `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+        });
+        csv += row.join(separator) + '\n';
+    });
+    
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    const dateStr = new Date().toISOString().slice(0,10);
+    link.download = `datos_${dateStr}.csv`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    document.getElementById('status').textContent = '✓ CSV exportado';
+});
