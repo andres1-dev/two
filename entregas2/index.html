@@ -25,19 +25,52 @@
 <body>
   <div id="app-frame">
     <!-- Pantalla de carga -->
-    <div id="loadingScreen">
-      <div style="text-align: center;">
-        <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
-      </div>
-      <div class="triple-pulse">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <h1>PandaDash</h1>
-      <div class="name">Build 3.17.634</div>
-      <button id="installBtn">Instalar App</button>
+<!-- REEMPLAZAR desde <div id="loadingScreen"> hasta </div> (líneas 53-64 aproximadamente) -->
+<div id="loadingScreen">
+  <div class="loading-banner">
+    <div class="banner-logo">
+      <i class="fas fa-qrcode"></i>
     </div>
+    <span class="banner-text">PandaDash</span>
+  </div>
+
+  <div class="loading-container">
+    <div class="loading-logo">
+      <div class="logo-icon">
+        <i class="fas fa-qrcode"></i>
+      </div>
+      <h1 class="logo-text">PandaDash</h1>
+      <p class="version-text">Build 4.0.0</p>
+      
+      <div class="loading-spinner">
+        <span class="spinner-dot"></span>
+        <span class="spinner-dot"></span>
+        <span class="spinner-dot"></span>
+      </div>
+    </div>
+    
+    <div class="loading-footer">
+      <div class="footer-content">
+        <p class="credits">
+          Developed by <strong>Andrés Mendoza</strong><br>
+          © 2025 · Supported by GrupoTDM
+        </p>
+        
+        <div class="social-icons">
+          <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
+            <i class="fab fa-facebook-f"></i>
+          </a>
+          <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" class="social-icon">
+            <i class="fab fa-instagram"></i>
+          </a>
+          <a href="https://wa.me/573176418529" target="_blank" class="social-icon">
+            <i class="fab fa-whatsapp"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
     <!-- Contenido principal -->
     <div id="scanner" style="display: none;">

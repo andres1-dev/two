@@ -192,9 +192,10 @@ function loadDataFromServer() {
   }
 }
 
+// REEMPLAZAR la función handleDataLoadSuccess (aproximadamente línea 132)
 function handleDataLoadSuccess(serverData) {
   if (serverData && serverData.success && serverData.data) {
-    database = serverData.data;  // Aquí es importante usar la variable global 'database', no redeclararla
+    database = serverData.data;
     dataLoaded = true;
     cacheData(database);
 
@@ -207,25 +208,39 @@ function handleDataLoadSuccess(serverData) {
       <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
     `;
 
-    // Mostrar contenido principal
+    // Mostrar contenido principal con nuevo diseño
     resultsDiv.innerHTML = `
-      <div class="result-item" style="text-align: center; color: var(--gray);">
-        <div style="text-align: center;">
-          <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+      <div class="result-item" style="text-align: center; padding: 40px 20px;">
+        <div style="margin-bottom: 30px;">
+          <div style="width: 70px; height: 70px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);">
+            <i class="fas fa-qrcode" style="font-size: 2.25rem; color: white;"></i>
+          </div>
+          <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 8px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">PandaDash</h1>
+          <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">Professional QR Delivery System</p>
         </div>
-        <h1 style="margin: 0;">PandaDash</h1>
-        <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
-          <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2025</p>
-          <p style="margin: 2px 0;">
-            Supported by 
-            <a href="https://www.eltemplodelamoda.com/" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-              GrupoTDM
-            </a>
+        
+        <div style="background: var(--surface); border-radius: 16px; padding: 20px; margin: 25px 0; border: 1px solid var(--border);">
+          <p style="font-size: 13px; color: var(--text-main); margin: 0 0 12px; font-weight: 600;"><i class="fas fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i> Sistema listo para escanear</p>
+          <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">Escanea un código QR para comenzar</p>
+        </div>
+        
+        <!-- Nuevo footer integrado -->
+        <div style="margin-top: 40px; padding-top: 25px; border-top: 1px solid var(--border);">
+          <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.4;">
+            Developed by <strong style="color: var(--text-main); font-weight: 600;">Andrés Mendoza</strong><br>
+            © 2025 · Supported by GrupoTDM
           </p>
-          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
-            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
-            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+          
+          <div style="display: flex; justify-content: center; gap: 12px;">
+            <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
+              <i class="fab fa-facebook-f" style="font-size: 14px;"></i>
+            </a>
+            <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
+              <i class="fab fa-instagram" style="font-size: 14px;"></i>
+            </a>
+            <a href="https://wa.me/573176418529" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
+              <i class="fab fa-whatsapp" style="font-size: 14px;"></i>
+            </a>
           </div>
         </div>
       </div>
@@ -287,10 +302,29 @@ function handleDataLoadError(error) {
     resultsDiv.innerHTML = `<div class="error"><i class="fas fa-exclamation-circle"></i> No se pudo cargar la base de datos: ${error.message || 'Error desconocido'}</div>`;
 
     // Mostrar mensaje de error en la pantalla de carga pero no ocultarla
-    const loadingName = document.querySelector('#loadingScreen .name');
+    const loadingName = document.querySelector('#loadingScreen .version-text');
     if (loadingName) {
-      loadingName.innerHTML = 'Error al cargar datos. <br>Comprueba tu conexión.';
-      loadingName.style.color = '#f72585';
+      loadingName.innerHTML = 'Error al cargar datos<br>Comprueba tu conexión';
+      loadingName.style.color = '#ef4444';
+      loadingName.style.fontWeight = '600';
+      
+      // Añadir botón de reintento
+      const retryButton = document.createElement('button');
+      retryButton.innerHTML = '<i class="fas fa-redo"></i> Reintentar';
+      retryButton.style.marginTop = '15px';
+      retryButton.style.padding = '8px 16px';
+      retryButton.style.background = 'var(--danger)';
+      retryButton.style.color = 'white';
+      retryButton.style.border = 'none';
+      retryButton.style.borderRadius = '12px';
+      retryButton.style.fontWeight = '600';
+      retryButton.style.fontSize = '13px';
+      retryButton.style.cursor = 'pointer';
+      retryButton.addEventListener('click', () => {
+        location.reload();
+      });
+      
+      loadingName.parentNode.appendChild(retryButton);
     }
 
     playErrorSound();
