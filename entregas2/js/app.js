@@ -810,66 +810,58 @@ function esMovil() {
 }
 
 // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
+// Pull-to-Refresh simple con dos dedos
 document.addEventListener('DOMContentLoaded', () => {
-  // Referencias a elementos clave
   const statusDiv = document.getElementById('status');
   const dataStats = document.getElementById('data-stats');
-  const resultsDiv = document.getElementById('results');
+  
+  // Variables para dos dedos
+  let touchStartTime = 0;
+  let startY1 = 0;
+  let startY2 = 0;
+  let isTwoFingerGesture = false;
 
-  // Variables de control
-  let startY = 0;
-  let isPulling = false;
-
-  // Manejador para touchstart (inicio del gesto)
   document.addEventListener('touchstart', function (e) {
-    if (window.scrollY === 0 && e.touches.length === 1) { // 1 dedo y arriba del todo
-      startY = e.touches[0].clientY;
-      isPulling = true;
+    // Verificar dos dedos
+    if (e.touches.length === 2 && window.scrollY === 0) {
+      touchStartTime = Date.now();
+      startY1 = e.touches[0].clientY;
+      startY2 = e.touches[1].clientY;
+      isTwoFingerGesture = true;
     }
   }, { passive: true });
 
-  // Manejador para touchmove (movimiento durante el gesto)
-  document.addEventListener('touchmove', function (e) {
-    if (!isPulling) return;
-
-    const currentY = e.touches[0].clientY;
-    const pullDistance = currentY - startY;
-
-    if (pullDistance > 0 && window.scrollY === 0) {
-      // Visual feedback could be added here (e.g. pulling down icon)
-    }
-  }, { passive: true });
-
-  // Manejador para touchend (fin del gesto)
   document.addEventListener('touchend', function (e) {
-    if (!isPulling) return;
-    const endY = e.changedTouches[0].clientY;
-    const pullDistance = endY - startY;
-
-    if (pullDistance > 100 && window.scrollY === 0) { // Umbral de 100px
-      refreshData();
+    if (!isTwoFingerGesture) return;
+    
+    // Verificar que ambos dedos se levantaron
+    if (e.touches.length === 0) {
+      const endTime = Date.now();
+      const duration = endTime - touchStartTime;
+      
+      // Solo activar si fue un gesto rápido (< 500ms)
+      if (duration < 500) {
+        refreshData();
+      }
     }
-    isPulling = false;
-  });
+    
+    isTwoFingerGesture = false;
+  }, { passive: true });
 
-  // Función para refrescar los datos
   function refreshData() {
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
 
-    // Usar la funcion de main.js
     if (typeof obtenerDatosFacturados === 'function') {
       obtenerDatosFacturados()
         .then(serverData => {
           handleDataLoadSuccess(serverData);
-          // Si hay QR activo, reprocesarlo para ver actualizaciones
           if (currentQRParts) {
             processQRCodeParts(currentQRParts);
           }
         })
         .catch(error => handleDataLoadError(error));
     } else {
-      // Fallback or error
       console.error("main.js no cargado");
       statusDiv.className = 'error';
       statusDiv.textContent = "Error de conexión";
