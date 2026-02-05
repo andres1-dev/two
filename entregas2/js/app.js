@@ -810,58 +810,119 @@ function esMovil() {
 }
 
 // Pull-to-Refresh extremadamente simplificado, con dos dedos, sin banners ni notificaciones
-// Pull-to-Refresh simple con dos dedos
 document.addEventListener('DOMContentLoaded', () => {
+  // Referencias a elementos clave
   const statusDiv = document.getElementById('status');
   const dataStats = document.getElementById('data-stats');
-  
-  // Variables para dos dedos
-  let touchStartTime = 0;
-  let startY1 = 0;
-  let startY2 = 0;
-  let isTwoFingerGesture = false;
+  const resultsDiv = document.getElementById('results');
 
+  // Variables de control para pellizco con 3 dedos
+  let initialDistance = 0;
+  let isThreeFingerTouch = false;
+  const fingersRequired = 3;
+  
+  // Manejador para touchstart (inicio del gesto)
   document.addEventListener('touchstart', function (e) {
-    // Verificar dos dedos
-    if (e.touches.length === 2 && window.scrollY === 0) {
-      touchStartTime = Date.now();
-      startY1 = e.touches[0].clientY;
-      startY2 = e.touches[1].clientY;
-      isTwoFingerGesture = true;
+    if (e.touches.length === fingersRequired) { // 3 dedos detectados
+      isThreeFingerTouch = true;
+      
+      // Calcular la distancia inicial entre los dedos extremos
+      const touch1 = e.touches[0];
+      const touch3 = e.touches[2];
+      initialDistance = Math.sqrt(
+        Math.pow(touch3.clientX - touch1.clientX, 2) + 
+        Math.pow(touch3.clientY - touch1.clientY, 2)
+      );
+    } else {
+      isThreeFingerTouch = false;
     }
   }, { passive: true });
 
-  document.addEventListener('touchend', function (e) {
-    if (!isTwoFingerGesture) return;
+  // Manejador para touchmove (movimiento durante el gesto)
+  document.addEventListener('touchmove', function (e) {
+    if (!isThreeFingerTouch || e.touches.length !== fingersRequired) return;
     
-    // Verificar que ambos dedos se levantaron
-    if (e.touches.length === 0) {
-      const endTime = Date.now();
-      const duration = endTime - touchStartTime;
+    const touch1 = e.touches[0];
+    const touch3 = e.touches[2];
+    const currentDistance = Math.sqrt(
+      Math.pow(touch3.clientX - touch1.clientX, 2) + 
+      Math.pow(touch3.clientY - touch1.clientY, 2)
+    );
+    
+    // Calcular la diferencia porcentual
+    const pinchRatio = currentDistance / initialDistance;
+    
+    // Umbral para detectar pellizco (reducción significativa)
+    if (pinchRatio < 0.7) { // 30% más pequeño
+      // Visual feedback opcional
+      if (!statusDiv.classList.contains('loading')) {
+        statusDiv.style.transform = 'scale(0.95)';
+        statusDiv.style.transition = 'transform 0.2s';
+      }
+    }
+  }, { passive: true });
+
+  // Manejador para touchend (fin del gesto)
+  document.addEventListener('touchend', function (e) {
+    if (!isThreeFingerTouch) return;
+    
+    // Restaurar transformación si existe
+    statusDiv.style.transform = '';
+    
+    // Verificar que todavía haya 3 dedos (antes de soltar)
+    if (e.touches.length === 0 && e.changedTouches.length >= fingersRequired) {
+      // Solo activar si todos los dedos se soltaron aproximadamente al mismo tiempo
+      setTimeout(() => {
+        refreshData();
+      }, 100);
+    }
+    
+    isThreeFingerTouch = false;
+  });
+
+  // Manejador alternativo más simple
+  document.addEventListener('touchend', function (e) {
+    // Versión alternativa: detecta cuando se tocan 3 dedos simultáneamente
+    if (e.touches.length === 0 && e.changedTouches.length === fingersRequired) {
+      // Pequeña verificación de proximidad de los toques
+      const touches = Array.from(e.changedTouches);
+      const avgX = touches.reduce((sum, t) => sum + t.clientX, 0) / touches.length;
+      const avgY = touches.reduce((sum, t) => sum + t.clientY, 0) / touches.length;
       
-      // Solo activar si fue un gesto rápido (< 500ms)
-      if (duration < 500) {
+      // Verificar que los toques estén relativamente cerca
+      const maxDistance = 100; // píxeles
+      const allClose = touches.every(touch => {
+        const distance = Math.sqrt(
+          Math.pow(touch.clientX - avgX, 2) + 
+          Math.pow(touch.clientY - avgY, 2)
+        );
+        return distance < maxDistance;
+      });
+      
+      if (allClose) {
         refreshData();
       }
     }
-    
-    isTwoFingerGesture = false;
-  }, { passive: true });
+  });
 
+  // Función para refrescar los datos
   function refreshData() {
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
 
+    // Usar la funcion de main.js
     if (typeof obtenerDatosFacturados === 'function') {
       obtenerDatosFacturados()
         .then(serverData => {
           handleDataLoadSuccess(serverData);
+          // Si hay QR activo, reprocesarlo para ver actualizaciones
           if (currentQRParts) {
             processQRCodeParts(currentQRParts);
           }
         })
         .catch(error => handleDataLoadError(error));
     } else {
+      // Fallback or error
       console.error("main.js no cargado");
       statusDiv.className = 'error';
       statusDiv.textContent = "Error de conexión";
