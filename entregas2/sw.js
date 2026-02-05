@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'pandadash-v4';
+const CACHE_NAME = 'pandadash-v6';
 
 // Base URL relativa al lugar donde está este archivo sw.js
 const BASE = (new URL('.', self.location)).href;
