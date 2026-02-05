@@ -238,7 +238,7 @@ function handleDataLoadSuccess(serverData) {
             <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
               <i class="fab fa-instagram" style="font-size: 14px;"></i>
             </a>
-            <a href="https://wa.me/573176418529" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
+            <a href="https://wa.me/573168007979" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
               <i class="fab fa-whatsapp" style="font-size: 14px;"></i>
             </a>
           </div>
@@ -285,7 +285,7 @@ function handleDataLoadError(error) {
           <div style="display: flex; justify-content: center; gap: 8px; margin-top: 6px;">
             <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-facebook"></i></a>
             <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="color: var(--primary);"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/573176418529" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://wa.me/573168007979" target="_blank" style="color: var(--primary);"><i class="fab fa-whatsapp"></i></a>
           </div>
         </div>
       </div>
