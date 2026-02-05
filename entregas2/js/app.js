@@ -536,16 +536,26 @@ function displayFullResult(item, qrParts) {
       html += `
         <div class="siesa-item collapsed ${statusClass}" id="siesa-item-${index}">
            <!-- Header Clickable -->
-           <div class="card-header" onclick="toggleSiesaItem(${index})">
-              <div class="factura-info">
-                 <div class="factura-id">${tieneFactura ? siesa.factura : 'SIN FACTURA'}</div>
-                 <div class="factura-sub">
-                    <i class="fas fa-box"></i> ${cantidad} un. &bull; ${proveedor}
-                 </div>
+           <div class="card-header">
+              <div class="factura-main-click" onclick="toggleSiesaItem(${index})" style="flex:1;">
+                  <div class="factura-info">
+                     <div class="factura-id">${tieneFactura ? siesa.factura : 'SIN FACTURA'}</div>
+                     <div class="factura-sub">
+                        <i class="fas fa-box"></i> ${cantidad} un. &bull; <i class="fas fa-tag"></i> ${referencia}
+                     </div>
+                  </div>
               </div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                 <span class="status-pill ${statusTagClass}">${estadoConf}</span>
-                 <i class="fas fa-chevron-down card-chevron"></i>
+              
+              <div style="display:flex; align-items:center; gap:8px;">
+                 ${estadoConf === "PENDIENTE" ?
+          `<button class="action-btn btn-scan" style="padding: 6px 12px; font-size: 11px;" 
+                     data-factura="${siesa.factura}" 
+                     onclick="event.stopPropagation(); procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
+                    <i class="fas fa-camera"></i>
+                 </button>` : ''}
+                 
+                 <span class="status-pill ${statusTagClass}" onclick="toggleSiesaItem(${index})">${estadoConf}</span>
+                 <i class="fas fa-chevron-down card-chevron" onclick="toggleSiesaItem(${index})"></i>
               </div>
            </div>
 
@@ -731,96 +741,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Manejador para touchstart (inicio del gesto)
   document.addEventListener('touchstart', function (e) {
-    // Solo activar si hay dos o más dedos tocando la pantalla
-    if (e.touches.length >= 2 && window.scrollY < 10) {
+    if (window.scrollY === 0 && e.touches.length === 1) { // 1 dedo y arriba del todo
       startY = e.touches[0].clientY;
       isPulling = true;
-      e.preventDefault(); // Prevenir comportamiento por defecto
     }
-  }, { passive: false });
+  }, { passive: true });
 
   // Manejador para touchmove (movimiento durante el gesto)
   document.addEventListener('touchmove', function (e) {
-    // Verificar si estamos en un gesto válido y hay dos dedos
-    if (!isPulling || e.touches.length < 2) return;
+    if (!isPulling) return;
 
-    // Calcular la distancia desplazada
     const currentY = e.touches[0].clientY;
     const pullDistance = currentY - startY;
 
-    // Si hay un movimiento hacia abajo de al menos 20px, activar actualización
-    if (pullDistance > 20) {
-      // Desactivar el gesto para evitar múltiples actualizaciones
-      isPulling = false;
-
-      // Iniciar la actualización inmediatamente
-      refreshData();
-
-      // Prevenir comportamiento predeterminado
-      e.preventDefault();
+    if (pullDistance > 0 && window.scrollY === 0) {
+      // Visual feedback could be added here (e.g. pulling down icon)
     }
-  }, { passive: false });
+  }, { passive: true });
 
   // Manejador para touchend (fin del gesto)
-  document.addEventListener('touchend', function () {
+  document.addEventListener('touchend', function (e) {
+    if (!isPulling) return;
+    const endY = e.changedTouches[0].clientY;
+    const pullDistance = endY - startY;
+
+    if (pullDistance > 100 && window.scrollY === 0) { // Umbral de 100px
+      refreshData();
+    }
     isPulling = false;
   });
 
   // Función para refrescar los datos
   function refreshData() {
-    // Actualizar el estado para mostrar que estamos cargando
     statusDiv.className = 'loading';
     statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO...';
-    dataStats.innerHTML = '<i class="fas fa-server"></i> Conectando...';
 
-    // Llamar a la API para obtener datos frescos
-    fetch(`${API_URL_GET}?nocache=${new Date().getTime()}`)
-      .then(response => {
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        return response.json();
-      })
-      .then(serverData => {
-        if (serverData && serverData.success && serverData.data) {
-          // Actualizar datos globales
-          database = serverData.data;
-          dataLoaded = true;
-          cacheData(database);
-
-          // Actualizar interfaz
-          statusDiv.className = 'ready';
-          statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> DATOS ACTUALIZADOS';
-          dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}`;
-
-          // Re-procesar datos actuales si hay un QR activo
+    // Usar la funcion de main.js
+    if (typeof obtenerDatosFacturados === 'function') {
+      obtenerDatosFacturados()
+        .then(serverData => {
+          handleDataLoadSuccess(serverData);
+          // Si hay QR activo, reprocesarlo para ver actualizaciones
           if (currentQRParts) {
             processQRCodeParts(currentQRParts);
-          } else {
-            resultsDiv.innerHTML = `
-              <div class="result-item" style="text-align: center; color: var(--gray);">
-                <img src="https://raw.githubusercontent.com/iLogisticsCoordinator/o/main/icons/logo.png" alt="PandaDash Logo" class="logo" style="width: 4rem; height: 4rem; margin-bottom: 0.5rem;">
-                <h1>PandaDash</h1>
-                <div class="name">Andrés Mendoza</div>
-              </div>
-            `;
           }
-
-          // Efecto sonoro de éxito
-          if (typeof playSuccessSound === 'function') {
-            playSuccessSound();
-          }
-        } else {
-          throw new Error('Datos incorrectos');
-        }
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ERROR';
-
-        // Efecto sonoro de error
-        if (typeof playErrorSound === 'function') {
-          playErrorSound();
-        }
-      });
+        })
+        .catch(error => handleDataLoadError(error));
+    } else {
+      // Fallback or error
+      console.error("main.js no cargado");
+      statusDiv.className = 'error';
+      statusDiv.textContent = "Error de conexión";
+    }
   }
 });
