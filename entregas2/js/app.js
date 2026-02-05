@@ -46,6 +46,7 @@ function blobToBase64(blob) {
 }
 
 // Función para extraer datos de la UI
+// Función para extraer datos de la UI - ADAPTADA A NUEVO DISEÑO
 function extractDataFromUI(factura) {
   let lote = '', referencia = '', cantidad = 0;
 
@@ -53,18 +54,36 @@ function extractDataFromUI(factura) {
   const facturaContainer = document.querySelector(`.siesa-item button[data-factura="${factura}"]`)?.closest('.siesa-item');
 
   if (facturaContainer) {
-    const rows = facturaContainer.querySelectorAll('.result-row');
+    // Buscar en los detalles miniatura
+    const details = facturaContainer.querySelectorAll('.mini-detail');
 
-    rows.forEach(row => {
-      const header = row.querySelector('.col-header')?.textContent.trim();
-      const value = row.querySelector('.json-value')?.textContent.trim();
+    details.forEach(detail => {
+      const label = detail.querySelector('.mini-label')?.textContent.trim();
+      const value = detail.querySelector('.mini-value')?.textContent.trim();
 
-      if (!header || !value) return;
+      if (!label || !value) return;
 
-      if (header.includes('Lote')) lote = value;
-      else if (header.includes('Referencia')) referencia = value;
-      else if (header.includes('Cantidad')) cantidad = parseFloat(value) || 0;
+      if (label.includes('LOTE')) lote = value;
+      else if (label.includes('REFERENCIA')) referencia = value; // Siesa item referencia
     });
+
+    // Cantidad esta en el header secundario ahora? 
+    // En el nuevo diseño la cantidad está en el detalle grid tambien o en el header?
+    // Vamos a mirar displayItemData abajo.
+    // En el codigo viejo estaba en header secundario.
+    // Revisemos el DOM generado nuevo...
+    // La cantidad suele estar en .mini-detail con label CANTIDAD o similar.
+
+    // Fallback: buscar en todo el texto del contenedor si no se encuentra
+    if (!cantidad) {
+      // Buscar especificamente el campo cantidad
+      details.forEach(detail => {
+        const label = detail.querySelector('.mini-label')?.textContent.trim();
+        if (label && label.includes('CANTIDAD')) {
+          cantidad = parseFloat(detail.querySelector('.mini-value')?.textContent.trim()) || 0;
+        }
+      });
+    }
   }
 
   return { lote, referencia, cantidad };
@@ -443,249 +462,175 @@ function processQRCodeParts(parts) {
 
 function displayFullResult(item, qrParts) {
   const totalRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
-  const filtradosRegistros = item.datosSiesa ? item.datosSiesa.length : 0;
 
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      ${filtradosRegistros < totalRegistros ? `
-        <div class="filter-info">
-          <i class="fas fa-info-circle"></i> Mostrando ${filtradosRegistros} de ${totalRegistros} registros (filtrado por NIT ${qrParts.nit})
-        </div>
-      ` : ''}
-      
-      ${displayItemData(item, 'Datos del Documento', qrParts)}
-    </div>
+  // Renderizar
+  let html = `<div class="result-item">`;
+
+  // 1. Cabecera Principal (Datos del Documento)
+  html += `
+    <div class="result-header-main">
+      <div class="document-title">Documento REC</div>
+      <div class="document-id">${item.documento || qrParts.documento}</div>
+      <div class="main-details-grid">
   `;
-}
 
-function displayItemData(data, title = 'Datos', qrParts) {
-  let html = `<div class="siesa-header">${title} <span class="timestamp">${new Date().toLocaleString()}</span></div>`;
-
-  const ordenPropiedades = ['documento', 'lote', 'referencia'];
-
-  ordenPropiedades.forEach(propKey => {
-    if (propKey in data && propKey !== 'datosSiesa') {
+  // Campos Clave Principales
+  const mainFields = ['lote', 'referencia'];
+  mainFields.forEach(key => {
+    if (item[key]) {
       html += `
-        <div class="result-row">
-          <div class="col-header">${formatKey(propKey)}:</div>
-          <div class="json-value">${formatValue(data[propKey], propKey)}</div>
-        </div>
-      `;
+         <div class="detail-box">
+           <div class="detail-box-label">${key}</div>
+           <div class="detail-box-value">${item[key]}</div>
+         </div>
+       `;
     }
   });
 
-  for (const key in data) {
-    if (key === 'datosSiesa' || ordenPropiedades.includes(key)) continue;
-
-    html += `
-      <div class="result-row">
-        <div class="col-header">${formatKey(key)}:</div>
-        <div class="json-value">${formatValue(data[key], key)}</div>
-      </div>
-    `;
-  }
-
-  if (data.datosSiesa && Array.isArray(data.datosSiesa)) {
-    if (data.datosSiesa.length === 0) {
-      html += `<div class="no-data" style="padding: 15px; text-align: center;"><i class="fas fa-search"></i> No hay registros que coincidan con el NIT escaneado</div>`;
-    } else {
-      html += `<div class="siesa-header">Documentos Relacionados <span class="badge badge-success">${data.datosSiesa.length} registros</span></div>`;
-
-      data.datosSiesa.forEach((siesa, index) => {
-        const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
-        const referencia = siesa.referencia || data.referencia || 'Sin referencia';
-        const cantidad = siesa.cantidad || 0;
-
-        // Determinar estado - LÓGICA MEJORADA
-        let estado, colorClass, estadoIcon, estadoColor, bgColor, textColor;
-
-        if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") {
-          estado = "ENTREGADO";
-          colorClass = "status-delivered";
-          estadoIcon = "fa-check-circle";
-          estadoColor = "#28a745";
-          bgColor = "rgba(40, 167, 69, 0.08)";
-          textColor = "#155724";
-        } else if (!tieneFactura) {
-          estado = "NO FACTURADO";
-          colorClass = "status-not-invoiced";
-          estadoIcon = "fa-file-exclamation";
-          estadoColor = "#f72585";
-          bgColor = "rgba(247, 37, 133, 0.08)";
-          textColor = "#721c24";
-        } else if (siesa.confirmacion && siesa.confirmacion.includes("PENDIENTE FACTURA")) {
-          estado = "PENDIENTE FACTURA";
-          colorClass = "status-pending";
-          estadoIcon = "fa-file-invoice";
-          estadoColor = "#f8961e";
-          bgColor = "rgba(248, 150, 30, 0.08)";
-          textColor = "#856404";
-        } else {
-          estado = "PENDIENTE";
-          colorClass = "status-pending";
-          estadoIcon = "fa-clock";
-          estadoColor = "#f8961e";
-          bgColor = "rgba(248, 150, 30, 0.08)";
-          textColor = "#856404";
-        }
-
-        // Tarjeta con color de fondo según estado
-        html += `
-          <div class="siesa-item collapsed ${colorClass}" id="siesa-item-${index}" 
-               style="background: ${bgColor}; border-left: 4px solid ${estadoColor};">
-            
-            <!-- Cabecera -->
-            <div class="card-header" onclick="toggleSiesaItem(${index})" style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-              <div class="card-main-info">
-                <div class="factura-number">
-                  <i class="fas fa-file-invoice-dollar" style="color: ${estadoColor};"></i>
-                  <span class="factura-text" style="color: ${textColor};">${tieneFactura ? siesa.factura : 'NO FACTURADO'}</span>
-                </div>
-                
-                <div class="status-indicator" style="background: ${estadoColor}; color: white;">
-                  <i class="fas ${estadoIcon}"></i>
-                  <span class="status-text">${estado}</span>
-                </div>
-              </div>
-              
-              <div class="card-secondary-info">
-                <div class="info-item">
-                  <i class="fas fa-barcode" style="color: ${estadoColor};"></i>
-                  <span style="color: ${textColor};">${referencia}</span>
-                </div>
-                
-                <div class="info-item">
-                  <i class="fas fa-box" style="color: ${estadoColor};"></i>
-                  <span style="color: ${textColor};">${cantidad}</span>
-                </div>
-                
-                <div class="expand-icon">
-                  <i class="fas fa-chevron-down" style="color: ${estadoColor};"></i>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Contenido colapsado -->
-            <div class="collapsible-content" style="background: ${bgColor};">
-        `;
-
-        // Detalles expandidos con tipografía unificada
-        const detalles = [
-          { key: 'cliente', icon: 'fa-user-tie', label: 'Cliente' },
-          { key: 'nit', icon: 'fa-id-card', label: 'NIT' },
-          { key: 'lote', icon: 'fa-tag', label: 'Lote' },
-          { key: 'valorBruto', icon: 'fa-dollar-sign', label: 'Valor Bruto' },
-          { key: 'fecha', icon: 'fa-calendar', label: 'Fecha' },
-          { key: 'proovedor', icon: 'fa-truck', label: 'Proveedor' }
-        ];
-
-        detalles.forEach(detalle => {
-          if (siesa[detalle.key]) {
-            const value = formatValue(siesa[detalle.key], detalle.key);
-            html += `
-              <div class="detail-row">
-                <div class="detail-icon" style="background: white; color: ${estadoColor};">
-                  <i class="fas ${detalle.icon}"></i>
-                </div>
-                <div class="detail-content">
-                  <div class="detail-label">${detalle.label}</div>
-                  <div class="detail-value unified-font" style="color: ${textColor};">${value}</div>
-                </div>
-              </div>
-            `;
-          }
-        });
-
-        // Acción según estado - SIN BOTONES GRANDES
-        html += `
-            </div>
-            
-            <!-- Sección de acción minimalista -->
-            <div class="card-action" style="border-top: 1px solid rgba(0,0,0,0.05); background: ${bgColor};">
-        `;
-
-        if (estado === "ENTREGADO") {
-          html += `
-              <div class="action-icon-group">
-                <div class="action-icon completed" style="background: ${estadoColor};">
-                  <i class="fas fa-check"></i>
-                </div>
-                <span class="action-text" style="color: ${textColor};">Entregado</span>
-              </div>
-          `;
-        } else if (estado === "PENDIENTE") {
-          html += `
-              <div class="action-icon-group clickable" onclick="procesarEntrega(
-                '${data.documento}', 
-                '${siesa.lote || data.lote}', 
-                '${siesa.referencia}', 
-                '${siesa.cantidad}', 
-                '${siesa.factura}', 
-                '${siesa.nit || qrParts.nit}', 
-                this
-              )">
-                <div class="action-icon pending" style="background: ${estadoColor};">
-                  <i class="fas fa-camera"></i>
-                </div>
-                <span class="action-text" style="color: ${textColor};">Capturar evidencia</span>
-              </div>
-          `;
-        } else if (estado === "PENDIENTE FACTURA") {
-          html += `
-              <div class="action-icon-group clickable" onclick="asentarFactura(
-                '${data.documento}', 
-                '${siesa.lote || data.lote}', 
-                '${siesa.referencia}', 
-                '${siesa.cantidad}', 
-                '${siesa.factura}', 
-                '${siesa.nit || qrParts.nit}', 
-                this
-              )">
-                <div class="action-icon invoice" style="background: ${estadoColor};">
-                  <i class="fas fa-file-signature"></i>
-                </div>
-                <span class="action-text" style="color: ${textColor};">Asentar factura</span>
-              </div>
-          `;
-        } else if (estado === "NO FACTURADO") {
-          html += `
-              <div class="action-icon-group">
-                <div class="action-icon disabled" style="background: ${estadoColor};">
-                  <i class="fas fa-ban"></i>
-                </div>
-                <span class="action-text" style="color: ${textColor};">Requiere factura</span>
-              </div>
-          `;
-        }
-
-        html += `
-            </div>
-          </div>
-        `;
-      });
+  // Otros campos (si existen y no son siesa)
+  for (const key in item) {
+    if (key !== 'datosSiesa' && key !== 'documento' && !mainFields.includes(key)) {
+      // Opcional: mostrar mas datos si es necesario, por ahora mantenemos limpio
     }
   }
 
-  return html;
+  html += `</div></div>`; // Cierre grid y header
+
+  // 2. Lista de Facturas
+  if (item.datosSiesa && Array.isArray(item.datosSiesa)) {
+    const count = item.datosSiesa.length;
+    html += `
+       <div class="siesa-list-header">
+         Facturas Relacionadas <span class="badge-count">${count}</span>
+       </div>
+    `;
+
+    item.datosSiesa.forEach((siesa, index) => {
+      const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
+      const referencia = siesa.referencia || item.referencia || 'Sin referencia';
+      const cantidad = siesa.cantidad || 0;
+
+      // Estado Lógica
+      let estadoConf = "PENDIENTE";
+      let statusClass = "status-pendiente";
+      let statusTagClass = "status-tag-pendiente";
+
+      if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") {
+        estadoConf = "ENTREGADO";
+        statusClass = "status-entregado";
+        statusTagClass = "status-tag-entregado";
+      } else if (!tieneFactura) {
+        estadoConf = "NO FACTURADO";
+        statusClass = "status-nofacturado";
+        statusTagClass = "status-tag-error";
+      } else if (siesa.confirmacion && siesa.confirmacion.includes("PENDIENTE FACTURA")) {
+        estadoConf = "PENDIENTE FACTURA";
+        statusClass = "status-pendiente";
+        statusTagClass = "status-tag-pendiente";
+      }
+
+      // Nombre Proveedor Clean
+      let proveedor = siesa.proovedor || "Desconocido";
+      if (proveedor.length > 20) proveedor = proveedor.substring(0, 20) + "...";
+
+      html += `
+        <div class="siesa-item collapsed ${statusClass}" id="siesa-item-${index}">
+           <!-- Header Clickable -->
+           <div class="card-header" onclick="toggleSiesaItem(${index})">
+              <div class="factura-info">
+                 <div class="factura-id">${tieneFactura ? siesa.factura : 'SIN FACTURA'}</div>
+                 <div class="factura-sub">
+                    <i class="fas fa-box"></i> ${cantidad} un. &bull; ${proveedor}
+                 </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                 <span class="status-pill ${statusTagClass}">${estadoConf}</span>
+                 <i class="fas fa-chevron-down card-chevron"></i>
+              </div>
+           </div>
+
+           <!-- Content Grid -->
+           <div class="collapsible-content">
+              <div class="details-grid">
+                 <div class="mini-detail">
+                    <div class="mini-label">Referencia</div>
+                    <div class="mini-value">${referencia}</div>
+                 </div>
+                 <div class="mini-detail">
+                    <div class="mini-label">Lote</div>
+                    <div class="mini-value">${siesa.lote || item.lote}</div>
+                 </div>
+                 <div class="mini-detail">
+                    <div class="mini-label">Cliente</div>
+                    <div class="mini-value">${siesa.cliente || 'N/A'}</div>
+                 </div>
+                 <div class="mini-detail">
+                    <div class="mini-label">NIT</div>
+                    <div class="mini-value">${siesa.nit || 'N/A'}</div>
+                 </div>
+                  <div class="mini-detail">
+                    <div class="mini-label">Cantidad</div>
+                    <div class="mini-value">${cantidad}</div>
+                 </div>
+                 <div class="mini-detail">
+                    <div class="mini-label">Fecha</div>
+                    <div class="mini-value">${siesa.fecha || 'N/A'}</div>
+                 </div>
+              </div>
+
+              <!-- Actions Toolbar -->
+              <div class="card-actions">
+      `;
+
+      // Botones de acción
+      if (estadoConf === "ENTREGADO") {
+        html += `
+             <button class="action-btn btn-done">
+                <i class="fas fa-check-circle"></i> Entregado
+             </button>
+          `;
+      } else if (estadoConf === "PENDIENTE") {
+        html += `
+             <button class="action-btn btn-scan" data-factura="${siesa.factura}" onclick="procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
+                <i class="fas fa-camera"></i> Evidencia
+             </button>
+          `;
+      } else if (estadoConf === "PENDIENTE FACTURA") {
+        html += `
+             <button class="action-btn btn-invoice" data-factura="${siesa.factura}" onclick="asentarFactura('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
+                <i class="fas fa-file-signature"></i> Asentar
+             </button>
+          `;
+      } else {
+        html += `<span style="font-size:12px; color:var(--text-tertiary);">No accionable</span>`;
+      }
+
+      html += `</div></div></div>`; // Cierre item
+    });
+  }
+
+  html += `</div>`; // Cierre result-item
+  resultsDiv.innerHTML = html;
+}
+
+// Función dummy para mantener compatibilidad si algo llama a displayItemData directamente
+function displayItemData(data, title, qrParts) {
+  // Esta función ya no se usa directamente en el nuevo flujo simplificado, 
+  // pero la mantenemos vacía o redirigiendo por si acaso.
+  return "";
 }
 
 // Función para expandir/colapsar tarjetas de facturas
+// Función para expandir/colapsar tarjetas de facturas - ADAPTADA
 function toggleSiesaItem(index) {
   const item = document.getElementById(`siesa-item-${index}`);
-  const icon = item.querySelector('.expand-icon i');
 
   if (item.classList.contains('collapsed')) {
-    // Expandir
     item.classList.remove('collapsed');
     item.classList.add('expanded');
-    icon.classList.remove('fa-chevron-down');
-    icon.classList.add('fa-chevron-up');
   } else {
-    // Colapsar
     item.classList.remove('expanded');
     item.classList.add('collapsed');
-    icon.classList.remove('fa-chevron-up');
-    icon.classList.add('fa-chevron-down');
   }
 }
 
