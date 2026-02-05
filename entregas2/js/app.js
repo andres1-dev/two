@@ -819,74 +819,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Variables de control
   let startY = 0;
   let isPulling = false;
-  let initialTouches = [];
 
   // Manejador para touchstart (inicio del gesto)
   document.addEventListener('touchstart', function (e) {
-    // Verificar si hay exactamente 3 dedos y estamos arriba del todo
-    if (window.scrollY === 0 && e.touches.length === 3) {
-      startY = e.touches[0].clientY; // Usamos el primer dedo como referencia
+    if (window.scrollY === 0 && e.touches.length === 2) { // 1 dedo y arriba del todo
+      startY = e.touches[0].clientY;
       isPulling = true;
-      
-      // Guardamos las posiciones iniciales de los 3 dedos para validación
-      initialTouches = Array.from(e.touches).map(touch => ({
-        id: touch.identifier,
-        clientY: touch.clientY
-      }));
     }
   }, { passive: true });
 
   // Manejador para touchmove (movimiento durante el gesto)
   document.addEventListener('touchmove', function (e) {
-    if (!isPulling || e.touches.length !== 3) return;
+    if (!isPulling) return;
 
     const currentY = e.touches[0].clientY;
     const pullDistance = currentY - startY;
 
     if (pullDistance > 0 && window.scrollY === 0) {
-      // Podrías añadir feedback visual aquí (ej: icono de arrastre hacia abajo)
-      // Por ejemplo, cambiar el color o mostrar un indicador
-      document.body.style.setProperty('--pull-distance', `${Math.min(pullDistance, 150)}px`);
+      // Visual feedback could be added here (e.g. pulling down icon)
     }
   }, { passive: true });
 
   // Manejador para touchend (fin del gesto)
   document.addEventListener('touchend', function (e) {
     if (!isPulling) return;
-    
-    // Verificamos que al menos un dedo se haya levantado
-    // pero no todos (podría quedar 1 o 2 dedos aún)
-    const fingersStillDown = Array.from(e.touches).length;
-    
-    // Si quedan 2 o más dedos aún, no consideramos el gesto completo
-    if (fingersStillDown >= 2) return;
-    
-    // Buscamos un dedo que se haya levantado para calcular la distancia
-    let endY = startY; // Valor por defecto
-    
-    // Si hay algún touch cambiado, usamos el primero
-    if (e.changedTouches.length > 0) {
-      endY = e.changedTouches[0].clientY;
-    }
-    
+    const endY = e.changedTouches[0].clientY;
     const pullDistance = endY - startY;
 
-    // Umbral de 100px y verificación de que estamos arriba del todo
-    if (pullDistance > 100 && window.scrollY === 0) {
+    if (pullDistance > 100 && window.scrollY === 0) { // Umbral de 100px
       refreshData();
     }
-    
-    // Resetear estado
     isPulling = false;
-    initialTouches = [];
-    document.body.style.removeProperty('--pull-distance');
-  });
-
-  // También manejamos touchcancel para casos donde el sistema interrumpe el gesto
-  document.addEventListener('touchcancel', function () {
-    isPulling = false;
-    initialTouches = [];
-    document.body.style.removeProperty('--pull-distance');
   });
 
   // Función para refrescar los datos
@@ -906,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => handleDataLoadError(error));
     } else {
-      // Fallback o error
+      // Fallback or error
       console.error("main.js no cargado");
       statusDiv.className = 'error';
       statusDiv.textContent = "Error de conexión";
