@@ -80,22 +80,19 @@
       <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
     </div>
 
-    <!-- Botón flotante de cola mejorado -->
+    <!-- Botón flotante minimalista -->
     <div id="queueCounter" class="queue-counter empty" title="No hay elementos en cola">
-      <div class="queue-counter-icon">
-        <i class="fas fa-cloud-upload-alt"></i>
-      </div>
-      <div class="queue-counter-badge">0</div>
+      <i class="fas fa-cloud-upload-alt"></i>
+      <span class="queue-counter-badge">0</span>
     </div>
 
-    <!-- Modal profesional de cola -->
+    <!-- Modal minimalista de cola -->
     <div id="queueModal" class="queue-modal">
       <div class="queue-modal-header">
-        <h3>
-          <i class="fas fa-tasks"></i>
-          <span>Cola de Carga</span>
-          <span class="queue-status-badge idle">Sin actividad</span>
-        </h3>
+        <div>
+          <h3><i class="fas fa-tasks"></i> Cola de carga</h3>
+          <div class="queue-status-text">Sin actividad</div>
+        </div>
         <button class="queue-close-btn" id="closeQueueModal">
           <i class="fas fa-times"></i>
         </button>
@@ -104,44 +101,34 @@
       <div class="queue-modal-body">
         <div class="queue-stats">
           <div class="stat-item">
-            <i class="fas fa-clock"></i>
-            <div>
-              <span class="stat-value">0</span>
-              <span class="stat-label">Pendientes</span>
-            </div>
+            <span class="stat-value">0</span>
+            <span class="stat-label">Pendientes</span>
           </div>
           <div class="stat-item">
-            <i class="fas fa-sync-alt"></i>
-            <div>
-              <span class="stat-value">0</span>
-              <span class="stat-label">Procesando</span>
-            </div>
+            <span class="stat-value">0</span>
+            <span class="stat-label">Procesando</span>
           </div>
           <div class="stat-item">
-            <i class="fas fa-check-circle"></i>
-            <div>
-              <span class="stat-value">0</span>
-              <span class="stat-label">Completados</span>
-            </div>
+            <span class="stat-value">0</span>
+            <span class="stat-label">Completados</span>
           </div>
         </div>
         
         <div class="queue-items-container">
           <div id="queueItemsList" class="queue-items-list">
             <div class="queue-empty-state">
-              <i class="fas fa-inbox"></i>
-              <p>La cola está vacía</p>
-              <small>Todas las cargas están completadas</small>
+              <i class="fas fa-check-circle"></i>
+              <p>Sin elementos pendientes</p>
             </div>
           </div>
         </div>
         
         <div class="queue-actions">
           <button class="queue-action-btn secondary" id="retryFailedBtn">
-            <i class="fas fa-redo"></i> Reintentar fallos
+            <i class="fas fa-redo"></i>
           </button>
           <button class="queue-action-btn primary" id="processQueueBtn">
-            <i class="fas fa-play"></i> Procesar ahora
+            <i class="fas fa-play"></i>
           </button>
         </div>
       </div>

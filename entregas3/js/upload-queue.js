@@ -73,127 +73,119 @@ class UploadQueue {
     });
   }
 
-  updateQueueUI() {
-    const counter = document.getElementById('queueCounter');
-    const badge = counter.querySelector('.queue-counter-badge');
-    const icon = counter.querySelector('.queue-counter-icon i');
-    const statusBadge = document.querySelector('.queue-status-badge');
-    const pendingStat = document.querySelector('.stat-item:nth-child(1) .stat-value');
-    const processingStat = document.querySelector('.stat-item:nth-child(2) .stat-value');
-    const completedStat = document.querySelector('.stat-item:nth-child(3) .stat-value');
+updateQueueUI() {
+  const counter = document.getElementById('queueCounter');
+  const badge = counter.querySelector('.queue-counter-badge');
+  const icon = counter.querySelector('i'); // Cambiado porque ya no hay .queue-counter-icon
+  const statusBadge = document.querySelector('.queue-status-text'); // Cambiado de .queue-status-badge
+  const pendingStat = document.querySelector('.stat-item:nth-child(1) .stat-value');
+  const processingStat = document.querySelector('.stat-item:nth-child(2) .stat-value');
+  const completedStat = document.querySelector('.stat-item:nth-child(3) .stat-value');
 
-    // Actualizar contador
-    const pendingJobs = this.queue.filter(job => job.status === 'pending').length;
-    const processingJobs = this.queue.filter(job => job.status === 'processing').length;
+  // Verifica si los elementos existen
+  if (!counter || !badge || !statusBadge) {
+    console.warn('Elementos de UI de cola no encontrados');
+    return;
+  }
 
-    badge.textContent = pendingJobs + processingJobs;
-    
-    if (this.queue.length === 0) {
-      counter.classList.add('empty');
-      counter.classList.remove('processing');
-      icon.className = 'fas fa-cloud-upload-alt';
-      statusBadge.textContent = 'Sin actividad';
-      statusBadge.className = 'queue-status-badge idle';
+  // Actualizar contador
+  const pendingJobs = this.queue.filter(job => job.status === 'pending').length;
+  const processingJobs = this.queue.filter(job => job.status === 'processing').length;
+
+  badge.textContent = pendingJobs + processingJobs;
+  
+  if (this.queue.length === 0) {
+    counter.classList.add('empty');
+    counter.classList.remove('processing');
+    if (icon) icon.style.color = '';
+    statusBadge.textContent = 'Sin actividad';
+    statusBadge.style.color = 'var(--text-tertiary)';
+  } else {
+    counter.classList.remove('empty');
+    if (this.isProcessing) {
+      counter.classList.add('processing');
+      if (icon) icon.style.color = 'var(--primary)';
+      statusBadge.textContent = 'Procesando';
+      statusBadge.style.color = 'var(--primary)';
     } else {
-      counter.classList.remove('empty');
-      if (this.isProcessing) {
-        counter.classList.add('processing');
-        icon.className = 'fas fa-sync-alt fa-spin';
-        statusBadge.textContent = 'Procesando';
-        statusBadge.className = 'queue-status-badge processing';
-      } else {
-        counter.classList.remove('processing');
-        icon.className = 'fas fa-cloud-upload-alt';
-        statusBadge.textContent = `${pendingJobs} pendientes`;
-        statusBadge.className = 'queue-status-badge idle';
-      }
+      counter.classList.remove('processing');
+      if (icon) icon.style.color = '';
+      statusBadge.textContent = `${pendingJobs} pendientes`;
+      statusBadge.style.color = 'var(--text-tertiary)';
     }
-
-    // Actualizar estadísticas
-    pendingStat.textContent = pendingJobs;
-    processingStat.textContent = processingJobs;
-    completedStat.textContent = this.completedCount;
-
-    // Actualizar lista de items
-    this.updateQueueItemsList();
   }
 
-  updateQueueItemsList() {
-    const queueItemsList = document.getElementById('queueItemsList');
+  // Actualizar estadísticas solo si existen
+  if (pendingStat) pendingStat.textContent = pendingJobs;
+  if (processingStat) processingStat.textContent = processingJobs;
+  if (completedStat) completedStat.textContent = this.completedCount;
 
-    if (this.queue.length === 0) {
-      queueItemsList.innerHTML = `
-        <div class="queue-empty-state">
-          <i class="fas fa-inbox"></i>
-          <p>La cola está vacía</p>
-          <small>Todas las cargas están completadas</small>
-        </div>
-      `;
-      return;
+  // Actualizar lista de items
+  this.updateQueueItemsList();
+}
+
+// ... código anterior se mantiene igual ...
+
+updateQueueItemsList() {
+  const queueItemsList = document.getElementById('queueItemsList');
+
+  if (this.queue.length === 0) {
+    queueItemsList.innerHTML = `
+      <div class="queue-empty-state">
+        <i class="fas fa-check-circle"></i>
+        <p>Sin elementos pendientes</p>
+      </div>
+    `;
+    return;
+  }
+
+  queueItemsList.innerHTML = '';
+
+  this.queue.forEach((item, index) => {
+    const itemElement = document.createElement('div');
+    
+    let statusClass = '';
+    let statusIcon = '';
+
+    if (item.status === 'processing') {
+      statusClass = 'processing';
+      statusIcon = '<i class="fas fa-sync-alt fa-spin"></i>';
+    } else if (item.retries >= MAX_RETRIES) {
+      statusClass = 'error';
+      statusIcon = '<i class="fas fa-exclamation-circle"></i>';
+    } else if (item.status === 'retrying') {
+      statusClass = 'retrying';
+      statusIcon = `<i class="fas fa-redo"></i><span>${item.retries}/${MAX_RETRIES}</span>`;
+    } else {
+      statusClass = 'pending';
+      statusIcon = '<i class="fas fa-clock"></i>';
     }
 
-    queueItemsList.innerHTML = '';
+    itemElement.className = `queue-item-card ${statusClass}`;
 
-    this.queue.forEach((item, index) => {
-      const itemElement = document.createElement('div');
-      
-      let statusClass = '';
-      let statusText = '';
-      let statusColor = '';
+    let previewContent = '';
+    if (item.type === 'photo') {
+      const factura = item.factura || 'Sin factura';
+      previewContent = `📷 ${factura}`;
+    } else if (item.type === 'data') {
+      previewContent = `📄 ${item.data.documento || 'Sin ID'}`;
+    }
 
-      if (item.status === 'processing') {
-        statusClass = 'processing';
-        statusText = 'PROCESANDO';
-        statusColor = 'processing';
-      } else if (item.retries >= MAX_RETRIES) {
-        statusClass = 'error';
-        statusText = 'ERROR';
-        statusColor = 'error';
-      } else if (item.status === 'retrying') {
-        statusClass = 'retrying';
-        statusText = `REINTENTANDO (${item.retries}/${MAX_RETRIES})`;
-        statusColor = 'retrying';
-      } else {
-        statusClass = 'pending';
-        statusText = 'PENDIENTE';
-        statusColor = '';
-      }
-
-      itemElement.className = `queue-item-card ${statusClass}`;
-
-      let previewContent = '';
-      let thumbnail = '';
-
-      if (item.type === 'photo') {
-        const factura = item.factura || 'Sin factura';
-        const documento = item.data.documento || 'Sin documento';
-        previewContent = `📷 ${factura} - ${documento}`;
-        
-        if (item.data.fotoBase64) {
-          thumbnail = `<img src="data:image/jpeg;base64,${item.data.fotoBase64.substring(0, 100)}..." class="queue-thumbnail">`;
-        }
-      } else if (item.type === 'data') {
-        previewContent = `📄 ${item.data.tipo || 'Datos'} - ${item.data.documento || 'Sin ID'}`;
-      }
-
-      itemElement.innerHTML = `
-        <div class="queue-item-header">
-          <span class="queue-item-type">${item.type === 'photo' ? 'FOTO' : 'DATOS'}</span>
-          <span class="queue-item-time">${item.addedAt}</span>
+    itemElement.innerHTML = `
+      <div class="queue-item-main">
+        <div class="queue-item-icon">${statusIcon}</div>
+        <div class="queue-item-content">
+          <div class="queue-item-title">${previewContent}</div>
+          <div class="queue-item-time">${item.addedAt}</div>
         </div>
-        <div class="queue-item-preview">${previewContent}</div>
-        <div class="queue-item-details">
-          <span>Intento: ${item.retries + 1}</span>
-          <span>•</span>
-          <span>${new Date(item.timestamp).toLocaleDateString()}</span>
-        </div>
-        <div class="queue-item-status ${statusColor}">${statusText}</div>
-        ${thumbnail}
-      `;
+      </div>
+    `;
 
-      queueItemsList.appendChild(itemElement);
-    });
-  }
+    queueItemsList.appendChild(itemElement);
+  });
+}
+
+// ... resto del código se mantiene igual ...
 
   toggleQueueModal() {
     const modal = document.getElementById('queueModal');
