@@ -23,8 +23,7 @@
   --danger-soft: #fee2e2;
 
   --surface: #ffffff;
-  /*--background: #f8fafc;*/
-  --background: #ffffff;
+  --background: #f8fafc;
   /* Blue-gray very light */
   --text-main: #0f172a;
   /* Slate 900 */
@@ -431,6 +430,10 @@ body {
 }
 
 .reference-highlight {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
   font-family: var(--font-mono);
 }
 
@@ -454,17 +457,17 @@ body {
 
 .status-icon-only.success {
   color: var(--success-dark);
-  /*background: rgba(16, 185, 129, 0.2);*/
+  background: rgba(16, 185, 129, 0.2);
 }
 
 .status-icon-only.processing {
   color: var(--primary);
-  /*background: rgba(37, 99, 235, 0.2);*/
+  background: rgba(37, 99, 235, 0.2);
 }
 
 .status-icon-only.error {
   color: var(--danger);
-  /*background: rgba(239, 68, 68, 0.2);*/
+  background: rgba(239, 68, 68, 0.2);
 }
 
 /* Boton Miniatura de Acción */
@@ -487,21 +490,18 @@ body {
   z-index: 5;
 }
 
-/* Estilo específico para Pendiente (Naranja) - Modificar */
+/* Estilo específico para Pendiente (Naranja) */
 .siesa-item.status-pendiente .action-btn-mini {
-  background: transparent; /* Cambiado de white a transparente */
-  border: transparent; /* Cambiado de white a transparente */
-  /*border: 2px solid var(--warning); /* Agregar borde para mantener visibilidad */
-  color: var(--warning);
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.1);
+  background: var(--warning);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 /* Hover effects */
 .siesa-item.status-pendiente .action-btn-mini:hover {
-  /*background: var(--warning-dark);*/
-  background: transparent; /* Cambiado de white a transparente */
+  background: var(--warning-dark);
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(245, 158, 11, 0.1);
+  box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
 }
 
 .action-btn-mini:active {
@@ -640,9 +640,9 @@ body {
 /* --- ELEMENTOS FLOTANTES --- */
 /* (Mismos de antes) */
 #queueCounter {
-  position: fixed; /* Cambiado de absolute a fixed */
-  top: 140px; /* Ajustar según la altura del header (24px padding + header + margen) */
-  right: calc(50% - (var(--app-width) / 2) + 20px); /* Alinear con el ancho de la app */
+  position: absolute;
+  top: 24px;
+  right: 20px;
   width: 36px;
   height: 36px;
   background-color: var(--primary);
@@ -657,14 +657,6 @@ body {
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
   z-index: 200;
   transition: transform 0.2s;
-}
-
-/* Ajuste para dispositivos móviles */
-@media (max-width: 500px) {
-  #queueCounter {
-    right: 20px; /* En móviles, fijo a la derecha */
-    top: 140px; /* Igual que en desktop */
-  }
 }
 
 #queueCounter:active {
@@ -850,98 +842,4 @@ body {
   40% {
     transform: scale(1);
   }
-}
-
-
-/* Agregar después de .details-grid en el archivo styles.css */
-
-/* --- NUEVOS ESTILOS PARA IMAGEN IH3 Y GRID AJUSTABLE --- */
-
-/* Clase para grid adaptativo según contenido */
-.details-grid.adaptive {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-}
-
-/* Detalle de una columna completa para textos largos */
-.mini-detail.full-width {
-  grid-column: 1 / -1; /* Ocupa todas las columnas */
-}
-
-/* Contenedor para imagen miniatura */
-.ih3-thumbnail-container {
-  grid-column: 1 / -1; /* Ocupa todas las columnas */
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.ih3-thumbnail {
-  width: 120px;
-  height: 120px;
-  border-radius: 12px;
-  object-fit: cover;
-  border: 2px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease;
-  cursor: pointer;
-}
-
-.ih3-thumbnail:hover {
-  transform: scale(1.05);
-}
-
-/* Modal para ver imagen completa */
-.ih3-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 10001;
-  align-items: center;
-  justify-content: center;
-}
-
-.ih3-modal-img {
-  max-width: 90%;
-  max-height: 90%;
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
-.close-modal {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  background: rgba(0, 0, 0, 0.5);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Mejorar visualización de textos largos */
-.mini-detail.full-width .mini-value {
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.4;
-  max-height: 80px;
-  overflow-y: auto;
-  font-size: 13px;
-  padding-right: 4px;
-}
-
-/* Scrollbar para valores largos */
-.mini-detail.full-width .mini-value::-webkit-scrollbar {
-  width: 4px;
-}
-
-.mini-detail.full-width .mini-value::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
 }

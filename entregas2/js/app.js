@@ -509,6 +509,9 @@ function displayFullResult(item, qrParts) {
       const tieneFactura = siesa.factura && siesa.factura.trim() !== "";
       const referencia = siesa.referencia || item.referencia || 'Sin referencia';
       const cantidad = siesa.cantidad || 0;
+      
+      // Verificar si hay imagen IH3
+      const tieneIh3 = siesa.Ih3 && siesa.Ih3.trim() !== '' && siesa.Ih3.includes('googleusercontent.com/d/');
 
       // Estado Lógica
       let estadoConf = "PENDIENTE";
@@ -554,25 +557,26 @@ function displayFullResult(item, qrParts) {
                      <div class="factura-meta-line">
                         <span class="meta-item"><i class="fas fa-box"></i> ${cantidad}</span>
                         <span class="meta-separator">•</span>
-                        <span class="meta-item reference-highlight">${referencia}</span>
+                        <span class="meta-item"><i class="fas fa-tags"></i><span class="reference-highlight">${referencia}</span></span>
+                        ${tieneIh3 ? `<span class="meta-separator">•</span><span class="meta-item"><i class="fas fa-image"></i> Soporte</span>` : ''}
                      </div>
                   </div>
               </div>
               
               <div class="card-header-actions">
                  ${isProcessing ?
-          `<div class="status-icon-only processing"><i class="fas fa-sync fa-spin"></i></div>` :
-          estadoConf === "ENTREGADO" ?
-            `<div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>` :
-            estadoConf === "NO FACTURADO" ?
-              `<div class="status-icon-only error"><i class="fas fa-exclamation-triangle"></i></div>` :
-              estadoConf === "PENDIENTE" ?
-                `<button class="action-btn-mini btn-scan" 
-                          data-factura="${siesa.factura}" 
-                          onclick="event.stopPropagation(); procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
-                          <i class="fas fa-camera"></i>
-                       </button>` : ''
-        }
+        `<div class="status-icon-only processing"><i class="fas fa-sync fa-spin"></i></div>` :
+        estadoConf === "ENTREGADO" ?
+          `<div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>` :
+          estadoConf === "NO FACTURADO" ?
+            `<div class="status-icon-only error"><i class="fas fa-exclamation-triangle"></i></div>` :
+            estadoConf === "PENDIENTE" ?
+              `<button class="action-btn-mini btn-scan" 
+                        data-factura="${siesa.factura}" 
+                        onclick="event.stopPropagation(); procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
+                        <i class="fas fa-camera"></i>
+                     </button>` : ''
+      }
                  
                  <i class="fas fa-chevron-down card-chevron" onclick="toggleSiesaItem(${index})"></i>
               </div>
@@ -580,33 +584,57 @@ function displayFullResult(item, qrParts) {
 
            <!-- Content Grid -->
            <div class="collapsible-content">
-              <div class="details-grid">
+              <div class="details-grid adaptive">
       `;
 
       // Renderizar TODOS los campos disponibles del objeto siesa
-      const priorityKeys = ['cliente', 'nit', 'lote', 'referencia', 'cantidad', 'fecha', 'proovedor', 'valorBruto', 'valorNeto', 'impuesto'];
-      const hiddenKeys = ['factura', 'confirmacion'];
+      const priorityKeys = ['proovedor', 'cliente', 'nit', 'lote', 'referencia', 'cantidad', 'fecha', 'valorBruto'];
+      const hiddenKeys = ['factura', 'confirmacion', 'Ih3', 'estado']; // Ocultar Ih3 de la lista normal
 
       priorityKeys.forEach(key => {
         if (siesa[key]) {
+          // Determinar si es texto largo (cliente o proovedor)
+          const esTextoLargo = key === 'cliente' || key === 'proovedor';
+          const valor = formatSiesaValue(siesa[key]);
+          
           html += `
-                  <div class="mini-detail">
-                     <div class="mini-label">${key}</div>
-                     <div class="mini-value">${formatSiesaValue(siesa[key])}</div>
-                  </div>
-              `;
+            <div class="mini-detail ${esTextoLargo ? 'full-width' : ''}">
+               <div class="mini-label">${key}</div>
+               <div class="mini-value">${valor}</div>
+            </div>
+          `;
         }
       });
 
+      // Campos adicionales (no prioridad)
       for (const key in siesa) {
         if (!priorityKeys.includes(key) && !hiddenKeys.includes(key) && siesa[key]) {
+          const esTextoLargo = key.toLowerCase().includes('nombre') || 
+                              key.toLowerCase().includes('descripcion') ||
+                              siesa[key].length > 30;
+          
           html += `
-                  <div class="mini-detail">
-                     <div class="mini-label">${key}</div>
-                     <div class="mini-value">${formatSiesaValue(siesa[key])}</div>
-                  </div>
-              `;
+            <div class="mini-detail ${esTextoLargo ? 'full-width' : ''}">
+               <div class="mini-label">${formatKey(key)}</div>
+               <div class="mini-value">${formatSiesaValue(siesa[key])}</div>
+            </div>
+          `;
         }
+      }
+
+      // Mostrar imagen ih3 si existe (en lugar del enlace)
+      if (tieneIh3) {
+        const imageId = siesa.Ih3.split('/').pop();
+        const thumbnailUrl = `https://lh3.googleusercontent.com/d/${imageId}=s200`; // Tamaño miniatura
+        
+        html += `
+          <div class="ih3-thumbnail-container">
+            <img src="${thumbnailUrl}" 
+                 class="ih3-thumbnail" 
+                 alt="Comprobante de entrega"
+                 onclick="mostrarImagenCompleta('${siesa.Ih3}')">
+          </div>
+        `;
       }
 
       html += `
@@ -619,6 +647,55 @@ function displayFullResult(item, qrParts) {
 
   html += `</div>`; // Cierre result-item
   resultsDiv.innerHTML = html;
+}
+
+// Función para formatear nombres de campos (ej: "valorBruto" -> "Valor Bruto")
+function formatKey(key) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .replace(/_/g, ' ')
+    .trim();
+}
+
+// Función para mostrar imagen completa
+function mostrarImagenCompleta(imageUrl) {
+  // Crear modal si no existe
+  let modal = document.getElementById('ih3Modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ih3Modal';
+    modal.className = 'ih3-modal';
+    modal.innerHTML = `
+      <span class="close-modal" onclick="cerrarImagenCompleta()">&times;</span>
+      <img class="ih3-modal-img" src="" alt="Comprobante completo">
+    `;
+    document.body.appendChild(modal);
+    
+    // Cerrar al hacer clic fuera de la imagen
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        cerrarImagenCompleta();
+      }
+    });
+  }
+  
+  // Establecer la imagen y mostrar
+  const img = modal.querySelector('.ih3-modal-img');
+  img.src = imageUrl;
+  modal.style.display = 'flex';
+  
+  // Prevenir scroll del body
+  document.body.style.overflow = 'hidden';
+}
+
+// Función para cerrar imagen completa
+function cerrarImagenCompleta() {
+  const modal = document.getElementById('ih3Modal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
 }
 
 // Función dummy para mantener compatibilidad si algo llama a displayItemData directamente

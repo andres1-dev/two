@@ -90,6 +90,13 @@
         <div class="queue-no-items">Vacío</div>
       </div>
     </div>
+
+    <!-- Agregar antes del cierre del body en index.html, después del div #queueDetails -->
+    <div id="ih3Modal" class="ih3-modal" style="display: none;">
+      <span class="close-modal" onclick="cerrarImagenCompleta()">&times;</span>
+      <img class="ih3-modal-img" src="" alt="Comprobante completo">
+    </div>
+
   </div>
 
   <script src="js/upload-queue.js"></script>
