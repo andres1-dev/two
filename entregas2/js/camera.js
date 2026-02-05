@@ -5,7 +5,7 @@ function abrirCamara(factura) {
     factura: factura,
     btnElement: document.querySelector(`.delivery-btn[data-factura="${factura}"]`)
   };
-  
+
   // Mostrar la cámara
   mostrarCamara();
 }
@@ -17,36 +17,36 @@ function mostrarCamara() {
   const photoPreview = document.getElementById('photoPreview');
   const takePhotoBtn = document.getElementById('takePhotoBtn');
   const dummyInput = document.getElementById('dummyInput');
-  
+
   // Ocultar teclado al abrir la cámara
   barcodeInput.blur();
   document.activeElement.blur();
-  
+
   // Forzar que no se muestre el teclado
   if (dummyInput) {
-    dummyInput.readOnly = true; 
+    dummyInput.readOnly = true;
     dummyInput.setAttribute('inputmode', 'none');
   }
-  
+
   // Prevenir que cualquier elemento obtenga el foco mientras la cámara está abierta
   preventKeyboardTimer = setInterval(() => {
     if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.id !== 'dummyInput') {
       document.activeElement.blur();
     }
   }, 100);
-  
+
   // Mostrar modal y ocultar vista previa
   cameraModal.style.display = 'flex';
   photoPreview.style.display = 'none';
   cameraFeed.style.display = 'block';
-  
+
   // Configurar cámara - usar cámara trasera por defecto
-  navigator.mediaDevices.getUserMedia({ 
-    video: { 
+  navigator.mediaDevices.getUserMedia({
+    video: {
       facingMode: 'environment',
       width: { ideal: 1280 },
       height: { ideal: 720 }
-    } 
+    }
   })
     .then(stream => {
       cameraStream = stream;
@@ -57,13 +57,13 @@ function mostrarCamara() {
       alert("No se pudo acceder a la cámara. Por favor permite el acceso.");
       cerrarCamara();
     });
-  
+
   // Configurar botones
   takePhotoBtn.innerHTML = '<i class="fas fa-camera"></i> Tomar Foto';
   takePhotoBtn.disabled = false;
   takePhotoBtn.onclick = capturarFoto;
   document.getElementById('uploadStatus').style.display = 'none';
-  
+
   // Agregar listener para prevenir el comportamiento predeterminado de los clics
   cameraModal.addEventListener('touchstart', preventDefaultBehavior, { passive: false });
   cameraModal.addEventListener('touchmove', preventDefaultBehavior, { passive: false });
@@ -81,23 +81,23 @@ function capturarFoto() {
   const cameraFeed = document.getElementById('cameraFeed');
   const photoPreview = document.getElementById('photoPreview');
   const takePhotoBtn = document.getElementById('takePhotoBtn');
-  
+
   // Crear canvas temporal
   const canvas = document.createElement('canvas');
   canvas.width = cameraFeed.videoWidth;
   canvas.height = cameraFeed.videoHeight;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
-  
+
   // Obtener blob de la imagen
   canvas.toBlob(blob => {
     photoBlob = blob;
-    
+
     // Mostrar vista previa
     photoPreview.src = URL.createObjectURL(blob);
     photoPreview.style.display = 'block';
     cameraFeed.style.display = 'none';
-    
+
     // Cambiar botón para subir foto
     takePhotoBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Subir Foto';
     takePhotoBtn.onclick = subirFoto;
@@ -110,28 +110,28 @@ async function subirFoto() {
     console.error("No hay datos disponibles para subir");
     return;
   }
-  
+
   const { factura, btnElement } = currentDocumentData;
   const takePhotoBtn = document.getElementById('takePhotoBtn');
   const uploadStatus = document.getElementById('uploadStatus');
-  
+
   // Deshabilitar botón y mostrar estado de carga
   takePhotoBtn.disabled = true;
   takePhotoBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Preparando...';
   uploadStatus.style.display = 'flex';
   uploadStatus.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Preparando foto...';
-  
+
   try {
     // Convertir blob a base64
     const base64Data = await blobToBase64(photoBlob);
     const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
-    
+
     // Extraer datos específicos de la factura
     const facturaData = getFacturaData(factura);
     if (!facturaData) {
       throw new Error("No se pudieron obtener los datos de la factura");
     }
-    
+
     // Crear objeto de trabajo para la cola con TODOS los datos específicos
     const jobData = {
       ...facturaData,
@@ -140,7 +140,7 @@ async function subirFoto() {
       fotoTipo: 'image/jpeg',
       timestamp: new Date().toISOString()
     };
-    
+
     // Agregar a la cola
     uploadQueue.addJob({
       type: 'photo',
@@ -148,14 +148,14 @@ async function subirFoto() {
       factura: factura,
       btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null
     });
-    
+
     // Actualizar UI
     uploadStatus.innerHTML = '<i class="fas fa-check-circle"></i> En cola para subir';
     takePhotoBtn.innerHTML = '<i class="fas fa-check"></i> En cola';
-    
+
     // Cerrar cámara después de un breve retraso
     setTimeout(cerrarCamara, 1500);
-    
+
   } catch (error) {
     console.error("Error al preparar foto:", error);
     uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al preparar';
@@ -168,7 +168,7 @@ async function subirFoto() {
 function getFacturaData(factura) {
   const facturaContainer = document.querySelector(`.siesa-item button[data-factura="${factura}"]`)?.closest('.siesa-item');
   if (!facturaContainer) return null;
-  
+
   const data = {
     documento: '',
     lote: '',
@@ -177,31 +177,31 @@ function getFacturaData(factura) {
     factura: factura,
     nit: ''
   };
-  
+
   // Extraer datos del contenedor principal (documento)
   const mainContainer = document.querySelector('.result-item');
   if (mainContainer) {
     const docElement = mainContainer.querySelector('.col-header:contains("Documento") + .json-value');
     if (docElement) data.documento = docElement.textContent.trim();
-    
+
     const loteElement = mainContainer.querySelector('.col-header:contains("Lote") + .json-value');
     if (loteElement) data.lote = loteElement.textContent.trim();
   }
-  
+
   // Extraer datos específicos de la factura
   const rows = facturaContainer.querySelectorAll('.result-row');
   rows.forEach(row => {
     const header = row.querySelector('.col-header')?.textContent.trim();
     const value = row.querySelector('.json-value')?.textContent.trim();
-    
+
     if (!header || !value) return;
-    
+
     if (header.includes('Referencia')) data.referencia = value;
     else if (header.includes('Cantidad')) data.cantidad = parseFloat(value) || 0;
     else if (header.includes('NIT')) data.nit = value;
     else if (header.includes('Nit')) data.nit = value;
   });
-  
+
   return data;
 }
 
@@ -211,22 +211,22 @@ function cerrarCamara() {
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
   }
-  
+
   const cameraModal = document.getElementById('cameraModal');
-  
+
   // Eliminar los listeners para prevenir comportamiento predeterminado
   cameraModal.removeEventListener('touchstart', preventDefaultBehavior);
   cameraModal.removeEventListener('touchmove', preventDefaultBehavior);
-  
+
   // Limpiar el timer de prevención de teclado
   if (preventKeyboardTimer) {
     clearInterval(preventKeyboardTimer);
     preventKeyboardTimer = null;
   }
-  
+
   cameraModal.style.display = 'none';
   photoBlob = null;
-  
+
   // Restauramos el foco normal después de cerrar la cámara
   setTimeout(() => {
     const barcodeInput = document.getElementById('barcode');
@@ -241,7 +241,7 @@ document.getElementById('cancelCaptureBtn').addEventListener('click', cerrarCama
 function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, btnElement) {
   // Verificar si la entrega no tiene factura y manejarlo apropiadamente
   const esSinFactura = !factura || factura.trim() === "";
-  
+
   // Guardar todos los datos específicos de la factura
   currentDocumentData = {
     documento: documento,
@@ -253,20 +253,20 @@ function procesarEntrega(documento, lote, referencia, cantidad, factura, nit, bt
     btnElement: btnElement,
     esSinFactura: esSinFactura // Marcamos si es sin factura para tratamiento especial después
   };
-  
+
   // Crear un input de tipo file temporal para capturar fotos
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'image/*';
   fileInput.capture = 'environment'; // Usar cámara trasera por defecto
-  
+
   // Agregar evento para procesar la imagen cuando se capture
-  fileInput.addEventListener('change', function(e) {
+  fileInput.addEventListener('change', function (e) {
     if (e.target.files && e.target.files[0]) {
       procesarImagenCapturada(e.target.files[0]);
     }
   });
-  
+
   // Simular clic para abrir la cámara del dispositivo
   fileInput.click();
 }
@@ -277,22 +277,22 @@ function procesarImagenCapturada(archivo) {
     console.error("No se seleccionó ninguna imagen");
     return;
   }
-  
+
   // Mostrar estado de carga
   //statusDiv.innerHTML = '<i class="fas fa-image"></i> Procesando imagen...';
-  
+
   const lector = new FileReader();
-  lector.onload = function(e) {
+  lector.onload = function (e) {
     const img = new Image();
-    img.onload = function() {
+    img.onload = function () {
       // Crear canvas para procesamiento
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       // Establecer dimensiones manteniendo proporciones pero limitando tamaño
       let width = img.width;
       let height = img.height;
-      
+
       // Redimensionar si la imagen es muy grande (para optimizar)
       const maxDimension = CONFIG.MAX_IMAGE_SIZE || 1200;
       if (width > height && width > maxDimension) {
@@ -302,23 +302,23 @@ function procesarImagenCapturada(archivo) {
         width = (width / height) * maxDimension;
         height = maxDimension;
       }
-      
+
       canvas.width = width;
       canvas.height = height;
-      
+
       // Dibujar imagen en el canvas
       ctx.drawImage(img, 0, 0, width, height);
-      
+
       // Aplicar marca de agua
       aplicarMarcaDeAgua(ctx, width, height);
-      
+
       // Convertir a Blob
-      canvas.toBlob(function(blob) {
+      canvas.toBlob(function (blob) {
         photoBlob = blob;
-        
+
         // Opcionalmente mostrar una vista previa
         //mostrarVistaPrevia(URL.createObjectURL(blob));
-        
+
         // Subir la imagen procesada a la cola
         subirFotoCapturada(blob);
       }, 'image/jpeg', 0.85);
@@ -395,7 +395,7 @@ function mostrarVistaPrevia(imgUrl) {
   preview.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
   preview.style.maxWidth = '90%';
   preview.style.maxHeight = '70%';
-  
+
   let img = document.createElement('img');
   img.src = imgUrl;
   img.style.width = '100%';
@@ -403,17 +403,17 @@ function mostrarVistaPrevia(imgUrl) {
   img.style.maxHeight = '70vh';
   img.style.objectFit = 'contain';
   img.style.borderRadius = '4px';
-  
+
   let mensaje = document.createElement('div');
   mensaje.textContent = 'Procesando imagen...';
   mensaje.style.color = 'white';
   mensaje.style.textAlign = 'center';
   mensaje.style.padding = '10px';
-  
+
   preview.appendChild(img);
   preview.appendChild(mensaje);
   document.body.appendChild(preview);
-  
+
   // Eliminar después de 3 segundos
   setTimeout(() => {
     document.body.removeChild(preview);
@@ -427,14 +427,14 @@ async function subirFotoCapturada(blob) {
     statusDiv.innerHTML = '<span style="color: var(--danger)">Error: No hay datos para subir</span>';
     return;
   }
-  
+
   const { documento, lote, referencia, cantidad, factura, nit, btnElement, esSinFactura } = currentDocumentData;
-  
+
   try {
     // Convertir blob a base64
     const base64Data = await blobToBase64(blob);
     const nombreArchivo = `${factura}_${Date.now()}.jpg`.replace(/[^a-zA-Z0-9\-]/g, '');
-    
+
     // Crear objeto de trabajo para la cola
     const jobData = {
       documento: documento,
@@ -449,7 +449,7 @@ async function subirFotoCapturada(blob) {
       timestamp: new Date().toISOString(),
       esSinFactura: esSinFactura // Pasar esta propiedad a la cola
     };
-    
+
     // Agregar a la cola
     uploadQueue.addJob({
       type: 'photo',
@@ -458,39 +458,58 @@ async function subirFotoCapturada(blob) {
       btnElementId: btnElement ? btnElement.getAttribute('data-factura') : null,
       esSinFactura: esSinFactura
     });
-    
+
     // Actualizar botón de entrega si existe
     if (btnElement) {
-      btnElement.innerHTML = '<i class="fas fa-hourglass-half"></i> PROCESANDO...';
-      btnElement.style.backgroundColor = '#4cc9f0';
-      
+      // Reemplazar boton con icono de procesando
+      const processingIcon = document.createElement('div');
+      processingIcon.className = 'status-icon-only processing';
+      processingIcon.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+      // Mantener data-factura para que upload-queue pueda encontrarlo si es necesario (aunque el selector busca button, podriamos necesitar ajustar)
+      processingIcon.setAttribute('data-factura', factura);
+
+      if (btnElement.parentNode) {
+        btnElement.parentNode.replaceChild(processingIcon, btnElement);
+
+        // Actualizar referencia en el job si es necesario, pero btnElement ya no esta en DOM
+        // El uploadQueue busca por selector, asi que si cambiamos a div, el selector button[...] fallara.
+        // Pero está bien, porque el estado visual ya es "procesando".
+      }
+
+      // ACTUALIZACIÓN VISUAL TARJETA: Cambiar a AZUL (Procesando)
+      // Buscamos la tarjeta padre para cambiar su estado visual completo
+      const card = processingIcon.closest('.siesa-item');
+      if (card) {
+        card.classList.remove('status-pendiente', 'status-nofacturado', 'status-entregado');
+        card.classList.add('status-processing');
+      }
+
       // Si es sin factura, actualizamos el botón inmediatamente después de añadirlo a la cola
       if (esSinFactura) {
         setTimeout(() => {
-          btnElement.innerHTML = '<i class="fas fa-check-circle"></i> ENTREGA CONFIRMADA';
-          btnElement.style.backgroundColor = '#28a745';
-          btnElement.disabled = true;
-          
+          // Cambiar a exito
+          processingIcon.className = 'status-icon-only success';
+          processingIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+
+          // Actualizar tarjeta a VERDE
+          if (card) {
+            card.classList.remove('status-processing');
+            card.classList.add('status-entregado');
+          }
+
           // Actualizar estado global
           actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-          
-          // Mostrar notificación
-          /*mostrarNotificacion(
-            'success',
-            'Entrega sin factura',
-            'La entrega ha sido registrada y está en cola para procesarse.'
-          );*/
         }, 2000);
       }
     }
-    
+
     // Reproducir sonido de éxito
     playSuccessSound();
-    
+
   } catch (error) {
     console.error("Error al preparar foto:", error);
     statusDiv.innerHTML = '<span style="color: var(--danger)">Error al procesar la imagen</span>';
-    
+
     // Reproducir sonido de error
     playErrorSound();
   }

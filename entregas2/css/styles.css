@@ -39,7 +39,6 @@
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-floating: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
   --font-main: 'Inter', sans-serif;
@@ -290,7 +289,7 @@ body {
   text-overflow: ellipsis;
 }
 
-/* --- LISTA SIESA (Facturas) --- */
+/* --- LISTA SIESA (Facturas Mejoradas) --- */
 
 .siesa-list-header {
   padding: 20px 20px 10px;
@@ -313,51 +312,89 @@ body {
   font-weight: 800;
 }
 
+/* Siesa Item Container */
 .siesa-item {
   margin: 0 16px 12px;
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
   border: 1px solid var(--border);
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   overflow: hidden;
   position: relative;
 }
 
-.siesa-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
+/* Solapa de Estado (Nueva Implementación) */
+.status-solapa {
+  height: 4px;
+  width: 100%;
   background: var(--text-tertiary);
+  /* Default */
 }
 
-/* Estado Colores Borde */
-.siesa-item.status-entregado::before {
+/* Estados Visuales */
+.siesa-item.status-entregado .status-solapa {
   background: var(--success);
 }
 
-.siesa-item.status-pendiente::before {
+.siesa-item.status-entregado {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.siesa-item.status-pendiente .status-solapa {
   background: var(--warning);
 }
 
-.siesa-item.status-nofacturado::before {
+.siesa-item.status-pendiente {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.siesa-item.status-nofacturado .status-solapa {
   background: var(--danger);
 }
 
-/* Header de Factura */
+.siesa-item.status-nofacturado {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* Estado Procesando (Animado) */
+.siesa-item.status-processing .status-solapa {
+  background: var(--primary);
+  animation: pulse-width 1.5s infinite;
+}
+
+.siesa-item.status-processing {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  animation: pulse-light 2s infinite;
+}
+
+@keyframes pulse-light {
+  0% {
+    background: #eff6ff;
+  }
+
+  50% {
+    background: #dbeafe;
+  }
+
+  100% {
+    background: #eff6ff;
+  }
+}
+
+/* Header de Factura - Limpio */
 .card-header {
   padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  background: var(--surface);
-}
-
-.card-header:hover {
-  background: #fcfcfc;
+  background: transparent;
+  /* Hereda del padre */
 }
 
 .factura-info {
@@ -366,92 +403,176 @@ body {
 }
 
 .factura-id {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   color: var(--text-main);
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+
+.factura-meta-line {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-separator {
+  margin: 0 6px;
+  color: var(--text-tertiary);
+}
+
+.reference-highlight {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
   font-family: var(--font-mono);
 }
 
-.factura-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-top: 2px;
+.card-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
 }
 
-.status-pill {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* Iconos de Estado Solo Visuales y Boton Mini */
+.status-icon-only {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
-.status-tag-entregado {
-  background: var(--success-soft);
+.status-icon-only.success {
   color: var(--success-dark);
+  background: rgba(16, 185, 129, 0.2);
 }
 
-.status-tag-pendiente {
-  background: var(--warning-soft);
-  color: var(--warning-dark);
+.status-icon-only.processing {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.2);
 }
 
-.status-tag-error {
-  background: var(--danger-soft);
-  color: var(--danger-dark);
+.status-icon-only.error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Boton Miniatura de Acción */
+.action-btn-mini {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  background: white;
+  /* Fallback default */
+  color: var(--text-main);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 16px;
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+/* Estilo específico para Pendiente (Naranja) */
+.siesa-item.status-pendiente .action-btn-mini {
+  background: var(--warning);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Hover effects */
+.siesa-item.status-pendiente .action-btn-mini:hover {
+  background: var(--warning-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
+}
+
+.action-btn-mini:active {
+  transform: scale(0.95);
+}
+
+
+.action-btn-mini:active {
+  transform: scale(0.9);
 }
 
 .card-chevron {
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 14px;
   transition: transform 0.3s;
 }
 
 /* Estado Expandido */
 .siesa-item.expanded {
-  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.08);
-  border-color: var(--primary-soft);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: scale(1.01);
   z-index: 10;
+  background: var(--surface) !important;
+  /* Reset fondo al expandir */
+  border-color: var(--border) !important;
 }
+
+.siesa-item.expanded .status-solapa {
+  height: 6px;
+}
+
+/* Solapa más gruesa */
 
 .siesa-item.expanded .card-chevron {
   transform: rotate(180deg);
   color: var(--primary);
 }
 
-/* Contenido Expandido */
+/* Contenido Expandido - GRID MAXIMO */
 .collapsible-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #fafafa;
+  transition: max-height 0.4s ease;
+  background: var(--background);
 }
 
 .siesa-item.expanded .collapsible-content {
-  max-height: 500px;
+  max-height: 1000px;
   border-top: 1px solid var(--border);
 }
 
 .details-grid {
-  padding: 14px 16px;
+  padding: 16px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
+  grid-template-columns: repeat(2, 1fr);
+  /* 2 columnas */
+  gap: 12px;
 }
 
 .mini-detail {
   display: flex;
   flex-direction: column;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .mini-label {
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
   margin-bottom: 2px;
@@ -462,55 +583,62 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-main);
-  word-break: break-word;
+  word-break: break-all;
 }
 
-/* Acciones */
+/* Actions Toolbar */
 .card-actions {
-  padding: 10px 16px;
-  background: var(--surface);
+  padding: 12px 16px;
+  background: white;
   border-top: 1px solid var(--border);
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  /* Centrado */
 }
 
 .action-btn {
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 12px;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
   transition: transform 0.1s;
 }
 
-.action-btn:active {
-  transform: scale(0.96);
-}
-
 .btn-scan {
   background: var(--text-main);
   color: white;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
 }
 
-.btn-invoice {
-  background: var(--primary);
-  color: white;
+/* Status Indicators inside actions */
+.processing-indicator,
+.success-indicator {
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.btn-done {
-  background: transparent;
+.processing-indicator {
+  color: var(--primary);
+}
+
+.success-indicator {
   color: var(--success-dark);
-  cursor: default;
-  padding: 8px 0;
 }
+
 
 /* --- ELEMENTOS FLOTANTES --- */
-
-/* COLA DE CARGA - Flotante dentro del app-frame */
+/* (Mismos de antes) */
 #queueCounter {
   position: absolute;
   top: 24px;

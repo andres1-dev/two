@@ -514,8 +514,16 @@ function displayFullResult(item, qrParts) {
       let estadoConf = "PENDIENTE";
       let statusClass = "status-pendiente";
       let statusTagClass = "status-tag-pendiente";
+      let isProcessing = false;
 
-      if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") {
+      // Verificar si está en cola de subida
+      const inQueue = uploadQueue.queue.find(q => q.factura === siesa.factura);
+      if (inQueue) {
+        isProcessing = true;
+        estadoConf = "PROCESANDO";
+        statusClass = "status-processing";
+        statusTagClass = "status-tag-processing";
+      } else if (siesa.confirmacion && siesa.confirmacion.trim() === "ENTREGADO") {
         estadoConf = "ENTREGADO";
         statusClass = "status-entregado";
         statusTagClass = "status-tag-entregado";
@@ -535,26 +543,37 @@ function displayFullResult(item, qrParts) {
 
       html += `
         <div class="siesa-item collapsed ${statusClass}" id="siesa-item-${index}">
+           <!-- Solapa de Estado (Barra superior) -->
+           <div class="status-solapa"></div>
+
            <!-- Header Clickable -->
            <div class="card-header">
               <div class="factura-main-click" onclick="toggleSiesaItem(${index})" style="flex:1;">
                   <div class="factura-info">
                      <div class="factura-id">${tieneFactura ? siesa.factura : 'SIN FACTURA'}</div>
-                     <div class="factura-sub">
-                        <i class="fas fa-box"></i> ${cantidad} un. &bull; <i class="fas fa-tag"></i> ${referencia}
+                     <div class="factura-meta-line">
+                        <span class="meta-item"><i class="fas fa-box"></i> ${cantidad}</span>
+                        <span class="meta-separator">•</span>
+                        <span class="meta-item reference-highlight">${referencia}</span>
                      </div>
                   </div>
               </div>
               
-              <div style="display:flex; align-items:center; gap:8px;">
-                 ${estadoConf === "PENDIENTE" ?
-          `<button class="action-btn btn-scan" style="padding: 6px 12px; font-size: 11px;" 
-                     data-factura="${siesa.factura}" 
-                     onclick="event.stopPropagation(); procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
-                    <i class="fas fa-camera"></i>
-                 </button>` : ''}
+              <div class="card-header-actions">
+                 ${isProcessing ?
+          `<div class="status-icon-only processing"><i class="fas fa-sync fa-spin"></i></div>` :
+          estadoConf === "ENTREGADO" ?
+            `<div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>` :
+            estadoConf === "NO FACTURADO" ?
+              `<div class="status-icon-only error"><i class="fas fa-exclamation-triangle"></i></div>` :
+              estadoConf === "PENDIENTE" ?
+                `<button class="action-btn-mini btn-scan" 
+                          data-factura="${siesa.factura}" 
+                          onclick="event.stopPropagation(); procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
+                          <i class="fas fa-camera"></i>
+                       </button>` : ''
+        }
                  
-                 <span class="status-pill ${statusTagClass}" onclick="toggleSiesaItem(${index})">${estadoConf}</span>
                  <i class="fas fa-chevron-down card-chevron" onclick="toggleSiesaItem(${index})"></i>
               </div>
            </div>
@@ -562,60 +581,39 @@ function displayFullResult(item, qrParts) {
            <!-- Content Grid -->
            <div class="collapsible-content">
               <div class="details-grid">
-                 <div class="mini-detail">
-                    <div class="mini-label">Referencia</div>
-                    <div class="mini-value">${referencia}</div>
-                 </div>
-                 <div class="mini-detail">
-                    <div class="mini-label">Lote</div>
-                    <div class="mini-value">${siesa.lote || item.lote}</div>
-                 </div>
-                 <div class="mini-detail">
-                    <div class="mini-label">Cliente</div>
-                    <div class="mini-value">${siesa.cliente || 'N/A'}</div>
-                 </div>
-                 <div class="mini-detail">
-                    <div class="mini-label">NIT</div>
-                    <div class="mini-value">${siesa.nit || 'N/A'}</div>
-                 </div>
-                  <div class="mini-detail">
-                    <div class="mini-label">Cantidad</div>
-                    <div class="mini-value">${cantidad}</div>
-                 </div>
-                 <div class="mini-detail">
-                    <div class="mini-label">Fecha</div>
-                    <div class="mini-value">${siesa.fecha || 'N/A'}</div>
-                 </div>
-              </div>
-
-              <!-- Actions Toolbar -->
-              <div class="card-actions">
       `;
 
-      // Botones de acción
-      if (estadoConf === "ENTREGADO") {
-        html += `
-             <button class="action-btn btn-done">
-                <i class="fas fa-check-circle"></i> Entregado
-             </button>
-          `;
-      } else if (estadoConf === "PENDIENTE") {
-        html += `
-             <button class="action-btn btn-scan" data-factura="${siesa.factura}" onclick="procesarEntrega('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
-                <i class="fas fa-camera"></i> Evidencia
-             </button>
-          `;
-      } else if (estadoConf === "PENDIENTE FACTURA") {
-        html += `
-             <button class="action-btn btn-invoice" data-factura="${siesa.factura}" onclick="asentarFactura('${item.documento}', '${siesa.lote || item.lote}', '${siesa.referencia}', '${siesa.cantidad}', '${siesa.factura}', '${siesa.nit || qrParts.nit}', this)">
-                <i class="fas fa-file-signature"></i> Asentar
-             </button>
-          `;
-      } else {
-        html += `<span style="font-size:12px; color:var(--text-tertiary);">No accionable</span>`;
+      // Renderizar TODOS los campos disponibles del objeto siesa
+      const priorityKeys = ['cliente', 'nit', 'lote', 'referencia', 'cantidad', 'fecha', 'proovedor', 'valorBruto', 'valorNeto', 'impuesto'];
+      const hiddenKeys = ['factura', 'confirmacion'];
+
+      priorityKeys.forEach(key => {
+        if (siesa[key]) {
+          html += `
+                  <div class="mini-detail">
+                     <div class="mini-label">${key}</div>
+                     <div class="mini-value">${formatSiesaValue(siesa[key])}</div>
+                  </div>
+              `;
+        }
+      });
+
+      for (const key in siesa) {
+        if (!priorityKeys.includes(key) && !hiddenKeys.includes(key) && siesa[key]) {
+          html += `
+                  <div class="mini-detail">
+                     <div class="mini-label">${key}</div>
+                     <div class="mini-value">${formatSiesaValue(siesa[key])}</div>
+                  </div>
+              `;
+        }
       }
 
-      html += `</div></div></div>`; // Cierre item
+      html += `
+              </div>
+              <div style="height: 10px;"></div>
+           </div>
+        </div>`; // Cierre item
     });
   }
 
@@ -630,7 +628,13 @@ function displayItemData(data, title, qrParts) {
   return "";
 }
 
-// Función para expandir/colapsar tarjetas de facturas
+// Helper para formatear valores
+function formatSiesaValue(val) {
+  if (typeof val === 'number') return val.toLocaleString('es-CO');
+  return val;
+}
+
+// Función para expandir/colapsar tarjetas
 // Función para expandir/colapsar tarjetas de facturas - ADAPTADA
 function toggleSiesaItem(index) {
   const item = document.getElementById(`siesa-item-${index}`);
