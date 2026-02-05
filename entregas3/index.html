@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Favicon y iconos mejorados -->
+  <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=4.0.1">
+
+  <title>PandaDash</title>
+</head>
+
+<body>
+  <div id="app-frame">
+    <!-- Pantalla de carga -->
+    <div id="loadingScreen">
+      <div style="text-align: center;">
+        <i class="fas fa-qrcode fa-4x logo" aria-label="PandaDash QR Icon"></i>
+      </div>
+      <div class="triple-pulse">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <h1>PandaDash</h1>
+      <div class="name">Build 3.17.634</div>
+      <button id="installBtn">Instalar App</button>
+    </div>
+
+    <!-- Contenido principal -->
+    <div id="scanner" style="display: none;">
+      <div id="offline-banner" class="offline-banner" style="display: none;">
+        <i class="fas fa-wifi-slash"></i> No hay conexión a internet
+      </div>
+
+      <div class="app-header">
+        <div class="barcode-input-container">
+          <i class="fa-solid fa-qrcode"></i>
+          <input type="text" id="barcode" autofocus placeholder="Escanear documento">
+        </div>
+        <div id="status">Sistema Listo</div>
+        <div class="data-stats" id="data-stats">Esperando datos...</div>
+      </div>
+
+      <div id="results"></div>
+
+      <footer>
+        <div class="footer-content"></div>
+      </footer>
+    </div>
+
+    <!-- Modal de cámara -->
+    <div id="cameraModal" class="camera-modal">
+      <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+      <canvas id="photoCanvas" style="display: none;"></canvas>
+      <img id="photoPreview" alt="Vista previa de la foto">
+      <div class="camera-actions">
+        <button id="takePhotoBtn" class="btn btn-primary">
+          <i class="fas fa-camera"></i>
+        </button>
+        <button id="cancelCaptureBtn" class="btn btn-danger">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="uploadStatus" class="uploading-status">
+        <i class="fas fa-spinner fa-pulse"></i> Subiendo...
+      </div>
+      <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+    </div>
+
+    <!-- Botón flotante de cola mejorado -->
+    <div id="queueCounter" class="queue-counter empty" title="No hay elementos en cola">
+      <div class="queue-counter-icon">
+        <i class="fas fa-cloud-upload-alt"></i>
+      </div>
+      <div class="queue-counter-badge">0</div>
+    </div>
+
+    <!-- Modal profesional de cola -->
+    <div id="queueModal" class="queue-modal">
+      <div class="queue-modal-header">
+        <h3>
+          <i class="fas fa-tasks"></i>
+          <span>Cola de Carga</span>
+          <span class="queue-status-badge idle">Sin actividad</span>
+        </h3>
+        <button class="queue-close-btn" id="closeQueueModal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="queue-modal-body">
+        <div class="queue-stats">
+          <div class="stat-item">
+            <i class="fas fa-clock"></i>
+            <div>
+              <span class="stat-value">0</span>
+              <span class="stat-label">Pendientes</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <i class="fas fa-sync-alt"></i>
+            <div>
+              <span class="stat-value">0</span>
+              <span class="stat-label">Procesando</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <span class="stat-value">0</span>
+              <span class="stat-label">Completados</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="queue-items-container">
+          <div id="queueItemsList" class="queue-items-list">
+            <div class="queue-empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>La cola está vacía</p>
+              <small>Todas las cargas están completadas</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="queue-actions">
+          <button class="queue-action-btn secondary" id="retryFailedBtn">
+            <i class="fas fa-redo"></i> Reintentar fallos
+          </button>
+          <button class="queue-action-btn primary" id="processQueueBtn">
+            <i class="fas fa-play"></i> Procesar ahora
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay para modal -->
+  <div id="queueModalOverlay" class="queue-modal-overlay" style="display: none;"></div>
+
+  <!-- Modal para imagen completa -->
+  <div id="ih3Modal" class="ih3-modal" style="display: none;">
+    <span class="close-modal" onclick="cerrarImagenCompleta()">&times;</span>
+    <img class="ih3-modal-img" src="" alt="Comprobante completo">
+  </div>
+
+  <script src="js/upload-queue.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/main.js"></script>
+  <script src="sw.js"></script>
+  <script src="js/app.js?v=4.0.1"></script>
+</body>
+
+</html>
