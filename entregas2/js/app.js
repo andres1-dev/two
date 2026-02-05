@@ -816,93 +816,77 @@ document.addEventListener('DOMContentLoaded', () => {
   const dataStats = document.getElementById('data-stats');
   const resultsDiv = document.getElementById('results');
 
-  // Variables de control para pellizco con 3 dedos
-  let initialDistance = 0;
-  let isThreeFingerTouch = false;
-  const fingersRequired = 3;
-  
+  // Variables de control
+  let startY = 0;
+  let isPulling = false;
+  let initialTouches = [];
+
   // Manejador para touchstart (inicio del gesto)
   document.addEventListener('touchstart', function (e) {
-    if (e.touches.length === fingersRequired) { // 3 dedos detectados
-      isThreeFingerTouch = true;
+    // Verificar si hay exactamente 3 dedos y estamos arriba del todo
+    if (window.scrollY === 0 && e.touches.length === 3) {
+      startY = e.touches[0].clientY; // Usamos el primer dedo como referencia
+      isPulling = true;
       
-      // Calcular la distancia inicial entre los dedos extremos
-      const touch1 = e.touches[0];
-      const touch3 = e.touches[2];
-      initialDistance = Math.sqrt(
-        Math.pow(touch3.clientX - touch1.clientX, 2) + 
-        Math.pow(touch3.clientY - touch1.clientY, 2)
-      );
-    } else {
-      isThreeFingerTouch = false;
+      // Guardamos las posiciones iniciales de los 3 dedos para validación
+      initialTouches = Array.from(e.touches).map(touch => ({
+        id: touch.identifier,
+        clientY: touch.clientY
+      }));
     }
   }, { passive: true });
 
   // Manejador para touchmove (movimiento durante el gesto)
   document.addEventListener('touchmove', function (e) {
-    if (!isThreeFingerTouch || e.touches.length !== fingersRequired) return;
-    
-    const touch1 = e.touches[0];
-    const touch3 = e.touches[2];
-    const currentDistance = Math.sqrt(
-      Math.pow(touch3.clientX - touch1.clientX, 2) + 
-      Math.pow(touch3.clientY - touch1.clientY, 2)
-    );
-    
-    // Calcular la diferencia porcentual
-    const pinchRatio = currentDistance / initialDistance;
-    
-    // Umbral para detectar pellizco (reducción significativa)
-    if (pinchRatio < 0.7) { // 30% más pequeño
-      // Visual feedback opcional
-      if (!statusDiv.classList.contains('loading')) {
-        statusDiv.style.transform = 'scale(0.95)';
-        statusDiv.style.transition = 'transform 0.2s';
-      }
+    if (!isPulling || e.touches.length !== 3) return;
+
+    const currentY = e.touches[0].clientY;
+    const pullDistance = currentY - startY;
+
+    if (pullDistance > 0 && window.scrollY === 0) {
+      // Podrías añadir feedback visual aquí (ej: icono de arrastre hacia abajo)
+      // Por ejemplo, cambiar el color o mostrar un indicador
+      document.body.style.setProperty('--pull-distance', `${Math.min(pullDistance, 150)}px`);
     }
   }, { passive: true });
 
   // Manejador para touchend (fin del gesto)
   document.addEventListener('touchend', function (e) {
-    if (!isThreeFingerTouch) return;
+    if (!isPulling) return;
     
-    // Restaurar transformación si existe
-    statusDiv.style.transform = '';
+    // Verificamos que al menos un dedo se haya levantado
+    // pero no todos (podría quedar 1 o 2 dedos aún)
+    const fingersStillDown = Array.from(e.touches).length;
     
-    // Verificar que todavía haya 3 dedos (antes de soltar)
-    if (e.touches.length === 0 && e.changedTouches.length >= fingersRequired) {
-      // Solo activar si todos los dedos se soltaron aproximadamente al mismo tiempo
-      setTimeout(() => {
-        refreshData();
-      }, 100);
+    // Si quedan 2 o más dedos aún, no consideramos el gesto completo
+    if (fingersStillDown >= 2) return;
+    
+    // Buscamos un dedo que se haya levantado para calcular la distancia
+    let endY = startY; // Valor por defecto
+    
+    // Si hay algún touch cambiado, usamos el primero
+    if (e.changedTouches.length > 0) {
+      endY = e.changedTouches[0].clientY;
     }
     
-    isThreeFingerTouch = false;
+    const pullDistance = endY - startY;
+
+    // Umbral de 100px y verificación de que estamos arriba del todo
+    if (pullDistance > 100 && window.scrollY === 0) {
+      refreshData();
+    }
+    
+    // Resetear estado
+    isPulling = false;
+    initialTouches = [];
+    document.body.style.removeProperty('--pull-distance');
   });
 
-  // Manejador alternativo más simple
-  document.addEventListener('touchend', function (e) {
-    // Versión alternativa: detecta cuando se tocan 3 dedos simultáneamente
-    if (e.touches.length === 0 && e.changedTouches.length === fingersRequired) {
-      // Pequeña verificación de proximidad de los toques
-      const touches = Array.from(e.changedTouches);
-      const avgX = touches.reduce((sum, t) => sum + t.clientX, 0) / touches.length;
-      const avgY = touches.reduce((sum, t) => sum + t.clientY, 0) / touches.length;
-      
-      // Verificar que los toques estén relativamente cerca
-      const maxDistance = 100; // píxeles
-      const allClose = touches.every(touch => {
-        const distance = Math.sqrt(
-          Math.pow(touch.clientX - avgX, 2) + 
-          Math.pow(touch.clientY - avgY, 2)
-        );
-        return distance < maxDistance;
-      });
-      
-      if (allClose) {
-        refreshData();
-      }
-    }
+  // También manejamos touchcancel para casos donde el sistema interrumpe el gesto
+  document.addEventListener('touchcancel', function () {
+    isPulling = false;
+    initialTouches = [];
+    document.body.style.removeProperty('--pull-distance');
   });
 
   // Función para refrescar los datos
@@ -922,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => handleDataLoadError(error));
     } else {
-      // Fallback or error
+      // Fallback o error
       console.error("main.js no cargado");
       statusDiv.className = 'error';
       statusDiv.textContent = "Error de conexión";
