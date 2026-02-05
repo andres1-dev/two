@@ -637,95 +637,406 @@ body {
 }
 
 
-/* --- ELEMENTOS FLOTANTES --- */
-/* (Mismos de antes) */
-#queueCounter {
-  position: fixed; /* Cambiado de absolute a fixed */
-  top: 140px; /* Ajustar según la altura del header (24px padding + header + margen) */
-  right: calc(50% - (var(--app-width) / 2) + 20px); /* Alinear con el ancho de la app */
-  width: 36px;
-  height: 36px;
-  background-color: var(--primary);
-  color: white;
-  border-radius: 12px;
+
+
+
+
+/* ===== ESTILOS MINIMALISTAS PARA COLA DE CARGA ===== */
+
+/* Botón flotante minimalista */
+.queue-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 24px; /* Cambiado de right: 24px a left: 24px */
+  width: 56px;
+  height: 56px;
+  background: var(--surface);
+  color: var(--text-main);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-  z-index: 200;
-  transition: transform 0.2s;
-}
-
-/* Ajuste para dispositivos móviles */
-@media (max-width: 500px) {
-  #queueCounter {
-    right: 20px; /* En móviles, fijo a la derecha */
-    top: 140px; /* Igual que en desktop */
-  }
-}
-
-#queueCounter:active {
-  transform: scale(0.9);
-}
-
-#queueCounter.empty {
-  background-color: var(--background);
-  color: var(--text-tertiary);
-  box-shadow: none;
+  box-shadow: var(--shadow-floating);
+  z-index: 1000;
+  transition: all 0.2s ease;
   border: 1px solid var(--border);
+  font-size: 20px;
 }
 
-#queueCounter.processing {
-  animation: pulse 1.5s infinite;
+.queue-counter:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
-  }
-
-  70% {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
-  }
+.queue-counter:active {
+  transform: translateY(0);
 }
 
-#queueDetails {
+.queue-counter-badge {
   position: absolute;
-  bottom: 80px;
-  right: 16px;
-  left: 16px;
+  top: -4px;
+  right: -4px;
+  background: var(--danger);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+}
+
+.queue-counter.empty .queue-counter-badge {
+  display: none;
+}
+
+.queue-counter.empty {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.queue-counter.empty:hover {
+  transform: none;
+  box-shadow: var(--shadow-floating);
+}
+
+.queue-counter.processing {
+  color: var(--primary);
+}
+
+.queue-counter.processing .queue-counter-badge {
+  background: var(--primary);
+}
+
+/* Modal minimalista */
+.queue-modal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
+  max-height: 70vh;
   background: var(--surface);
   border-radius: 16px;
   box-shadow: var(--shadow-floating);
-  padding: 16px;
-  z-index: 201;
-  display: none;
-  font-size: 13px;
+  z-index: 1001;
+  overflow: hidden;
+  animation: modal-slide-up 0.2s ease-out;
   border: 1px solid var(--border);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideUp {
+@keyframes modal-slide-up {
   from {
-    transform: translateY(20px);
     opacity: 0;
+    transform: translate(-50%, -48%);
   }
-
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translate(-50%, -50%);
   }
 }
+
+.queue-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.queue-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.queue-modal-header h3 i {
+  color: var(--text-secondary);
+}
+
+.queue-status-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.queue-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.queue-close-btn:hover {
+  background: var(--background);
+  color: var(--text-main);
+}
+
+.queue-modal-body {
+  padding: 0;
+}
+
+.queue-stats {
+  display: flex;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.queue-items-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.queue-items-list {
+  padding: 0 20px;
+}
+
+.queue-empty-state {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.queue-empty-state i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: var(--border);
+}
+
+.queue-empty-state p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Items de cola minimalistas */
+.queue-item-card {
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+  background: var(--background);
+}
+
+.queue-item-card:last-child {
+  margin-bottom: 0;
+}
+
+.queue-item-card:hover {
+  background: var(--background);
+  transform: translateY(-1px);
+}
+
+.queue-item-card.processing {
+  background: var(--primary-soft);
+}
+
+.queue-item-card.error {
+  background: var(--danger-soft);
+}
+
+.queue-item-card.retrying {
+  background: var(--warning-soft);
+}
+
+.queue-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.queue-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.queue-item-card.processing .queue-item-icon {
+  color: var(--primary);
+}
+
+.queue-item-card.error .queue-item-icon {
+  color: var(--danger);
+}
+
+.queue-item-card.retrying .queue-item-icon {
+  color: var(--warning);
+}
+
+.queue-item-content {
+  flex: 1;
+}
+
+.queue-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.queue-item-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.queue-item-icon span {
+  font-size: 9px;
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+/* Botones de acción minimalistas */
+.queue-actions {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.queue-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.queue-action-btn.primary {
+  background: var(--primary);
+  color: white;
+}
+
+.queue-action-btn.primary:hover {
+  background: var(--primary-dark);
+}
+
+.queue-action-btn.secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.queue-action-btn.secondary:hover {
+  background: var(--background);
+  color: var(--text-main);
+}
+
+/* Overlay del modal */
+.queue-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Notificaciones Toast minimalistas */
+.queue-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--surface);
+  color: var(--text-main);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-floating);
+  z-index: 1002;
+  opacity: 0;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+  max-width: 300px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.queue-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .queue-counter {
+    bottom: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+  
+  .queue-modal {
+    width: 95%;
+    max-height: 80vh;
+  }
+}
+
+
+
+
+
 
 /* Pantalla de Carga - Absoluta sobre todo */
 #loadingScreen {
