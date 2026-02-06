@@ -1,4 +1,4 @@
-// QR Scanner Module para PandaDash - VERSIÓN SIMPLIFICADA Y ARMÓNICA
+// QR Scanner Module para PandaDash - VERSIÓN PANTALLA COMPLETA
 class QRScanner {
   constructor() {
     this.scanner = null;
@@ -21,6 +21,11 @@ class QRScanner {
     this.toggleCameraBtn = document.getElementById('toggleCameraBtn');
     this.barcodeInput = document.getElementById('barcode');
     this.statusDiv = document.getElementById('status');
+    
+    if (this.qrScannerIcon) {
+      this.qrScannerIcon.style.cursor = 'pointer';
+      this.qrScannerIcon.title = 'Escanear código QR';
+    }
   }
 
   initEventListeners() {
@@ -55,349 +60,389 @@ class QRScanner {
 
   async openScanner() {
     try {
-      // Mostrar modal
+      // Ocultar teclado
+      if (this.barcodeInput) this.barcodeInput.blur();
+      
+      // Mostrar modal a pantalla completa
       this.qrScannerModal.style.display = 'flex';
       this.qrScannerOverlay.style.display = 'block';
       
-      // Limpiar input
-      if (this.barcodeInput) this.barcodeInput.blur();
+      // Forzar pantalla completa visual
+      this.qrScannerModal.style.position = 'fixed';
+      this.qrScannerModal.style.top = '0';
+      this.qrScannerModal.style.left = '0';
+      this.qrScannerModal.style.width = '100vw';
+      this.qrScannerModal.style.height = '100vh';
+      this.qrScannerModal.style.zIndex = '10001';
+      this.qrScannerModal.style.background = '#000';
+      
+      // Configurar contenedor QR
+      this.qrReader.style.width = '100%';
+      this.qrReader.style.height = '100%';
+      this.qrReader.style.position = 'relative';
       
       // Limpiar contenedor
-      this.qrReader.innerHTML = '<div class="scanner-loading"><div class="spinner"></div><p>Iniciando cámara...</p></div>';
+      this.qrReader.innerHTML = '';
       
-      // Inicializar
+      // Mostrar loading
+      this.showLoading();
+      
+      // Inicializar escáner
       setTimeout(async () => {
         try {
           await this.initScanner();
         } catch (error) {
-          console.error('Error:', error);
+          console.error('Error al iniciar escáner:', error);
           this.closeScanner();
-          this.showAlert('Error de cámara', 'No se pudo acceder a la cámara. Verifica los permisos.');
+          this.showSimpleAlert('No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios.');
         }
-      }, 300);
+      }, 100);
+      
+      // Actualizar estado
+      this.updateStatus('loading', '<i class="fas fa-qrcode fa-spin"></i> INICIANDO ESCÁNER...');
       
     } catch (error) {
-      console.error('Error al abrir:', error);
+      console.error('Error al abrir escáner:', error);
       this.closeScanner();
     }
   }
 
   async initScanner() {
     try {
+      // Crear nuevo escáner
       this.scanner = new Html5Qrcode(this.qrReader.id);
       
-      // Obtener cámaras
+      // Obtener cámaras disponibles
       const devices = await Html5Qrcode.getCameras();
+      
       if (!devices || devices.length === 0) {
-        throw new Error('No hay cámaras disponibles');
+        throw new Error('No se encontraron cámaras');
       }
       
       this.cameras = devices;
       
-      // Seleccionar cámara trasera
+      // BUSCAR CÁMARA TRASERA
       let selectedCameraId = devices[0].id;
+      let selectedCameraIndex = 0;
+      
       for (let i = 0; i < devices.length; i++) {
         const label = devices[i].label.toLowerCase();
-        if (label.includes('back') || label.includes('rear') || label.includes('environment')) {
+        if (label.includes('back') || 
+            label.includes('rear') || 
+            label.includes('environment') ||
+            label.includes('traser') ||
+            label.includes('posterior')) {
           selectedCameraId = devices[i].id;
-          this.cameraIndex = i;
+          selectedCameraIndex = i;
           break;
         }
       }
       
       this.currentCameraId = selectedCameraId;
+      this.cameraIndex = selectedCameraIndex;
       
-      // Configuración MINIMAL
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        rememberLastUsedCamera: false
-      };
+      // Quitar loading
+      this.hideLoading();
       
-      // Limpiar loading
-      this.qrReader.innerHTML = '';
+      // Iniciar escaneo PANTALLA COMPLETA
+      await this.startFullScreenScanning(selectedCameraId);
       
-      // Iniciar
-      await this.scanner.start(
-        selectedCameraId,
-        config,
-        (decodedText) => this.onScanSuccess(decodedText),
-        (errorMessage) => console.debug('Escaneando...')
-      );
-      
-      this.isScanning = true;
-      
-      // Aplicar estilos ARMÓNICOS después de que el plugin se renderice
-      setTimeout(() => this.applyHarmoniousStyles(), 500);
+      // Actualizar botón de cámara
+      this.updateToggleButton();
       
     } catch (error) {
-      console.error('Error en init:', error);
+      console.error('Error al inicializar escáner:', error);
+      this.hideLoading();
       throw error;
     }
   }
 
-  applyHarmoniousStyles() {
-    // 1. Ocultar TODOS los elementos del plugin que no necesitamos
-    this.hidePluginElements();
-    
-    // 2. Aplicar estilos al contenedor principal
-    const container = document.getElementById('html5-qrcode-container');
-    if (container) {
-      container.style.cssText = `
-        width: 100% !important;
-        height: 100% !important;
-        position: relative !important;
-        background: #000 !important;
-      `;
-    }
-    
-    // 3. Estilizar el video
-    const video = container?.querySelector('video');
-    if (video) {
-      video.style.cssText = `
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-        transform: scaleX(1) !important;
-        filter: brightness(1.1) contrast(1.1) !important;
-      `;
-    }
-    
-    // 4. Crear overlay ARMÓNICO con PandaDash
-    this.createHarmoniousOverlay();
-  }
-
-  hidePluginElements() {
-    // Ocultar botones y controles del plugin
-    const elementsToHide = [
-      '#html5-qrcode-anchor-scan-type-change',
-      '#html5-qrcode-button-camera-permission',
-      '#html5-qrcode-button-camera-start',
-      '#html5-qrcode-button-camera-stop',
-      '#html5-qrcode-select-camera',
-      '#html5-qrcode-camera-selection',
-      '#html5qr-code-full-region',
-      '.html5-qrcode-element'
-    ];
-    
-    elementsToHide.forEach(selector => {
-      const el = document.querySelector(selector);
-      if (el) el.style.display = 'none';
-    });
-  }
-
-  createHarmoniousOverlay() {
-    // Eliminar overlay anterior si existe
-    const oldOverlay = document.getElementById('pandadash-scanner-overlay');
-    if (oldOverlay) oldOverlay.remove();
-    
-    // Crear overlay que combine con PandaDash
-    const overlay = document.createElement('div');
-    overlay.id = 'pandadash-scanner-overlay';
-    overlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-    `;
-    
-    // Marco de escaneo (armonioso con PandaDash)
-    const frame = document.createElement('div');
-    frame.className = 'scanner-frame';
-    frame.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 280px;
-      height: 280px;
-      border: 3px solid var(--primary);
-      border-radius: 24px;
-      box-shadow: 
-        0 0 0 1000px rgba(0, 0, 0, 0.7),
-        0 0 30px rgba(37, 99, 235, 0.3),
-        inset 0 0 30px rgba(37, 99, 235, 0.1);
-      pointer-events: none;
-    `;
-    
-    // Esquinas decorativas (coherentes con PandaDash)
-    const corners = ['tl', 'tr', 'bl', 'br'];
-    corners.forEach(pos => {
-      const corner = document.createElement('div');
-      corner.className = `corner-${pos}`;
-      corner.style.cssText = `
-        position: absolute;
-        width: 24px;
-        height: 24px;
-        border: 3px solid var(--primary);
-      `;
+  async startFullScreenScanning(cameraId) {
+    try {
+      // Configuración para pantalla completa
+      const config = {
+        fps: 20,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.777778, // 16:9 ratio
+        rememberLastUsedCamera: false,
+        showTorchButtonIfSupported: false,
+        showZoomSliderIfSupported: false
+      };
       
-      switch(pos) {
-        case 'tl':
-          corner.style.top = '-3px';
-          corner.style.left = '-3px';
-          corner.style.borderRight = 'none';
-          corner.style.borderBottom = 'none';
-          corner.style.borderRadius = '8px 0 0 0';
-          break;
-        case 'tr':
-          corner.style.top = '-3px';
-          corner.style.right = '-3px';
-          corner.style.borderLeft = 'none';
-          corner.style.borderBottom = 'none';
-          corner.style.borderRadius = '0 8px 0 0';
-          break;
-        case 'bl':
-          corner.style.bottom = '-3px';
-          corner.style.left = '-3px';
-          corner.style.borderRight = 'none';
-          corner.style.borderTop = 'none';
-          corner.style.borderRadius = '0 0 0 8px';
-          break;
-        case 'br':
-          corner.style.bottom = '-3px';
-          corner.style.right = '-3px';
-          corner.style.borderLeft = 'none';
-          corner.style.borderTop = 'none';
-          corner.style.borderRadius = '0 0 8px 0';
-          break;
+      // Agregar estilos para pantalla completa
+      this.addFullScreenStyles();
+      
+      // Iniciar escáner
+      await this.scanner.start(
+        cameraId,
+        config,
+        (decodedText) => this.onScanSuccess(decodedText),
+        (errorMessage) => this.onScanError(errorMessage)
+      );
+      
+      this.isScanning = true;
+      
+      // Crear overlay visual para el área de escaneo
+      this.createScanOverlay();
+      
+      // Actualizar estado
+      this.updateStatus('ready', '<i class="fas fa-camera"></i> ESCANEANDO QR...');
+      
+    } catch (error) {
+      console.error('Error al iniciar escaneo:', error);
+      throw error;
+    }
+  }
+
+  addFullScreenStyles() {
+    // Inyectar estilos CSS para pantalla completa
+    const style = document.createElement('style');
+    style.id = 'qr-fullscreen-styles';
+    style.textContent = `
+      /* Video de la cámara a pantalla completa */
+      #html5-qrcode-container {
+        width: 100vw !important;
+        height: 100vh !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        background: #000 !important;
       }
       
-      frame.appendChild(corner);
-    });
-    
-    // Línea de escaneo animada
-    const scanLine = document.createElement('div');
-    scanLine.className = 'scan-line';
-    scanLine.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 220px;
-      height: 3px;
-      background: linear-gradient(to right, transparent, var(--primary), transparent);
-      animation: scanMove 2s infinite ease-in-out;
-      box-shadow: 0 0 10px var(--primary);
-      border-radius: 3px;
+      /* Video fullscreen */
+      #html5-qrcode-container video {
+        width: 100vw !important;
+        height: 100vh !important;
+        object-fit: cover !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+      }
+      
+      /* Canvas de escaneo - centrado */
+      #html5-qrcode-container canvas {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 280px !important;
+        height: 280px !important;
+        border: 3px solid var(--primary) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.85),
+                    0 0 40px rgba(37, 99, 235, 0.6) !important;
+        pointer-events: none !important;
+        z-index: 100 !important;
+      }
+      
+      /* Ocultar elementos innecesarios */
+      #html5-qrcode-anchor-scan-type-change,
+      #html5-qrcode-button-camera-permission,
+      #html5-qrcode-button-camera-start,
+      #html5-qrcode-button-camera-stop,
+      #html5-qrcode-select-camera,
+      #html5-qrcode-camera-selection,
+      #html5qr-code-full-region__dashboard_section {
+        display: none !important;
+      }
+      
+      /* Overlay personalizado */
+      .qr-scan-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 50;
+      }
+      
+      /* Línea de escaneo */
+      .qr-scan-line {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 240px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        box-shadow: 0 0 15px var(--primary);
+        border-radius: 3px;
+        animation: qr-scan-animation 2s infinite ease-in-out;
+        z-index: 101;
+      }
+      
+      /* Esquinas */
+      .qr-corner {
+        position: fixed;
+        width: 30px;
+        height: 30px;
+        border: 3px solid var(--primary);
+        z-index: 101;
+      }
+      
+      .qr-corner-tl {
+        top: calc(50% - 140px);
+        left: calc(50% - 140px);
+        border-right: none;
+        border-bottom: none;
+        border-radius: 12px 0 0 0;
+      }
+      
+      .qr-corner-tr {
+        top: calc(50% - 140px);
+        right: calc(50% - 140px);
+        border-left: none;
+        border-bottom: none;
+        border-radius: 0 12px 0 0;
+      }
+      
+      .qr-corner-bl {
+        bottom: calc(50% - 140px);
+        left: calc(50% - 140px);
+        border-right: none;
+        border-top: none;
+        border-radius: 0 0 0 12px;
+      }
+      
+      .qr-corner-br {
+        bottom: calc(50% - 140px);
+        right: calc(50% - 140px);
+        border-left: none;
+        border-top: none;
+        border-radius: 0 0 12px 0;
+      }
+      
+      /* Animación */
+      @keyframes qr-scan-animation {
+        0% {
+          top: calc(50% - 120px);
+          opacity: 1;
+        }
+        50% {
+          top: calc(50% + 120px);
+          opacity: 0.7;
+        }
+        100% {
+          top: calc(50% - 120px);
+          opacity: 1;
+        }
+      }
+      
+      /* Mensaje */
+      .qr-instruction {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: white;
+        font-size: 16px;
+        font-weight: 500;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 12px 24px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        z-index: 101;
+        white-space: nowrap;
+      }
     `;
     
-    // Instrucciones (estilo PandaDash)
-    const instructions = document.createElement('div');
-    instructions.className = 'scanner-instructions';
-    instructions.style.cssText = `
-      position: absolute;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      text-align: center;
-      font-family: var(--font-main);
-      font-size: 14px;
-      font-weight: 500;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 12px 24px;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      white-space: nowrap;
-    `;
-    instructions.textContent = 'Apunta el código QR al marco';
-    
-    // Ensamblar
-    overlay.appendChild(frame);
-    frame.appendChild(scanLine);
-    overlay.appendChild(instructions);
-    
-    // Agregar al DOM
-    this.qrReader.appendChild(overlay);
-    
-    // Agregar animación CSS
-    this.addScannerAnimations();
+    document.head.appendChild(style);
   }
 
-  addScannerAnimations() {
-    if (!document.getElementById('scanner-animations')) {
-      const style = document.createElement('style');
-      style.id = 'scanner-animations';
-      style.textContent = `
-        @keyframes scanMove {
-          0% {
-            top: 0;
-            opacity: 1;
-          }
-          50% {
-            top: calc(100% - 3px);
-            opacity: 0.8;
-          }
-          100% {
-            top: 0;
-            opacity: 1;
-          }
-        }
-        
-        @keyframes scanSuccess {
-          0% { 
-            border-color: var(--primary);
-            box-shadow: 0 0 30px rgba(37, 99, 235, 0.3);
-          }
-          50% { 
-            border-color: var(--success);
-            box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
-          }
-          100% { 
-            border-color: var(--primary);
-            box-shadow: 0 0 30px rgba(37, 99, 235, 0.3);
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+  createScanOverlay() {
+    // Crear overlay contenedor
+    const overlay = document.createElement('div');
+    overlay.className = 'qr-scan-overlay';
+    
+    // Crear línea de escaneo
+    const scanLine = document.createElement('div');
+    scanLine.className = 'qr-scan-line';
+    
+    // Crear esquinas
+    const corners = ['tl', 'tr', 'bl', 'br'];
+    corners.forEach(corner => {
+      const cornerEl = document.createElement('div');
+      cornerEl.className = `qr-corner qr-corner-${corner}`;
+      overlay.appendChild(cornerEl);
+    });
+    
+    // Crear mensaje de instrucción
+    const instruction = document.createElement('div');
+    instruction.className = 'qr-instruction';
+    instruction.textContent = 'Apunta el código QR al marco';
+    
+    // Agregar al overlay
+    overlay.appendChild(scanLine);
+    overlay.appendChild(instruction);
+    
+    // Agregar al DOM
+    document.body.appendChild(overlay);
+    
+    // Guardar referencia
+    this.scanOverlay = overlay;
   }
 
   onScanSuccess(decodedText) {
-    console.log('✅ QR detectado:', decodedText);
+    console.log('✅ QR escaneado:', decodedText);
     
     // Efecto visual de éxito
-    const frame = this.qrReader.querySelector('.scanner-frame');
-    if (frame) {
-      frame.style.animation = 'scanSuccess 0.8s ease-in-out';
+    if (this.scanOverlay) {
+      const corners = this.scanOverlay.querySelectorAll('.qr-corner');
+      corners.forEach(corner => {
+        corner.style.borderColor = 'var(--success)';
+        corner.style.boxShadow = '0 0 15px var(--success)';
+      });
     }
     
-    // Sonido
-    if (typeof playSuccessSound === 'function') {
-      playSuccessSound();
-    }
+    // Sonido de éxito
+    this.playScanSuccessSound();
     
-    // Insertar en input
+    // Actualizar estado
+    this.updateStatus('success', '<i class="fas fa-check-circle"></i> QR DETECTADO');
+    
+    // Insertar código
     if (this.barcodeInput) {
       this.barcodeInput.value = decodedText;
-      const inputEvent = new Event('input', { bubbles: true });
-      this.barcodeInput.dispatchEvent(inputEvent);
     }
     
-    // Cerrar después de breve pausa
+    // Cerrar escáner
+    this.closeScanner();
+    
+    // Procesar automáticamente
     setTimeout(() => {
-      this.closeScanner();
-      // Limpiar input después
-      setTimeout(() => {
-        if (this.barcodeInput) {
+      if (this.barcodeInput) {
+        const inputEvent = new Event('input', { bubbles: true });
+        this.barcodeInput.dispatchEvent(inputEvent);
+        this.barcodeInput.focus();
+        
+        setTimeout(() => {
           this.barcodeInput.value = '';
-          this.barcodeInput.focus();
-        }
-      }, 100);
-    }, 500);
+        }, 100);
+      }
+    }, 300);
+  }
+
+  onScanError(errorMessage) {
+    // Solo loguear errores importantes
+    if (!errorMessage.includes('NotFoundException')) {
+      console.debug('Escaneo:', errorMessage);
+    }
   }
 
   async toggleCamera() {
-    if (this.cameras.length < 2) return;
+    if (this.cameras.length < 2) {
+      this.updateToggleButton();
+      return;
+    }
     
     try {
-      // Detener actual
+      // Remover overlay
+      this.removeScanOverlay();
+      
+      // Detener escáner
       if (this.scanner && this.isScanning) {
         await this.scanner.stop();
         this.isScanning = false;
@@ -405,34 +450,69 @@ class QRScanner {
       
       // Cambiar cámara
       this.cameraIndex = (this.cameraIndex + 1) % this.cameras.length;
-      this.currentCameraId = this.cameras[this.cameraIndex].id;
+      const nextCameraId = this.cameras[this.cameraIndex].id;
+      this.currentCameraId = nextCameraId;
       
-      // Reiniciar
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-      };
+      // Actualizar botón
+      this.updateToggleButton();
       
-      await this.scanner.start(
-        this.currentCameraId,
-        config,
-        (decodedText) => this.onScanSuccess(decodedText),
-        (errorMessage) => console.debug('Escaneando...')
-      );
-      
-      this.isScanning = true;
-      
-      // Reaplicar estilos
-      setTimeout(() => this.applyHarmoniousStyles(), 300);
+      // Reiniciar escaneo
+      await this.startFullScreenScanning(nextCameraId);
       
     } catch (error) {
       console.error('Error al cambiar cámara:', error);
+      // Reintentar
+      try {
+        const prevCameraIndex = (this.cameraIndex - 1 + this.cameras.length) % this.cameras.length;
+        this.cameraIndex = prevCameraIndex;
+        this.currentCameraId = this.cameras[prevCameraIndex].id;
+        
+        await this.startFullScreenScanning(this.currentCameraId);
+      } catch (retryError) {
+        console.error('Error al reintentar cámara:', retryError);
+        this.closeScanner();
+      }
+    }
+  }
+
+  removeScanOverlay() {
+    if (this.scanOverlay) {
+      this.scanOverlay.remove();
+      this.scanOverlay = null;
+    }
+  }
+
+  updateToggleButton() {
+    if (!this.toggleCameraBtn || this.cameras.length < 2) {
+      if (this.toggleCameraBtn) {
+        this.toggleCameraBtn.style.display = 'none';
+      }
+      return;
+    }
+    
+    this.toggleCameraBtn.style.display = 'flex';
+    
+    const icon = this.toggleCameraBtn.querySelector('i');
+    const label = this.cameras[this.cameraIndex]?.label.toLowerCase() || '';
+    
+    if (label.includes('front') || label.includes('user') || label.includes('selfie')) {
+      icon.className = 'fas fa-camera-rotate';
+      this.toggleCameraBtn.title = 'Cambiar a cámara trasera';
+    } else {
+      icon.className = 'fas fa-camera';
+      this.toggleCameraBtn.title = 'Cambiar a cámara frontal';
     }
   }
 
   async closeScanner() {
     try {
+      // Remover overlay
+      this.removeScanOverlay();
+      
+      // Remover estilos
+      const styles = document.getElementById('qr-fullscreen-styles');
+      if (styles) styles.remove();
+      
       // Detener escáner
       if (this.scanner && this.isScanning) {
         await this.scanner.stop();
@@ -443,72 +523,153 @@ class QRScanner {
       this.scanner = null;
       this.qrReader.innerHTML = '';
       
-      // Ocultar modal
+      // Restaurar estilos del modal
       this.qrScannerModal.style.display = 'none';
       this.qrScannerOverlay.style.display = 'none';
+      
+      // Restaurar posición normal (por si acaso)
+      this.qrScannerModal.style.position = '';
+      this.qrScannerModal.style.top = '';
+      this.qrScannerModal.style.left = '';
+      this.qrScannerModal.style.width = '';
+      this.qrScannerModal.style.height = '';
+      this.qrScannerModal.style.background = '';
+      
+      // Restaurar estado
+      this.updateStatus('ready', '<i class="fas fa-check-circle"></i> SISTEMA LISTO');
       
       // Restaurar foco
       setTimeout(() => {
         if (this.barcodeInput) {
           this.barcodeInput.focus();
         }
-      }, 200);
+      }, 300);
       
     } catch (error) {
-      console.error('Error al cerrar:', error);
-      // Forzar cierre
+      console.error('Error al cerrar escáner:', error);
+      // Forzar limpieza
       this.qrScannerModal.style.display = 'none';
       this.qrScannerOverlay.style.display = 'none';
       this.qrReader.innerHTML = '';
+      this.removeScanOverlay();
+      
+      const styles = document.getElementById('qr-fullscreen-styles');
+      if (styles) styles.remove();
     }
   }
 
-  showAlert(title, message) {
-    // Alert simple pero estilizado
-    const alertDiv = document.createElement('div');
-    alertDiv.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--surface);
-      color: var(--text-main);
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: var(--shadow-floating);
-      z-index: 10010;
-      max-width: 300px;
-      text-align: center;
-      font-family: var(--font-main);
-    `;
-    
-    alertDiv.innerHTML = `
-      <h3 style="margin: 0 0 10px; color: var(--danger);">${title}</h3>
-      <p style="margin: 0; color: var(--text-secondary);">${message}</p>
-      <button style="
-        margin-top: 15px;
-        padding: 8px 20px;
-        background: var(--primary);
+  showLoading() {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'qr-scanner-loading';
+    loadingDiv.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
         color: white;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-      " onclick="this.parentElement.remove()">Aceptar</button>
+        z-index: 1000;
+      ">
+        <i class="fas fa-spinner fa-spin" style="font-size: 40px; margin-bottom: 16px; color: var(--primary);"></i>
+        <p style="margin: 0; font-size: 16px; color: rgba(255,255,255,0.9);">Cargando cámara...</p>
+      </div>
     `;
+    this.qrReader.appendChild(loadingDiv);
+  }
+
+  hideLoading() {
+    const loadingDiv = this.qrReader.querySelector('.qr-scanner-loading');
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
+  }
+
+  playScanSuccessSound() {
+    try {
+      if (typeof playSuccessSound === 'function') {
+        playSuccessSound();
+      } else {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.1;
+        
+        oscillator.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      }
+    } catch (error) {
+      // Silenciar
+    }
+  }
+
+  updateStatus(type, html) {
+    if (!this.statusDiv) return;
     
-    document.body.appendChild(alertDiv);
+    this.statusDiv.className = type;
+    this.statusDiv.innerHTML = html;
+  }
+
+  showSimpleAlert(message) {
+    alert(message);
+  }
+
+  // Método público
+  scanQRCode() {
+    this.openScanner();
+  }
+
+  isScannerAvailable() {
+    return typeof Html5Qrcode !== 'undefined';
   }
 }
 
-// Inicialización simple
+// Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  if (typeof Html5Qrcode !== 'undefined') {
-    try {
-      window.qrScanner = new QRScanner();
-      console.log('🔄 QR Scanner listo');
-    } catch (error) {
-      console.error('Error al inicializar scanner:', error);
+  const initScanner = () => {
+    if (typeof Html5Qrcode !== 'undefined') {
+      try {
+        window.qrScanner = new QRScanner();
+        console.log('✅ Escáner QR pantalla completa inicializado');
+        
+        const qrIcon = document.getElementById('qrScannerIcon');
+        if (qrIcon) {
+          qrIcon.style.display = 'inline-block';
+        }
+      } catch (error) {
+        console.error('Error al inicializar escáner:', error);
+      }
+    } else {
+      const qrIcon = document.getElementById('qrScannerIcon');
+      if (qrIcon) {
+        qrIcon.style.display = 'none';
+      }
     }
+  };
+  
+  initScanner();
+  
+  if (document.readyState === 'complete') {
+    setTimeout(initScanner, 500);
   }
 });
+
+// API global
+window.openQRScanner = function() {
+  if (window.qrScanner && window.qrScanner.isScannerAvailable()) {
+    window.qrScanner.scanQRCode();
+  }
+};
+
+window.closeQRScanner = function() {
+  if (window.qrScanner) {
+    window.qrScanner.closeScanner();
+  }
+};
