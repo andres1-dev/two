@@ -312,7 +312,7 @@ class QRScanner {
       if (this.qrReader) {
         this.qrReader.style.backgroundColor = '#000';
         
-        // Añadir overlay de guía
+        // Añadir overlay de guía SOLO con esquinas (sin fondo oscuro)
         const guideOverlay = document.createElement('div');
         guideOverlay.className = 'qr-guide-overlay';
         guideOverlay.innerHTML = `
