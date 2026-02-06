@@ -1,11 +1,16 @@
-// QR Scanner Module para PandaDash - VERSIÓN OPTIMIZADA
+// QR Scanner Module para PandaDash - VERSIÓN MEJORADA Y CORREGIDA
 class QRScanner {
   constructor() {
     this.scanner = null;
     this.isScanning = false;
     this.currentCameraId = null;
     this.cameras = [];
-    this.cameraIndex = -1; // -1 indica que no se ha seleccionado cámara aún
+    this.cameraIndex = -1;
+    
+    // Elementos personalizados para overlay
+    this.customIndicator = null;
+    this.customMessage = null;
+    this.indicatorStyle = null;
     
     this.initElements();
     this.initEventListeners();
@@ -50,7 +55,7 @@ class QRScanner {
       this.closeScanner();
     });
     
-    // Botón para cambiar cámara (mantenemos pero sin notificación)
+    // Botón para cambiar cámara
     this.toggleCameraBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.toggleCamera();
@@ -60,6 +65,13 @@ class QRScanner {
     this.qrScannerOverlay.addEventListener('click', (e) => {
       if (e.target === this.qrScannerOverlay) {
         this.closeScanner();
+      }
+    });
+    
+    // Manejar redimensionamiento de ventana
+    window.addEventListener('resize', () => {
+      if (this.isScanning) {
+        this.updateIndicatorPosition();
       }
     });
   }
@@ -113,7 +125,7 @@ class QRScanner {
       
       this.cameras = devices;
       
-      // BUSCAR CÁMARA TRASERA POR DEFECTO (SIEMPRE)
+      // BUSCAR CÁMARA TRASERA POR DEFECTO
       let selectedCameraId = devices[0].id;
       let selectedCameraIndex = 0;
       
@@ -148,9 +160,9 @@ class QRScanner {
       this.currentCameraId = selectedCameraId;
       this.cameraIndex = selectedCameraIndex;
       
-      // Configuración del escáner
+      // Configuración del escáner optimizada
       const config = {
-        fps: 10,
+        fps: 15,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
         rememberLastUsedCamera: false,
@@ -187,6 +199,10 @@ class QRScanner {
         adjustedConfig.qrbox = { width: 220, height: 220 };
       }
       
+      // Agregar estilos personalizados para el plugin
+      this.addCustomStyles();
+      
+      // Iniciar el escáner
       await this.scanner.start(
         cameraId,
         adjustedConfig,
@@ -196,8 +212,10 @@ class QRScanner {
       
       this.isScanning = true;
       
-      // Crear indicador visual de escaneo (alineado con el canvas del plugin)
-      this.createScanIndicator(adjustedConfig.qrbox.width);
+      // Esperar un momento y luego crear el indicador
+      setTimeout(() => {
+        this.createScanIndicator(adjustedConfig.qrbox.width);
+      }, 800);
       
       // Actualizar estado
       this.updateStatus('ready', '<i class="fas fa-camera"></i> ESCANEANDO QR...');
@@ -208,49 +226,244 @@ class QRScanner {
     }
   }
 
+  addCustomStyles() {
+    // Remover estilos anteriores si existen
+    if (this.indicatorStyle) {
+      this.indicatorStyle.remove();
+    }
+    
+    // Crear nuevos estilos para el plugin
+    this.indicatorStyle = document.createElement('style');
+    this.indicatorStyle.textContent = `
+      /* Estilos para el canvas del plugin */
+      #html5-qrcode-container canvas {
+        border-radius: 24px !important;
+        overflow: hidden !important;
+      }
+      
+      /* Región sombreada del plugin */
+      #html5-qrcode-container .qr-shaded-region {
+        stroke-width: 3px !important;
+        stroke: var(--primary) !important;
+        stroke-dasharray: none !important;
+        fill-opacity: 0.7 !important;
+      }
+      
+      /* Video de la cámara */
+      #html5-qrcode-container video {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+      }
+    `;
+    
+    document.head.appendChild(this.indicatorStyle);
+  }
+
   createScanIndicator(qrboxSize) {
     // Eliminar indicadores anteriores
     this.removeExistingIndicators();
     
-    // Calcular tamaño del indicador (qrbox + bordes)
-    const indicatorSize = qrboxSize + 6; // +6 por el borde de 3px a cada lado
+    // Buscar el canvas del plugin
+    const findCanvas = () => {
+      return document.querySelector('#html5-qrcode-container canvas, #qr-canvas, canvas');
+    };
     
-    // Crear contenedor del indicador
-    const indicator = document.createElement('div');
-    indicator.className = 'scan-indicator';
-    indicator.style.width = `${indicatorSize}px`;
-    indicator.style.height = `${indicatorSize}px`;
+    let attempts = 0;
+    const maxAttempts = 10;
     
-    // Crear línea de escaneo
-    const scanLine = document.createElement('div');
-    scanLine.className = 'scan-line';
-    scanLine.style.width = `${qrboxSize - 50}px`; // Un poco más pequeño que el qrbox
+    const tryCreateIndicator = () => {
+      const canvas = findCanvas();
+      
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        // Solo crear si el canvas tiene dimensiones válidas
+        if (canvasRect.width > 10 && canvasRect.height > 10) {
+          // Crear contenedor del indicador
+          const indicator = document.createElement('div');
+          indicator.className = 'scan-indicator';
+          indicator.style.position = 'fixed';
+          indicator.style.left = `${canvasRect.left}px`;
+          indicator.style.top = `${canvasRect.top}px`;
+          indicator.style.width = `${canvasRect.width}px`;
+          indicator.style.height = `${canvasRect.height}px`;
+          indicator.style.pointerEvents = 'none';
+          indicator.style.zIndex = '100';
+          indicator.style.boxSizing = 'border-box';
+          indicator.style.border = '3px solid var(--primary)';
+          indicator.style.borderRadius = '24px';
+          indicator.style.boxShadow = '0 0 30px rgba(37, 99, 235, 0.5)';
+          
+          // Crear línea de escaneo
+          const scanLine = document.createElement('div');
+          scanLine.className = 'scan-line';
+          scanLine.style.position = 'absolute';
+          scanLine.style.left = '10%';
+          scanLine.style.width = '80%';
+          scanLine.style.height = '3px';
+          scanLine.style.background = 'linear-gradient(to right, transparent, var(--primary), transparent)';
+          scanLine.style.boxShadow = '0 0 10px var(--primary)';
+          scanLine.style.borderRadius = '3px';
+          scanLine.style.animation = 'scan-line-move 2s infinite ease-in-out';
+          
+          // Crear esquinas
+          const createCorner = (position) => {
+            const corner = document.createElement('div');
+            corner.className = `corner-${position}`;
+            corner.style.position = 'absolute';
+            corner.style.width = '24px';
+            corner.style.height = '24px';
+            corner.style.border = '3px solid var(--primary)';
+            
+            switch(position) {
+              case 'tl':
+                corner.style.top = '-3px';
+                corner.style.left = '-3px';
+                corner.style.borderRight = 'none';
+                corner.style.borderBottom = 'none';
+                corner.style.borderRadius = '8px 0 0 0';
+                break;
+              case 'tr':
+                corner.style.top = '-3px';
+                corner.style.right = '-3px';
+                corner.style.borderLeft = 'none';
+                corner.style.borderBottom = 'none';
+                corner.style.borderRadius = '0 8px 0 0';
+                break;
+              case 'bl':
+                corner.style.bottom = '-3px';
+                corner.style.left = '-3px';
+                corner.style.borderRight = 'none';
+                corner.style.borderTop = 'none';
+                corner.style.borderRadius = '0 0 0 8px';
+                break;
+              case 'br':
+                corner.style.bottom = '-3px';
+                corner.style.right = '-3px';
+                corner.style.borderLeft = 'none';
+                corner.style.borderTop = 'none';
+                corner.style.borderRadius = '0 0 8px 0';
+                break;
+            }
+            
+            return corner;
+          };
+          
+          // Agregar elementos
+          indicator.appendChild(scanLine);
+          indicator.appendChild(createCorner('tl'));
+          indicator.appendChild(createCorner('tr'));
+          indicator.appendChild(createCorner('bl'));
+          indicator.appendChild(createCorner('br'));
+          
+          // Crear mensaje
+          const message = document.createElement('div');
+          message.className = 'scan-message';
+          message.textContent = 'Apunta el código QR al marco';
+          message.style.position = 'fixed';
+          message.style.top = `${canvasRect.bottom + 20}px`;
+          message.style.left = '50%';
+          message.style.transform = 'translateX(-50%)';
+          message.style.color = 'white';
+          message.style.fontSize = '14px';
+          message.style.fontWeight = '500';
+          message.style.background = 'rgba(0, 0, 0, 0.8)';
+          message.style.padding = '12px 24px';
+          message.style.borderRadius = '20px';
+          message.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+          message.style.backdropFilter = 'blur(10px)';
+          message.style.zIndex = '101';
+          
+          // Agregar al DOM
+          document.body.appendChild(indicator);
+          document.body.appendChild(message);
+          
+          // Guardar referencias
+          this.customIndicator = indicator;
+          this.customMessage = message;
+          
+          // Agregar animación CSS si no existe
+          this.addScanLineAnimation();
+          
+          return true;
+        }
+      }
+      
+      return false;
+    };
     
-    // Crear esquinas
-    const cornerTR = document.createElement('div');
-    cornerTR.className = 'corner-tr';
+    // Intentar crear el indicador
+    const interval = setInterval(() => {
+      attempts++;
+      
+      if (tryCreateIndicator() || attempts >= maxAttempts) {
+        clearInterval(interval);
+        
+        if (attempts >= maxAttempts && !this.customIndicator) {
+          console.warn('No se pudo crear el indicador después de múltiples intentos');
+        }
+      }
+    }, 200);
+  }
+
+  addScanLineAnimation() {
+    // Agregar animación CSS si no existe
+    if (!document.querySelector('#scan-line-animation')) {
+      const style = document.createElement('style');
+      style.id = 'scan-line-animation';
+      style.textContent = `
+        @keyframes scan-line-move {
+          0% {
+            top: 0;
+            opacity: 1;
+          }
+          50% {
+            top: calc(100% - 3px);
+            opacity: 0.8;
+          }
+          100% {
+            top: 0;
+            opacity: 1;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  updateIndicatorPosition() {
+    if (!this.customIndicator) return;
     
-    const cornerBL = document.createElement('div');
-    cornerBL.className = 'corner-bl';
-    
-    // Ensamblar
-    indicator.appendChild(scanLine);
-    indicator.appendChild(cornerTR);
-    indicator.appendChild(cornerBL);
-    
-    // Crear mensaje
-    const message = document.createElement('div');
-    message.className = 'scan-message';
-    message.textContent = 'Apunta el código QR al marco';
-    
-    // Agregar al DOM
-    this.qrReader.appendChild(indicator);
-    this.qrReader.appendChild(message);
+    const canvas = document.querySelector('#html5-qrcode-container canvas, #qr-canvas, canvas');
+    if (canvas) {
+      const canvasRect = canvas.getBoundingClientRect();
+      
+      this.customIndicator.style.left = `${canvasRect.left}px`;
+      this.customIndicator.style.top = `${canvasRect.top}px`;
+      this.customIndicator.style.width = `${canvasRect.width}px`;
+      this.customIndicator.style.height = `${canvasRect.height}px`;
+      
+      if (this.customMessage) {
+        this.customMessage.style.top = `${canvasRect.bottom + 20}px`;
+      }
+    }
   }
 
   removeExistingIndicators() {
-    const indicators = this.qrReader.querySelectorAll('.scan-indicator, .scan-message');
-    indicators.forEach(el => el.remove());
+    // Remover elementos personalizados
+    if (this.customIndicator) {
+      this.customIndicator.remove();
+      this.customIndicator = null;
+    }
+    if (this.customMessage) {
+      this.customMessage.remove();
+      this.customMessage = null;
+    }
+    
+    // Remover cualquier elemento antiguo
+    const oldIndicators = document.querySelectorAll('.scan-indicator, .scan-message, .corner-tl, .corner-tr, .corner-bl, .corner-br');
+    oldIndicators.forEach(el => el.remove());
   }
 
   onScanSuccess(decodedText) {
@@ -260,9 +473,13 @@ class QRScanner {
     this.playScanSuccessSound();
     
     // Efecto visual de éxito
-    const indicator = this.qrReader.querySelector('.scan-indicator');
-    if (indicator) {
-      indicator.classList.add('scan-success');
+    if (this.customIndicator) {
+      this.customIndicator.style.animation = 'scan-success 0.8s ease-in-out';
+      setTimeout(() => {
+        if (this.customIndicator) {
+          this.customIndicator.style.animation = '';
+        }
+      }, 800);
     }
     
     // Actualizar estado
@@ -303,12 +520,14 @@ class QRScanner {
 
   async toggleCamera() {
     if (this.cameras.length < 2) {
-      // NO mostrar notificación, solo actualizar el botón
       this.updateToggleButton();
       return;
     }
     
     try {
+      // Remover indicadores actuales
+      this.removeExistingIndicators();
+      
       // Detener escáner actual
       if (this.scanner && this.isScanning) {
         await this.scanner.stop();
@@ -320,12 +539,12 @@ class QRScanner {
       const nextCameraId = this.cameras[this.cameraIndex].id;
       this.currentCameraId = nextCameraId;
       
-      // Actualizar botón (SIN NOTIFICACIÓN)
+      // Actualizar botón
       this.updateToggleButton();
       
       // Reiniciar escaneo
       const config = {
-        fps: 10,
+        fps: 15,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0
       };
@@ -334,13 +553,28 @@ class QRScanner {
       
     } catch (error) {
       console.error('Error al cambiar cámara:', error);
-      // NO mostrar notificación de error
+      // Reintentar con la cámara anterior
+      try {
+        const config = {
+          fps: 15,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        };
+        
+        const prevCameraIndex = (this.cameraIndex - 1 + this.cameras.length) % this.cameras.length;
+        this.cameraIndex = prevCameraIndex;
+        this.currentCameraId = this.cameras[prevCameraIndex].id;
+        
+        await this.startScanning(this.currentCameraId, config);
+      } catch (retryError) {
+        console.error('Error al reintentar cámara:', retryError);
+        this.closeScanner();
+      }
     }
   }
 
   updateToggleButton() {
     if (!this.toggleCameraBtn || this.cameras.length < 2) {
-      // Ocultar botón si solo hay una cámara
       if (this.toggleCameraBtn) {
         this.toggleCameraBtn.style.display = 'none';
       }
@@ -355,11 +589,9 @@ class QRScanner {
     const label = this.cameras[this.cameraIndex]?.label.toLowerCase() || '';
     
     if (label.includes('front') || label.includes('user') || label.includes('selfie')) {
-      // Cámara frontal -> mostrar icono para cambiar a trasera
       icon.className = 'fas fa-camera-rotate';
       this.toggleCameraBtn.title = 'Cambiar a cámara trasera';
     } else {
-      // Cámara trasera u otra -> mostrar icono para cambiar a frontal
       icon.className = 'fas fa-camera';
       this.toggleCameraBtn.title = 'Cambiar a cámara frontal';
     }
@@ -367,6 +599,15 @@ class QRScanner {
 
   async closeScanner() {
     try {
+      // Remover indicadores
+      this.removeExistingIndicators();
+      
+      // Remover estilos personalizados
+      if (this.indicatorStyle) {
+        this.indicatorStyle.remove();
+        this.indicatorStyle = null;
+      }
+      
       // Detener escáner si está activo
       if (this.scanner && this.isScanning) {
         await this.scanner.stop();
@@ -397,6 +638,7 @@ class QRScanner {
       this.qrScannerModal.style.display = 'none';
       this.qrScannerOverlay.style.display = 'none';
       this.qrReader.innerHTML = '';
+      this.removeExistingIndicators();
     }
   }
 
