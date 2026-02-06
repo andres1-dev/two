@@ -222,10 +222,18 @@ class QRScanner {
     try {
       console.log('🎥 Iniciando escaneo con cámara:', cameraId);
       
-      // Configuración optimizada para PWA
+      // Configuración optimizada para PWA sin elementos visuales de la librería
       const config = {
-        fps: 15, // Reducido para mejor rendimiento
-        qrbox: { width: 250, height: 250 },
+        fps: 15,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          // Calcular qrbox dinámicamente para evitar canvas visible
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdge * 0.7);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        },
         aspectRatio: 1.0,
         rememberLastUsedCamera: false,
         showTorchButtonIfSupported: true,
@@ -233,10 +241,14 @@ class QRScanner {
         videoConstraints: {
           facingMode: 'environment',
           advanced: [{ focusMode: 'continuous' }]
-        }
+        },
+        // Desactivar renderizado del canvas de la librería
+        disableFlip: false,
+        // Configuración para evitar elementos UI de la librería
+        formatsToSupport: undefined
       };
       
-      // Agregar estilos dinámicos
+      // Agregar estilos dinámicos ANTES de iniciar
       this.addScannerStyles();
       
       // Iniciar escáner
@@ -250,8 +262,13 @@ class QRScanner {
       this.isScanning = true;
       console.log('✅ Escáner iniciado exitosamente');
       
-      // Crear overlay visual
-      this.createScanOverlay();
+      // Esperar un momento para que el DOM se actualice
+      setTimeout(() => {
+        // Forzar ocultar elementos duplicados
+        this.hideLibraryElements();
+        // Crear overlay visual personalizado
+        this.createScanOverlay();
+      }, 300);
       
       // Actualizar estado
       this.updateStatus('ready', '<i class="fas fa-camera"></i> ESCANEANDO QR...');
@@ -260,6 +277,44 @@ class QRScanner {
       console.error('❌ Error al iniciar escaneo:', error);
       throw error;
     }
+  }
+
+  hideLibraryElements() {
+    // Ocultar todos los elementos de UI de la librería que puedan aparecer
+    const elementsToHide = [
+      '#html5qr-code-full-region__scan_region',
+      '#html5qr-code-full-region__dashboard_section',
+      '#html5qr-code-full-region__dashboard_section_csr',
+      '#html5qr-code-full-region__dashboard_section_swaplink',
+      '#html5-qrcode-anchor-scan-type-change',
+      '#html5-qrcode-button-camera-permission',
+      '#html5-qrcode-button-camera-start',
+      '#html5-qrcode-button-camera-stop',
+      '#html5-qrcode-button-file-selection',
+      '#html5-qrcode-select-camera'
+    ];
+    
+    elementsToHide.forEach(selector => {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.style.display = 'none';
+        element.style.visibility = 'hidden';
+      }
+    });
+    
+    // Ocultar todos los canvas de la librería
+    const canvases = document.querySelectorAll('#html5-qrcode-container canvas');
+    canvases.forEach(canvas => {
+      canvas.style.display = 'none';
+      canvas.style.visibility = 'hidden';
+    });
+    
+    // Ocultar divs de región de escaneo de la librería
+    const scanRegions = document.querySelectorAll('[id*="scan_region"], [id*="qr-shaded-region"]');
+    scanRegions.forEach(region => {
+      region.style.display = 'none';
+      region.style.visibility = 'hidden';
+    });
   }
 
   addScannerStyles() {
@@ -276,24 +331,46 @@ class QRScanner {
       #html5-qrcode-button-camera-permission,
       #html5-qrcode-button-camera-start,
       #html5-qrcode-button-camera-stop,
+      #html5-qrcode-button-file-selection,
+      #html5-qrcode-select-camera,
+      #html5-qrcode-camera-selection,
       #html5qr-code-full-region__dashboard_section,
-      #html5qr-code-full-region__dashboard_section_csr {
+      #html5qr-code-full-region__dashboard_section_csr,
+      #html5qr-code-full-region__dashboard_section_swaplink,
+      #html5qr-code-full-region__scan_region,
+      #html5qr-code-full-region__header_image {
         display: none !important;
       }
       
-      /* Contenedor de la librería */
+      /* Ocultar canvas duplicado - solo mostrar el video */
+      #html5-qrcode-container canvas {
+        display: none !important;
+      }
+      
+      /* Contenedor de la librería - pantalla completa */
       #html5-qrcode-container {
         width: 100% !important;
         height: 100% !important;
-        position: relative !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
         background: #000 !important;
+        z-index: 1 !important;
       }
       
-      /* Video de la cámara */
+      /* Video de la cámara - pantalla completa */
       #html5-qrcode-container video {
         width: 100% !important;
         height: 100% !important;
         object-fit: cover !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+      }
+      
+      /* Ocultar todos los divs internos de la librería excepto el contenedor del video */
+      #html5-qrcode-container > div:not([id*="video"]) {
+        display: none !important;
       }
     `;
     
@@ -395,6 +472,9 @@ class QRScanner {
         this.isScanning = false;
       }
       
+      // Limpiar elementos de la librería
+      this.qrReader.innerHTML = '';
+      
       // Cambiar cámara
       this.cameraIndex = (this.cameraIndex + 1) % this.cameras.length;
       const nextCameraId = this.cameras[this.cameraIndex].id;
@@ -405,8 +485,14 @@ class QRScanner {
       // Actualizar botón
       this.updateToggleButton();
       
-      // Reiniciar escaneo
-      await this.startScanning(nextCameraId);
+      // Mostrar loading temporal
+      this.showLoading();
+      
+      // Reiniciar escáner con delay
+      setTimeout(async () => {
+        this.hideLoading();
+        await this.startScanning(nextCameraId);
+      }, 200);
       
     } catch (error) {
       console.error('❌ Error al cambiar cámara:', error);
@@ -416,6 +502,7 @@ class QRScanner {
         this.cameraIndex = prevCameraIndex;
         this.currentCameraId = this.cameras[prevCameraIndex].id;
         
+        this.qrReader.innerHTML = '';
         await this.startScanning(this.currentCameraId);
       } catch (retryError) {
         console.error('❌ Error al reintentar cámara:', retryError);
@@ -470,7 +557,16 @@ class QRScanner {
         this.isScanning = false;
       }
       
-      // Limpiar
+      // Limpiar scanner
+      if (this.scanner) {
+        try {
+          await this.scanner.clear();
+        } catch (e) {
+          // Ignorar errores al limpiar
+        }
+      }
+      
+      // Limpiar completamente el contenedor
       this.scanner = null;
       this.qrReader.innerHTML = '';
       
