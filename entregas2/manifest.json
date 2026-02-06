@@ -4,7 +4,7 @@
   "description": "Sistema de gestión y escaneo de códigos QR para entregas",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "minimal-ui",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
