@@ -1871,3 +1871,96 @@ input, button {
     padding: 10px 14px;
   }
 }
+
+
+
+/* ===== ESTILOS ESPECÍFICOS PARA iOS ===== */
+
+/* Modal de instrucciones iOS */
+.ios-instructions-modal {
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Ajustes específicos para iOS */
+@media (max-width: 768px) {
+  /* Mejorar visibilidad en iOS */
+  .qr-scan-line {
+    height: 4px !important;
+  }
+  
+  .qr-corner {
+    width: 25px !important;
+    height: 25px !important;
+    border-width: 2px !important;
+  }
+  
+  .qr-instruction {
+    font-size: 14px !important;
+    padding: 10px 20px !important;
+    bottom: 100px !important;
+  }
+}
+
+/* Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari specific styles */
+  #html5-qrcode-container video {
+    object-fit: cover !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  .qr-scan-overlay {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+/* Para iPads */
+@media (min-width: 768px) and (max-width: 1024px) {
+  #html5-qrcode-container canvas {
+    width: 350px !important;
+    height: 350px !important;
+  }
+  
+  .qr-corner-tl {
+    top: calc(50% - 175px) !important;
+    left: calc(50% - 175px) !important;
+  }
+  
+  .qr-corner-tr {
+    top: calc(50% - 175px) !important;
+    right: calc(50% - 175px) !important;
+  }
+  
+  .qr-corner-bl {
+    bottom: calc(50% - 175px) !important;
+    left: calc(50% - 175px) !important;
+  }
+  
+  .qr-corner-br {
+    bottom: calc(50% - 175px) !important;
+    right: calc(50% - 175px) !important;
+  }
+  
+  .qr-scan-line {
+    width: 300px !important;
+  }
+}
+
+/* iOS Status Bar Safe Area */
+@supports (padding: max(0px)) {
+  .qr-scanner-header {
+    padding-top: max(16px, env(safe-area-inset-top)) !important;
+    padding-bottom: 16px !important;
+  }
+  
+  .qr-scanner-actions {
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+}
