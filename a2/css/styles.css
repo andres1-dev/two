@@ -1717,14 +1717,11 @@ button {
 
 
 /* ============================================
-   ESTILOS PARA MODAL DE ESCÁNER QR (V2 - iOS STYLE)
+   ESTILOS PARA MODAL DE ESCÁNER QR (V3 - MINIMALIST)
    ============================================ */
 
-/* 1. LAYERED ARCHITECTURE */
-
-/* Modal Container - Fixed Full Screen */
+/* Modal Container */
 .qr-scanner-modal {
-  display: flex;
   position: fixed;
   top: 0;
   left: 0;
@@ -1732,21 +1729,19 @@ button {
   height: 100vh;
   z-index: 9999;
   background-color: #000;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Layer 0: Video Container */
+/* Video Container */
 #qr-video-container {
+  width: 100%;
+  height: 100%;
+  background: black;
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  background: black;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Force video to fill screen */
@@ -1754,206 +1749,32 @@ button {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
-  /* Fix for some browsers adding defaults */
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
 }
 
-/* Hide library canvas if it appears */
-#qr-video-container canvas {
-  display: none !important;
-}
-
-/* Layer 1: UI Overlay */
-#qr-ui-overlay {
+/* Floating Close Button */
+.qr-float-close-btn {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  /* Header - Center - Footer */
-  background: rgba(0, 0, 0, 0.3);
-  /* Slight dim */
-}
-
-/* 2. UI COMPONENTS */
-
-/* Header */
-.qr-overlay-header {
-  padding: 24px;
-  display: flex;
-  justify-content: flex-end;
-  /* Close button on right */
-  align-items: center;
-}
-
-/* Footer */
-.qr-overlay-footer {
-  padding: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 24px;
-}
-
-/* Buttons (iOS Style) */
-.qr-btn-icon,
-.qr-btn-control {
-  background: rgba(255, 255, 255, 0.2);
+  top: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 20px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  /* Above video */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
 }
 
-/* Close Button (Small) */
-.qr-btn-icon {
-  width: 44px;
-  height: 44px;
-  font-size: 18px;
-}
-
-/* Control Button (Large) */
-.qr-btn-control {
-  width: 64px;
-  height: 64px;
-  font-size: 24px;
-}
-
-.qr-btn-icon:hover,
-.qr-btn-control:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.qr-btn-icon:active,
-.qr-btn-control:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* 3. SCAN AREA (Center Frame) */
-.qr-scan-area {
-  position: relative;
-  width: 280px;
-  height: 280px;
-  margin: 0 auto;
-  /* Center horizontally in flex column */
-  /* No background here, just the frame */
-}
-
-/* Corners */
-.qr-frame-corner {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border: 4px solid white;
-  /* Clean white look */
-  border-radius: 2px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.3s;
-}
-
-.qr-frame-corner.top-left {
-  top: 0;
-  left: 0;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 16px;
-}
-
-.qr-frame-corner.top-right {
-  top: 0;
-  right: 0;
-  border-left: none;
-  border-bottom: none;
-  border-top-right-radius: 16px;
-}
-
-.qr-frame-corner.bottom-left {
-  bottom: 0;
-  left: 0;
-  border-right: none;
-  border-top: none;
-  border-bottom-left-radius: 16px;
-}
-
-.qr-frame-corner.bottom-right {
-  bottom: 0;
-  right: 0;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 16px;
-}
-
-/* Scanning Line Animation */
-.qr-scan-line {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  height: 2px;
-  background: #3b82f6;
-  /* Blue 500 */
-  box-shadow: 0 0 12px #3b82f6, 0 0 4px #60a5fa;
-  border-radius: 2px;
-  animation: scan-vertical 2s linear infinite;
-}
-
-@keyframes scan-vertical {
-  0% {
-    top: 10px;
-    opacity: 0;
-  }
-
-  10% {
-    opacity: 1;
-  }
-
-  90% {
-    opacity: 1;
-  }
-
-  100% {
-    top: 270px;
-    opacity: 0;
-  }
-}
-
-/* Tooltip below frame */
-.qr-tooltip {
-  position: absolute;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  padding: 8px 16px;
-  border-radius: 20px;
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Success State */
-.qr-scan-area.success .qr-frame-corner {
-  border-color: #10b981;
-  /* Emerald 500 */
-  box-shadow: 0 0 12px #10b981;
-}
-
-.qr-scan-area.success .qr-scan-line {
-  display: none;
+.qr-float-close-btn:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.2);
 }

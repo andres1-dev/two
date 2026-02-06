@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=4.0.1">
-  
+
   <!-- Biblioteca para escanear QR -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
 
@@ -36,21 +36,21 @@
           </div>
           <h1 class="logo-text">PandaDash</h1>
           <p class="version-text">Build 4.0.0</p>
-          
+
           <div class="loading-spinner">
             <span class="spinner-dot"></span>
             <span class="spinner-dot"></span>
             <span class="spinner-dot"></span>
           </div>
         </div>
-        
+
         <div class="loading-footer">
           <div class="footer-content">
             <p class="credits">
               Developed by <strong>Andrés Mendoza</strong><br>
               © 2025 · Supported by GrupoTDM
             </p>
-            
+
             <div class="social-icons">
               <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
                 <i class="fab fa-facebook-f"></i>
@@ -89,38 +89,15 @@
       </footer>
     </div>
 
-    <!-- Modal para escanear QR (Rediseñado) -->
+    <!-- Modal para escanear QR (Minimalista & Funcional) -->
     <div id="qrScannerModal" class="qr-scanner-modal" style="display: none;">
       <!-- Capa de Video (Fondo) -->
       <div id="qr-video-container"></div>
-      
-      <!-- Capa de UI (Overlay) -->
-      <div id="qr-ui-overlay">
-        <!-- Header con botón cerrar -->
-        <div class="qr-overlay-header">
-           <button class="qr-btn-icon" id="closeQrScanner">
-             <i class="fas fa-times"></i>
-           </button>
-        </div>
 
-        <!-- Marco Central de Enfoque -->
-        <div class="qr-scan-area">
-          <div class="qr-frame-corner top-left"></div>
-          <div class="qr-frame-corner top-right"></div>
-          <div class="qr-frame-corner bottom-left"></div>
-          <div class="qr-frame-corner bottom-right"></div>
-          <div class="qr-scan-line"></div>
-          <div class="qr-tooltip">Apunta el código en el marco</div>
-        </div>
-
-        <!-- Controles Inferiores -->
-        <div class="qr-overlay-footer">
-           <button class="qr-btn-control" id="toggleCameraBtn" title="Cambiar Cámara">
-             <i class="fas fa-camera-rotate"></i>
-           </button>
-           <!-- Aquí se podría agregar el botón de flash si la API lo soporta -->
-        </div>
-      </div>
+      <!-- Botón Flotante Cerrar -->
+      <button class="qr-float-close-btn" id="closeQrScanner">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
     <!-- Modal de cámara -->
@@ -159,7 +136,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="queue-modal-body">
         <div class="queue-stats">
           <div class="stat-item">
@@ -175,7 +152,7 @@
             <span class="stat-label">Completados</span>
           </div>
         </div>
-        
+
         <div class="queue-items-container">
           <div id="queueItemsList" class="queue-items-list">
             <div class="queue-empty-state">
@@ -184,7 +161,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="queue-actions">
           <button class="queue-action-btn secondary" id="retryFailedBtn">
             <i class="fas fa-redo"></i>

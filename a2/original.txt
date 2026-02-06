@@ -1,0 +1,36 @@
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <div id="reader"></div>
+    <button onclick="scan()">Escanear Código</button>
+    <br><br>
+    <input type="text" id="result">
+    
+    <script>
+        async function scan() {
+            const scanner = new Html5Qrcode("reader");
+            
+            try {
+                await scanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: 250 },
+                    (text) => {
+                        document.getElementById('result').value = text;
+                        document.getElementById('result').style.color = 'green';
+                        
+                        // DETENER inmediatamente después de escanear
+                        scanner.stop().then(() => {
+                            console.log("Escáner detenido");
+                        });
+                    },
+                    (error) => console.log(error)
+                );
+            } catch(err) {
+                alert("Error: " + err);
+            }
+        }
+    </script>
+</body>
+</html>
