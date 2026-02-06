@@ -1,14 +1,15 @@
-// sw.js - Service Worker optimizado para PWA
-const CACHE_NAME = 'pandadash-v8';
+// Service Worker para PandaDash - Versión optimizada para PWA
+const CACHE_NAME = 'pandadash-v8.1';
 
 // Base URL relativa al lugar donde está este archivo sw.js
 const BASE = (new URL('.', self.location)).href;
 
-// Lista COMPLETA de assets - CRÍTICO: incluir todos los JS necesarios
+// Lista COMPLETA de assets locales
 const RELATIVE_ASSETS = [
   '',
   'index2.html',
   'css/styles.css',
+  'css/qr-scanner-styles.css',
   'js/app.js',
   'js/camera.js',
   'js/main.js',
@@ -34,62 +35,64 @@ const EXTERNAL_ASSETS = [
 
 // Convierte a URLs absolutas usando la ubicación del sw.js
 const ASSETS_TO_CACHE = [
-  ...RELATIVE_ASSETS.map(p => new URL(p, BASE).href),
-  ...EXTERNAL_ASSETS
+  ...RELATIVE_ASSETS.map(p => new URL(p, BASE).href)
 ];
 
 // Instalación y cacheo inicial
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando Service Worker...');
+  console.log('[SW] 🔧 Instalando Service Worker v8.1...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW] Cacheando assets...');
-        // Cachear en dos pasos: primero los locales, luego los externos
-        return cache.addAll(RELATIVE_ASSETS.map(p => new URL(p, BASE).href))
+        console.log('[SW] 📦 Cacheando assets locales...');
+        // Cachear assets locales primero
+        return cache.addAll(ASSETS_TO_CACHE)
           .then(() => {
-            // Cachear externos uno por uno para evitar fallos
+            console.log('[SW] ✅ Assets locales cacheados');
+            // Cachear CDNs externos uno por uno (sin fallar si alguno falla)
             return Promise.allSettled(
               EXTERNAL_ASSETS.map(url => 
-                cache.add(url).catch(err => {
-                  console.warn(`[SW] No se pudo cachear ${url}:`, err);
-                  return null;
-                })
+                cache.add(url)
+                  .then(() => console.log(`[SW] ✅ Cacheado: ${url}`))
+                  .catch(err => {
+                    console.warn(`[SW] ⚠️ No se pudo cachear ${url}:`, err.message);
+                    return null;
+                  })
               )
             );
           });
       })
       .then(() => {
-        console.log('[SW] Assets cacheados exitosamente');
+        console.log('[SW] ✅ Instalación completada');
         return self.skipWaiting();
       })
       .catch(err => {
-        console.error('[SW] Error al cachear assets:', err);
+        console.error('[SW] ❌ Error durante instalación:', err);
       })
   );
 });
 
 // Activación y limpieza de versiones antiguas
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando Service Worker...');
+  console.log('[SW] 🚀 Activando Service Worker...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('[SW] Eliminando cache antiguo:', cache);
+            console.log('[SW] 🗑️ Eliminando cache antiguo:', cache);
             return caches.delete(cache);
           }
         })
       );
     }).then(() => {
-      console.log('[SW] Service Worker activado');
+      console.log('[SW] ✅ Service Worker activado');
       return self.clients.claim();
     })
   );
 });
 
-// Estrategia de fetch mejorada
+// Estrategia de fetch optimizada
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
@@ -109,11 +112,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then(response => {
+          // Guardar en cache para offline
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, responseClone));
           return response;
         })
         .catch(() => {
+          // Si falla la red, usar cache
           return caches.match(req)
             .then(cached => cached || caches.match(new URL('./', BASE).href));
         })
@@ -121,14 +126,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para scripts JS críticos: Cache First con network update en background
+  // Para scripts JS críticos (incluyendo qr-scanner.js): Cache First con network update en background
   if (url.pathname.includes('.js') || url.pathname.includes('qr-scanner')) {
     event.respondWith(
       caches.match(req)
         .then(cachedResponse => {
+          // Actualizar en background
           const fetchPromise = fetch(req)
             .then(response => {
-              // Actualizar cache en background
               if (response && response.status === 200) {
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME).then(cache => cache.put(req, responseToCache));
@@ -144,7 +149,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para otros recursos (CSS, imágenes, fuentes): Cache First
+  // Para CSS: Cache First con network fallback
+  if (url.pathname.includes('.css')) {
+    event.respondWith(
+      caches.match(req)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            // Actualizar en background
+            fetch(req).then(response => {
+              if (response && response.status === 200) {
+                caches.open(CACHE_NAME).then(cache => cache.put(req, response.clone()));
+              }
+            }).catch(() => {});
+            
+            return cachedResponse;
+          }
+          
+          return fetch(req).then(response => {
+            if (response && response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(req, responseToCache));
+            }
+            return response;
+          });
+        })
+    );
+    return;
+  }
+
+  // Para otros recursos (imágenes, fuentes, etc): Cache First
   event.respondWith(
     caches.match(req)
       .then(cachedResponse => {
@@ -179,4 +212,10 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  
+  if (event.data && event.data.type === 'CHECK_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_NAME });
+  }
 });
+
+console.log('[SW] 📱 Service Worker cargado - Versión:', CACHE_NAME);
