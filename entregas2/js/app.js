@@ -161,49 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Detectar si estamos en modo PWA
-function isRunningAsPWA() {
-  return window.matchMedia('(display-mode: standalone)').matches || 
-         window.navigator.standalone === true ||
-         document.referrer.includes('android-app://');
-}
-
-// Función para ajustar el botón en PWA
-function adjustUIForPWA() {
-  if (isRunningAsPWA()) {
-    console.log('App running in PWA mode');
-    document.body.classList.add('standalone');
-    
-    // Ajustes adicionales para PWA
-    const qrBtn = document.getElementById('qrScannerFloatingBtn');
-    if (qrBtn) {
-      // Forzar visibilidad
-      qrBtn.style.display = 'flex';
-      qrBtn.style.visibility = 'visible';
-      qrBtn.style.opacity = '1';
-    }
-    
-    // Prevenir comportamiento por defecto del navegador en PWA
-    document.addEventListener('touchmove', function(e) {
-      if (e.target.id === 'qrScannerFloatingBtn') {
-        e.preventDefault();
-      }
-    }, { passive: false });
-  }
-}
-
-// Llamar después de cargar
-document.addEventListener('DOMContentLoaded', () => {
-  adjustUIForPWA();
-  
-  // También detectar cambios
-  window.addEventListener('resize', adjustUIForPWA);
-  
-  // Verificar periódicamente (por si la app cambia de modo)
-  setTimeout(adjustUIForPWA, 1000);
-  setTimeout(adjustUIForPWA, 3000);
-});
-
   // Manejar el cambio de orientación en dispositivos móviles
   window.addEventListener('orientationchange', function () {
     if (document.getElementById('cameraModal').style.display === 'flex') {
