@@ -1600,59 +1600,7 @@ body {
   }
 }
 
-/* ===== ESTILOS ESPECÍFICOS PARA EL PLUGIN QR ===== */
 
-/* Estilos para el contenedor del plugin */
-#html5-qrcode-container {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Ocultar elementos innecesarios del plugin */
-#html5-qrcode-anchor-scan-type-change,
-#html5-qrcode-button-camera-permission,
-#html5-qrcode-button-camera-start,
-#html5-qrcode-button-camera-stop,
-#html5-qrcode-select-camera,
-#html5-qrcode-camera-selection {
-  display: none !important;
-}
-
-/* Video de la cámara */
-#html5-qrcode-container video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* ===== ANIMACIONES PARA EL INDICADOR PERSONALIZADO ===== */
-
-@keyframes scan-line-move {
-  0% {
-    top: 0;
-    opacity: 1;
-  }
-  50% {
-    top: calc(100% - 3px);
-    opacity: 0.8;
-  }
-  100% {
-    top: 0;
-    opacity: 1;
-  }
-}
-
-@keyframes scan-success {
-  0% { 
-    border-color: var(--primary);
-  }
-  50% { 
-    border-color: var(--success);
-  }
-  100% { 
-    border-color: var(--primary);
-  }
-}
 
 /* ===== ESTILOS PARA PERMISOS PWA ===== */
 
@@ -1724,5 +1672,142 @@ input, button {
 @media (orientation: landscape) and (max-height: 500px) {
   #app-frame {
     max-height: 80vh;
+  }
+}
+
+
+
+/* ===== ESTILOS ARMÓNICOS PARA QR SCANNER ===== */
+
+/* Loading del escáner */
+.scanner-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  z-index: 5;
+}
+
+.scanner-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 15px;
+  animation: spin 1s linear infinite;
+}
+
+.scanner-loading p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Asegurar que el plugin no rompa nuestro diseño */
+#qrReader {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+}
+
+/* Contenedor del plugin - forzar estilos */
+#html5-qrcode-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* Video de la cámara - armonioso */
+#html5-qrcode-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transform: scaleX(1) !important;
+}
+
+/* Canvas del plugin - ocultar o estilizar */
+#html5-qrcode-container canvas {
+  display: none !important; /* Ocultamos el canvas del plugin */
+}
+
+/* Ocultar elementos del plugin que no queremos */
+#html5-qrcode-anchor-scan-type-change,
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-select-camera,
+#html5-qrcode-camera-selection,
+.html5-qrcode-element {
+  display: none !important;
+}
+
+/* Botón de cambiar cámara - integrado */
+#toggleCameraBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+
+#toggleCameraBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Botón de cancelar - coherente */
+#cancelQrScan {
+  background: rgba(239, 68, 68, 0.15);
+  color: white;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+#cancelQrScan:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Para móviles */
+@media (max-width: 500px) {
+  .scanner-frame {
+    width: 240px !important;
+    height: 240px !important;
+  }
+  
+  .scan-line {
+    width: 190px !important;
+  }
+  
+  .scanner-instructions {
+    font-size: 13px !important;
+    padding: 10px 20px !important;
+    bottom: 80px !important;
+  }
+}
+
+/* Para pantallas muy pequeñas */
+@media (max-height: 700px) {
+  .scanner-frame {
+    width: 220px !important;
+    height: 220px !important;
+  }
+  
+  .scanner-instructions {
+    bottom: 70px !important;
   }
 }
