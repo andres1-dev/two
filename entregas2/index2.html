@@ -18,6 +18,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=4.0.1">
+  
+  <!-- Biblioteca para escanear QR -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
 
   <title>PandaDash</title>
 </head>
@@ -25,52 +28,44 @@
 <body>
   <div id="app-frame">
     <!-- Pantalla de carga -->
-<!-- REEMPLAZAR desde <div id="loadingScreen"> hasta </div> (líneas 53-64 aproximadamente) -->
-<div id="loadingScreen">
-  <!-- <div class="loading-banner">
-    <div class="banner-logo">
-      <i class="fas fa-qrcode"></i>
-    </div>
-    <span class="banner-text">PandaDash</span>
-  </div> -->
-
-  <div class="loading-container">
-    <div class="loading-logo">
-      <div class="logo-icon">
-        <i class="fas fa-qrcode"></i>
-      </div>
-      <h1 class="logo-text">PandaDash</h1>
-      <p class="version-text">Build 4.0.0</p>
-      
-      <div class="loading-spinner">
-        <span class="spinner-dot"></span>
-        <span class="spinner-dot"></span>
-        <span class="spinner-dot"></span>
-      </div>
-    </div>
-    
-    <div class="loading-footer">
-      <div class="footer-content">
-        <p class="credits">
-          Developed by <strong>Andrés Mendoza</strong><br>
-          © 2025 · Supported by GrupoTDM
-        </p>
+    <div id="loadingScreen">
+      <div class="loading-container">
+        <div class="loading-logo">
+          <div class="logo-icon">
+            <i class="fas fa-qrcode"></i>
+          </div>
+          <h1 class="logo-text">PandaDash</h1>
+          <p class="version-text">Build 4.0.0</p>
+          
+          <div class="loading-spinner">
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+          </div>
+        </div>
         
-        <div class="social-icons">
-          <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
-            <i class="fab fa-facebook-f"></i>
-          </a>
-          <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" class="social-icon">
-            <i class="fab fa-instagram"></i>
-          </a>
-          <a href="https://wa.me/573168007979" target="_blank" class="social-icon">
-            <i class="fab fa-whatsapp"></i>
-          </a>
+        <div class="loading-footer">
+          <div class="footer-content">
+            <p class="credits">
+              Developed by <strong>Andrés Mendoza</strong><br>
+              © 2025 · Supported by GrupoTDM
+            </p>
+            
+            <div class="social-icons">
+              <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-facebook-f"></i>
+              </a>
+              <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-instagram"></i>
+              </a>
+              <a href="https://wa.me/573168007979" target="_blank" class="social-icon">
+                <i class="fab fa-whatsapp"></i>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- Contenido principal -->
     <div id="scanner" style="display: none;">
@@ -80,7 +75,7 @@
 
       <div class="app-header">
         <div class="barcode-input-container">
-          <i class="fa-solid fa-qrcode"></i>
+          <i class="fa-solid fa-qrcode" id="qrScannerIcon" title="Escanear código QR"></i>
           <input type="text" id="barcode" autofocus placeholder="Escanear documento">
         </div>
         <div id="status">Sistema Listo</div>
@@ -92,6 +87,25 @@
       <footer>
         <div class="footer-content"></div>
       </footer>
+    </div>
+
+    <!-- Modal para escanear QR -->
+    <div id="qrScannerModal" class="qr-scanner-modal" style="display: none;">
+      <div class="qr-scanner-header">
+        <h3><i class="fas fa-qrcode"></i> Escanear Código QR</h3>
+        <button class="qr-close-btn" id="closeQrScanner">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="qrReader" class="qr-reader"></div>
+      <div class="qr-scanner-actions">
+        <button class="btn btn-primary" id="toggleCameraBtn">
+          <i class="fas fa-camera-rotate"></i> Cambiar Cámara
+        </button>
+        <button class="btn btn-danger" id="cancelQrScan">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+      </div>
     </div>
 
     <!-- Modal de cámara -->
@@ -169,6 +183,7 @@
   </div>
 
   <!-- Overlay para modal -->
+  <div id="qrScannerOverlay" class="qr-scanner-overlay" style="display: none;"></div>
   <div id="queueModalOverlay" class="queue-modal-overlay" style="display: none;"></div>
 
   <!-- Modal para imagen completa -->
@@ -182,6 +197,7 @@
   <script src="js/main.js"></script>
   <script src="sw.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/qr-scanner.js"></script> <!-- Nuevo archivo para manejar el escáner QR -->
 </body>
 
 </html>
