@@ -1876,7 +1876,7 @@ input, button {
 
 
 
-/* ===== ESTILOS PARA BOTÓN FLOTANTE DE ESCÁNER QR ===== */
+/* ===== ESTILOS PARA BOTÓN FLOTANTE DE ESCÁNER QR (PWA COMPATIBLE) ===== */
 
 .qr-scanner-floating-btn {
   position: fixed;
@@ -1892,46 +1892,45 @@ input, button {
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow-floating);
-  z-index: 999;
+  z-index: 2147483647; /* Máximo valor posible */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid white;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0); /* Forzar hardware acceleration */
+  will-change: transform;
 }
 
-.qr-scanner-floating-btn:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+/* Importante: agregar esto para el body en PWA */
+body.standalone .qr-scanner-floating-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
 }
 
-.qr-scanner-floating-btn:active {
-  transform: translateY(0) scale(0.95);
+/* Asegurar que el botón esté siempre encima */
+#app-frame {
+  position: relative;
+  overflow: visible !important; /* Importante para PWA */
 }
 
-.qr-scanner-floating-btn i {
-  font-size: 22px;
-}
-
-/* Para móviles */
-@media (max-width: 500px) {
+/* Para móviles en PWA */
+@media (max-width: 500px) and (display-mode: standalone) {
   .qr-scanner-floating-btn {
-    bottom: 20px;
+    bottom: 30px; /* Más alto para evitar gestos del sistema */
     right: 20px;
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* Clase específica para cuando está en modo standalone */
+@media all and (display-mode: standalone) {
+  .qr-scanner-floating-btn {
+    position: absolute;
+    z-index: 999999;
   }
   
-  .qr-scanner-floating-btn i {
-    font-size: 20px;
-  }
-}
-
-/* Ajuste cuando hay cola de carga */
-.queue-counter + .qr-scanner-floating-btn {
-  right: 90px; /* Deja espacio para el botón de cola */
-}
-
-/* Ajuste responsive */
-@media (max-width: 500px) {
-  .queue-counter + .qr-scanner-floating-btn {
-    right: 80px;
+  body {
+    overflow: visible !important;
   }
 }
