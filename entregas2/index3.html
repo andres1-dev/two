@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector QR Profesional</title>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            overflow: visible;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            margin: 0 auto 30px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        #reader {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 350px;
+            position: relative;
+        }
+        
+        /* Recuadro de escaneo personalizado */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .scan-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7);
+        }
+        
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #3498db, transparent);
+            animation: scan 2s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 160px;
+            justify-content: center;
+        }
+        
+        #startBtn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        #stopBtn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+        }
+        
+        #stopBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .result-container h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #output {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            color: #2c3e50;
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        #output:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .scanned {
+            border-color: #27ae60 !important;
+            background-color: rgba(39, 174, 96, 0.05) !important;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        
+        .status-scanning {
+            color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+            border-color: rgba(52, 152, 219, 0.2);
+        }
+        
+        .status-stopped {
+            color: #7f8c8d;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #95a5a6;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        /* Scroll libre */
+        html, body {
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* PWA fixes */
+        @media (display-mode: standalone) {
+            button {
+                padding: 16px 32px;
+                font-size: 17px;
+            }
+            
+            #reader {
+                min-height: 400px;
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .scanner-container {
+                margin: 0 auto 20px;
+            }
+            
+            .scan-box {
+                width: 200px;
+                height: 200px;
+            }
+            
+            button {
+                width: 100%;
+                min-width: unset;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .scan-box {
+                width: 180px;
+                height: 180px;
+            }
+            
+            #reader {
+                min-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Lector QR Profesional</h1>
+        <p class="subtitle">Escanea códigos QR y de barras con tu cámara</p>
+        
+        <div class="scanner-container">
+            <div id="reader"></div>
+            <div class="scan-overlay">
+                <div class="scan-box">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                Iniciar Escaneo
+            </button>
+            
+            <button id="stopBtn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                </svg>
+                Detener
+            </button>
+        </div>
+        
+        <div class="status status-stopped" id="status">
+            Presiona "Iniciar Escaneo" para comenzar
+        </div>
+        
+        <div class="result-container">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 11 12 14 23 3"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                Resultado del Escaneo
+            </h3>
+            <textarea id="output" placeholder="El código escaneado aparecerá aquí..."></textarea>
+        </div>
+        
+        <footer>
+            <p>Versión 2.0 • Compatible con PWA • Soporta QR y códigos de barras</p>
+        </footer>
+    </div>
+
+    <script>
+        // Variables globales
+        let scanner = null;
+        let isScanning = false;
+        
+        // Elementos del DOM
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        const scanBox = document.querySelector('.scan-box');
+        
+        // Función para iniciar el escaneo
+        async function startScanning() {
+            if (isScanning) return;
+            
+            try {
+                // Reiniciar el resultado
+                output.value = '';
+                output.classList.remove('scanned');
+                output.placeholder = 'Escaneando...';
+                
+                // Crear nueva instancia del escáner
+                scanner = new Html5Qrcode("reader");
+                
+                // Configuración optimizada
+                const config = {
+                    fps: 15,
+                    qrbox: { 
+                        width: 250, 
+                        height: 250 
+                    },
+                    aspectRatio: 1.0,
+                    disableFlip: false,
+                    rememberLastUsedCamera: true,
+                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+                };
+                
+                // Sincronizar el tamaño del recuadro de escaneo
+                syncScanBoxSize();
+                
+                // Intentar iniciar con cámara trasera
+                await scanner.start(
+                    { facingMode: "environment" },
+                    config,
+                    handleScanSuccess,
+                    handleScanError
+                ).then(() => {
+                    // Éxito al iniciar
+                    isScanning = true;
+                    updateUI();
+                    updateStatus('Escaneando activamente...', 'scanning');
+                    
+                    // Ajustar recuadro después de iniciar
+                    setTimeout(syncScanBoxSize, 100);
+                }).catch(async (err) => {
+                    console.log('Falló facingMode, intentando con cámara específica...');
+                    
+                    // Fallback: obtener cámaras y usar la primera
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (cameras && cameras.length > 0) {
+                        await scanner.start(
+                            cameras[0].id,
+                            config,
+                            handleScanSuccess,
+                            handleScanError
+                        );
+                        
+                        isScanning = true;
+                        updateUI();
+                        updateStatus('Escaneando activamente...', 'scanning');
+                        setTimeout(syncScanBoxSize, 100);
+                    } else {
+                        throw new Error('No se encontraron cámaras disponibles');
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error al iniciar escaneo:', error);
+                updateStatus(`Error: ${error.message}`, 'stopped');
+                output.value = `Error: ${error.message}`;
+                stopScanning();
+            }
+        }
+        
+        // Función para manejar escaneo exitoso
+        function handleScanSuccess(decodedText, decodedResult) {
+            // Mostrar resultado
+            output.value = decodedText;
+            output.classList.add('scanned');
+            output.placeholder = 'Código escaneado correctamente';
+            
+            // Sonido de confirmación (opcional)
+            playBeep();
+            
+            // Detener automáticamente después de escanear
+            setTimeout(() => {
+                stopScanning();
+            }, 800); // Delay para que el usuario vea el resultado
+        }
+        
+        // Función para manejar errores de escaneo
+        function handleScanError(errorMessage) {
+            // Ignorar errores normales de "no encontrar código"
+            if (!errorMessage || errorMessage.includes('No QR code found')) {
+                return;
+            }
+            console.warn('Error de escaneo:', errorMessage);
+        }
+        
+        // Función para detener el escaneo
+        async function stopScanning() {
+            if (!scanner || !isScanning) return;
+            
+            try {
+                await scanner.stop();
+                scanner = null;
+                isScanning = false;
+                updateUI();
+                updateStatus('Escáner detenido. Listo para nuevo escaneo.', 'stopped');
+                output.placeholder = 'Presiona "Iniciar Escaneo" para escanear otro código';
+            } catch (error) {
+                console.error('Error al detener:', error);
+            }
+        }
+        
+        // Función para actualizar la UI
+        function updateUI() {
+            startBtn.disabled = isScanning;
+            stopBtn.disabled = !isScanning;
+            
+            // Actualizar texto del botón para PWA
+            startBtn.innerHTML = isScanning ? 
+                `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                Escaneando...` :
+                `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                Iniciar Escaneo`;
+        }
+        
+        // Función para actualizar el estado
+        function updateStatus(message, type) {
+            status.textContent = message;
+            status.className = `status status-${type}`;
+        }
+        
+        // Función para sincronizar el recuadro de escaneo
+        function syncScanBoxSize() {
+            const qrbox = document.querySelector('.html5-qrcode video');
+            if (qrbox) {
+                const rect = qrbox.getBoundingClientRect();
+                const container = document.querySelector('.scanner-container');
+                const containerRect = container.getBoundingClientRect();
+                
+                // Calcular posición relativa
+                const top = rect.top - containerRect.top;
+                const left = rect.left - containerRect.left;
+                
+                // Aplicar posición y tamaño al recuadro personalizado
+                if (scanBox) {
+                    scanBox.style.width = `${rect.width}px`;
+                    scanBox.style.height = `${rect.height}px`;
+                    scanBox.style.top = `${top}px`;
+                    scanBox.style.left = `${left}px`;
+                }
+            }
+        }
+        
+        // Función para sonido de confirmación
+        function playBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Silenciar si hay error
+            }
+        }
+        
+        // Event listeners - IMPORTANTE para PWA
+        startBtn.addEventListener('click', startScanning);
+        stopBtn.addEventListener('click', stopScanning);
+        
+        // Event listener táctil adicional para PWA
+        startBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            startScanning();
+        }, { passive: false });
+        
+        // Manejar redimensionamiento de ventana
+        window.addEventListener('resize', syncScanBoxSize);
+        
+        // Permitir scroll libre
+        document.addEventListener('touchmove', function(e) {
+            // Permitir scroll en toda la página
+        }, { passive: true });
+        
+        document.addEventListener('wheel', function(e) {
+            // Permitir scroll con rueda del mouse
+        }, { passive: true });
+        
+        // Inicializar UI
+        updateUI();
+        updateStatus('Presiona "Iniciar Escaneo" para comenzar', 'stopped');
+        
+        // Ajustar inicial del recuadro
+        setTimeout(syncScanBoxSize, 500);
+        
+        // Forzar actualización periódica del recuadro durante el escaneo
+        setInterval(() => {
+            if (isScanning) {
+                syncScanBoxSize();
+            }
+        }, 100);
+    </script>
+</body>
+</html>
