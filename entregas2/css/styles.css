@@ -1871,3 +1871,67 @@ input, button {
     padding: 10px 14px;
   }
 }
+
+
+
+
+
+/* ===== ESTILOS PARA BOTÓN FLOTANTE DE ESCÁNER QR ===== */
+
+.qr-scanner-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-floating);
+  z-index: 999;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid white;
+}
+
+.qr-scanner-floating-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+}
+
+.qr-scanner-floating-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.qr-scanner-floating-btn i {
+  font-size: 22px;
+}
+
+/* Para móviles */
+@media (max-width: 500px) {
+  .qr-scanner-floating-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+  }
+  
+  .qr-scanner-floating-btn i {
+    font-size: 20px;
+  }
+}
+
+/* Ajuste cuando hay cola de carga */
+.queue-counter + .qr-scanner-floating-btn {
+  right: 90px; /* Deja espacio para el botón de cola */
+}
+
+/* Ajuste responsive */
+@media (max-width: 500px) {
+  .queue-counter + .qr-scanner-floating-btn {
+    right: 80px;
+  }
+}

@@ -142,6 +142,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Inicializar botón flotante de QR
+  const qrFloatingBtn = document.getElementById('qrScannerFloatingBtn');
+  if (qrFloatingBtn) {
+    qrFloatingBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Verificar si hay escáner QR disponible
+      if (typeof Html5Qrcode !== 'undefined' && window.qrScanner) {
+        window.qrScanner.scanQRCode();
+      } else if (typeof openQRScanner === 'function') {
+        openQRScanner();
+      } else {
+        // Alternativa: abrir cámara para foto y usar OCR (si implementado)
+        alert('Escáner QR no disponible. Usa el campo de texto para ingresar manualmente.');
+      }
+    });
+  }
+
   // Manejar el cambio de orientación en dispositivos móviles
   window.addEventListener('orientationchange', function () {
     if (document.getElementById('cameraModal').style.display === 'flex') {
