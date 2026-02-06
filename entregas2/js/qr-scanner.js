@@ -1,4 +1,4 @@
-// QR Scanner Module para PandaDash - COMPATIBLE CON iOS PWA
+// QR Scanner Module para PandaDash - VERSIÓN PANTALLA COMPLETA
 class QRScanner {
   constructor() {
     this.scanner = null;
@@ -6,10 +6,6 @@ class QRScanner {
     this.currentCameraId = null;
     this.cameras = [];
     this.cameraIndex = -1;
-    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    this.isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                window.navigator.standalone ||
-                document.referrer.includes('android-app://');
     
     this.initElements();
     this.initEventListeners();
@@ -67,13 +63,6 @@ class QRScanner {
       // Ocultar teclado
       if (this.barcodeInput) this.barcodeInput.blur();
       
-      // Verificar si estamos en iOS PWA
-      if (this.isIOS && this.isPWA) {
-        // Mostrar instrucciones especiales para iOS PWA
-        this.showIOSInstructions();
-        return;
-      }
-      
       // Mostrar modal a pantalla completa
       this.qrScannerModal.style.display = 'flex';
       this.qrScannerOverlay.style.display = 'block';
@@ -98,20 +87,14 @@ class QRScanner {
       // Mostrar loading
       this.showLoading();
       
-      // En iOS, necesitamos un gesto de usuario directo para activar la cámara
+      // Inicializar escáner
       setTimeout(async () => {
         try {
           await this.initScanner();
         } catch (error) {
           console.error('Error al iniciar escáner:', error);
-          
-          // Si es iOS, mostrar mensaje específico
-          if (this.isIOS) {
-            this.handleIOSCameraError(error);
-          } else {
-            this.closeScanner();
-            this.showSimpleAlert('No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios.');
-          }
+          this.closeScanner();
+          this.showSimpleAlert('No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios.');
         }
       }, 100);
       
@@ -124,259 +107,13 @@ class QRScanner {
     }
   }
 
-  showIOSInstructions() {
-    // Crear modal de instrucciones para iOS PWA
-    const instructionsModal = document.createElement('div');
-    instructionsModal.className = 'ios-instructions-modal';
-    instructionsModal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 10010;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      color: white;
-      text-align: center;
-    `;
-    
-    instructionsModal.innerHTML = `
-      <div style="
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(20px);
-        border-radius: 24px;
-        padding: 30px;
-        max-width: 400px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      ">
-        <div style="
-          width: 80px;
-          height: 80px;
-          background: var(--primary);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 20px;
-        ">
-          <i class="fas fa-camera" style="font-size: 36px; color: white;"></i>
-        </div>
-        
-        <h3 style="margin: 0 0 15px; font-size: 22px; font-weight: 700;">
-          Permiso de Cámara en iOS
-        </h3>
-        
-        <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5; opacity: 0.9;">
-          En iOS, necesitas <strong>abrir esta app en Safari</strong> para usar la cámara desde la pantalla de inicio.
-        </p>
-        
-        <div style="
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 16px;
-          padding: 20px;
-          margin: 20px 0;
-          text-align: left;
-          border-left: 4px solid var(--primary);
-        ">
-          <p style="margin: 0 0 10px; font-weight: 600;">
-            <i class="fas fa-exclamation-circle" style="color: var(--warning); margin-right: 8px;"></i>
-            Pasos a seguir:
-          </p>
-          <ol style="margin: 0; padding-left: 20px; font-size: 14px; opacity: 0.9;">
-            <li style="margin-bottom: 8px;">Abre <strong>Safari</strong> en tu iPhone/iPad</li>
-            <li style="margin-bottom: 8px;">Navega a esta app: ${window.location.origin}</li>
-            <li style="margin-bottom: 8px;">Toca el botón <strong>Compartir</strong> <i class="fas fa-share-square"></i></li>
-            <li style="margin-bottom: 8px;">Selecciona <strong>"Añadir a pantalla de inicio"</strong></li>
-            <li>¡Listo! La cámara funcionará correctamente</li>
-          </ol>
-        </div>
-        
-        <div style="display: flex; gap: 12px; margin-top: 25px;">
-          <button id="ios-open-safari" style="
-            flex: 1;
-            padding: 16px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-          ">
-            <i class="fas fa-safari"></i>
-            Abrir en Safari
-          </button>
-          
-          <button id="ios-close-instructions" style="
-            flex: 1;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-          ">
-            Cancelar
-          </button>
-        </div>
-        
-        <p style="
-          margin: 20px 0 0;
-          font-size: 12px;
-          opacity: 0.7;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          padding-top: 15px;
-        ">
-          <i class="fas fa-info-circle"></i>
-          Esta limitación es de iOS, no de la aplicación
-        </p>
-      </div>
-    `;
-    
-    document.body.appendChild(instructionsModal);
-    
-    // Event listeners para los botones
-    document.getElementById('ios-open-safari').addEventListener('click', () => {
-      // Intentar abrir en Safari
-      window.location.href = `x-web-search://?${encodeURIComponent(window.location.href)}`;
-      setTimeout(() => {
-        // Fallback: abrir la URL normalmente
-        window.open(window.location.href, '_blank');
-      }, 500);
-    });
-    
-    document.getElementById('ios-close-instructions').addEventListener('click', () => {
-      instructionsModal.remove();
-    });
-    
-    // Cerrar al hacer clic fuera
-    instructionsModal.addEventListener('click', (e) => {
-      if (e.target === instructionsModal) {
-        instructionsModal.remove();
-      }
-    });
-  }
-
-  handleIOSCameraError(error) {
-    console.log('Error de cámara iOS:', error);
-    
-    // Cerrar el escáner
-    this.closeScanner();
-    
-    // Mostrar mensaje específico para iOS
-    const errorModal = document.createElement('div');
-    errorModal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.9);
-      z-index: 10010;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    `;
-    
-    errorModal.innerHTML = `
-      <div style="
-        background: white;
-        border-radius: 20px;
-        padding: 25px;
-        max-width: 350px;
-        text-align: center;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      ">
-        <div style="
-          width: 60px;
-          height: 60px;
-          background: var(--danger-soft);
-          border-radius: 15px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 15px;
-        ">
-          <i class="fas fa-video-slash" style="font-size: 28px; color: var(--danger);"></i>
-        </div>
-        
-        <h3 style="margin: 0 0 10px; color: var(--text-main);">
-          Cámara no disponible
-        </h3>
-        
-        <p style="margin: 0 0 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
-          En iOS, la cámara puede no funcionar desde la pantalla de inicio.
-          <br><br>
-          <strong>Solución:</strong> Abre la app en Safari y luego añádela a pantalla de inicio.
-        </p>
-        
-        <button id="ios-error-ok" style="
-          padding: 12px 24px;
-          background: var(--primary);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          width: 100%;
-        ">
-          Entendido
-        </button>
-      </div>
-    `;
-    
-    document.body.appendChild(errorModal);
-    
-    document.getElementById('ios-error-ok').addEventListener('click', () => {
-      errorModal.remove();
-    });
-  }
-
   async initScanner() {
     try {
-      // Para iOS, necesitamos un enfoque especial
-      if (this.isIOS) {
-        // Primero verificar permisos
-        const permissions = await navigator.permissions.query({ name: 'camera' });
-        if (permissions.state === 'denied') {
-          throw new Error('Permisos de cámara denegados en iOS');
-        }
-      }
-      
       // Crear nuevo escáner
       this.scanner = new Html5Qrcode(this.qrReader.id);
       
-      // Obtener cámaras disponibles con timeout para iOS
-      const getCamerasWithTimeout = () => {
-        return new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('Timeout al obtener cámaras (iOS puede requerir gesto de usuario)'));
-          }, 5000);
-          
-          Html5Qrcode.getCameras().then(cameras => {
-            clearTimeout(timeout);
-            resolve(cameras);
-          }).catch(error => {
-            clearTimeout(timeout);
-            reject(error);
-          });
-        });
-      };
-      
-      const devices = await getCamerasWithTimeout();
+      // Obtener cámaras disponibles
+      const devices = await Html5Qrcode.getCameras();
       
       if (!devices || devices.length === 0) {
         throw new Error('No se encontraron cámaras');
@@ -416,8 +153,6 @@ class QRScanner {
     } catch (error) {
       console.error('Error al inicializar escáner:', error);
       this.hideLoading();
-      
-      // Relanzar error para manejo específico
       throw error;
     }
   }
@@ -426,48 +161,24 @@ class QRScanner {
     try {
       // Configuración para pantalla completa
       const config = {
-        fps: this.isIOS ? 10 : 20, // Menos FPS en iOS para mejor rendimiento
+        fps: 20,
         qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.777778,
+        aspectRatio: 1.777778, // 16:9 ratio
         rememberLastUsedCamera: false,
         showTorchButtonIfSupported: false,
-        showZoomSliderIfSupported: false,
-        // Configuración específica para iOS
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+        showZoomSliderIfSupported: false
       };
       
       // Agregar estilos para pantalla completa
       this.addFullScreenStyles();
       
-      // En iOS, intentar con un enfoque diferente si falla
-      try {
-        await this.scanner.start(
-          cameraId,
-          config,
-          (decodedText) => this.onScanSuccess(decodedText),
-          (errorMessage) => this.onScanError(errorMessage)
-        );
-      } catch (startError) {
-        // Si falla en iOS, intentar con configuración más simple
-        if (this.isIOS) {
-          console.log('Reintentando con configuración simplificada para iOS...');
-          const simpleConfig = {
-            fps: 10,
-            qrbox: { width: 200, height: 200 },
-            aspectRatio: 1.333333,
-          };
-          
-          await this.scanner.start(
-            cameraId,
-            simpleConfig,
-            (decodedText) => this.onScanSuccess(decodedText),
-            (errorMessage) => this.onScanError(errorMessage)
-          );
-        } else {
-          throw startError;
-        }
-      }
+      // Iniciar escáner
+      await this.scanner.start(
+        cameraId,
+        config,
+        (decodedText) => this.onScanSuccess(decodedText),
+        (errorMessage) => this.onScanError(errorMessage)
+      );
       
       this.isScanning = true;
       
@@ -715,6 +426,7 @@ class QRScanner {
   }
 
   onScanError(errorMessage) {
+    // Solo loguear errores importantes
     if (!errorMessage.includes('NotFoundException')) {
       console.debug('Escaneo:', errorMessage);
     }
@@ -815,7 +527,7 @@ class QRScanner {
       this.qrScannerModal.style.display = 'none';
       this.qrScannerOverlay.style.display = 'none';
       
-      // Restaurar posición normal
+      // Restaurar posición normal (por si acaso)
       this.qrScannerModal.style.position = '';
       this.qrScannerModal.style.top = '';
       this.qrScannerModal.style.left = '';
@@ -925,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof Html5Qrcode !== 'undefined') {
       try {
         window.qrScanner = new QRScanner();
-        console.log('✅ Escáner QR iOS compatible inicializado');
+        console.log('✅ Escáner QR pantalla completa inicializado');
         
         const qrIcon = document.getElementById('qrScannerIcon');
         if (qrIcon) {
