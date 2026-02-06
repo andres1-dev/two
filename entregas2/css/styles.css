@@ -1543,8 +1543,7 @@ body {
 
 
 
-
-/* ===== ESTILOS PARA ESCANER QR ===== */
+/* ===== ESTILOS PARA ESCANER QR ADAPTADO A PANDA DASH ===== */
 
 .qr-scanner-modal {
   display: none;
@@ -1558,47 +1557,49 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  animation: modal-slide-up 0.3s ease-out;
 }
 
 .qr-scanner-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(3px);
   z-index: 10000;
 }
 
+/* Header del escáner - similar al de la app */
 .qr-scanner-header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.7);
+  padding: 16px 20px;
+  background: rgba(15, 23, 42, 0.95);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .qr-scanner-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
+  font-family: var(--font-main);
 }
 
 .qr-close-btn {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
   font-size: 16px;
   cursor: pointer;
@@ -1610,104 +1611,58 @@ body {
 
 .qr-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
-.qr-reader {
+/* Contenedor del lector QR - ocupa toda la pantalla menos el header */
+#qrReader {
   width: 100%;
-  height: 100%;
-  position: relative;
+  height: calc(100% - 72px);
+  position: absolute;
+  top: 72px;
+  left: 0;
   overflow: hidden;
+  background: #000;
 }
 
+/* Estilos para el escáner HTML5-QRCode */
 #html5-qrcode-anchor-scan-type-change {
   display: none !important;
 }
 
-/* Ajustar el escáner para pantallas móviles */
-@media (orientation: portrait) {
-  .qr-reader {
-    width: 100vw;
-    height: 100vh;
-  }
+/* Ocultar el botón de selección de cámara del plugin */
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop {
+  display: none !important;
 }
 
-@media (orientation: landscape) {
-  .qr-reader {
-    width: 100vh;
-    height: 100vw;
-    transform: rotate(90deg);
-  }
-}
-
-.qr-scanner-actions {
-  position: absolute;
-  bottom: 40px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  z-index: 10;
-}
-
-.qr-scanner-actions .btn {
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.qr-scanner-actions .btn-primary {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.qr-scanner-actions .btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-}
-
-.qr-scanner-actions .btn-danger {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.qr-scanner-actions .btn-danger:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Indicador de escaneo */
+/* Indicador de escaneo - adaptado al diseño */
 .scan-indicator {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 250px;
-  height: 250px;
+  width: 280px;
+  height: 280px;
   border: 3px solid var(--primary);
-  border-radius: 20px;
+  border-radius: 24px;
   z-index: 5;
   pointer-events: none;
-  box-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
+  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7),
+              0 0 30px rgba(37, 99, 235, 0.5);
 }
 
+/* Línea de escaneo animada */
 .scan-line {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--primary);
-  animation: scan-line 2s infinite linear;
+  background: linear-gradient(to right, transparent, var(--primary), transparent);
+  animation: scan-line 2s infinite ease-in-out;
+  box-shadow: 0 0 10px var(--primary);
 }
 
 @keyframes scan-line {
@@ -1716,8 +1671,8 @@ body {
     opacity: 1;
   }
   50% {
-    top: 100%;
-    opacity: 0.5;
+    top: calc(100% - 3px);
+    opacity: 0.8;
   }
   100% {
     top: 0;
@@ -1725,30 +1680,286 @@ body {
   }
 }
 
+/* Esquinas decorativas */
+.scan-indicator::before,
+.scan-indicator::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--primary);
+}
+
+/* Esquina superior izquierda */
+.scan-indicator::before {
+  top: -3px;
+  left: -3px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 12px 0 0 0;
+}
+
+/* Esquina inferior derecha */
+.scan-indicator::after {
+  bottom: -3px;
+  right: -3px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 12px 0;
+}
+
+/* Esquina superior derecha */
+.scan-indicator .corner-tr {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--primary);
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 12px 0 0;
+}
+
+/* Esquina inferior izquierda */
+.scan-indicator .corner-bl {
+  position: absolute;
+  bottom: -3px;
+  left: -3px;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--primary);
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 12px;
+}
+
 /* Mensaje de escaneo */
 .scan-message {
   position: absolute;
-  bottom: 100px;
+  bottom: 120px;
   left: 0;
   right: 0;
   text-align: center;
   color: white;
   font-size: 14px;
   font-weight: 500;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 10px 20px;
-  margin: 0 20px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 24px;
+  margin: 0 auto;
+  width: fit-content;
   border-radius: 20px;
   z-index: 10;
+  font-family: var(--font-main);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
-/* Sonido de escaneo exitoso */
+/* Contenedor de acciones - fijo en la parte inferior */
+.qr-scanner-actions {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+  padding: 0 20px;
+}
+
+/* Botones del escáner - estilo PandaDash */
+.qr-scanner-actions .btn {
+  padding: 14px 24px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font-main);
+  min-height: 48px;
+  min-width: 140px;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.qr-scanner-actions .btn-primary {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary-dark);
+}
+
+.qr-scanner-actions .btn-primary:hover,
+.qr-scanner-actions .btn-primary:active {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+}
+
+.qr-scanner-actions .btn-danger {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.qr-scanner-actions .btn-danger:hover,
+.qr-scanner-actions .btn-danger:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Efecto de éxito al escanear */
 @keyframes scan-success {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% { 
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(37, 99, 235, 0.5);
+  }
+  50% { 
+    border-color: var(--success);
+    box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7),
+                0 0 40px rgba(16, 185, 129, 0.8);
+  }
+  100% { 
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(37, 99, 235, 0.5);
+  }
 }
 
 .scan-success {
-  animation: scan-success 0.5s ease-in-out;
+  animation: scan-success 0.8s ease-in-out;
+}
+
+/* Loading del escáner */
+.qr-scanner-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  z-index: 5;
+}
+
+.qr-scanner-loading i {
+  font-size: 40px;
+  margin-bottom: 16px;
+  color: var(--primary);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Responsive para móviles */
+@media (max-width: 500px) {
+  .scan-indicator {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .qr-scanner-header {
+    padding: 14px 16px;
+  }
+  
+  .qr-scanner-header h3 {
+    font-size: 15px;
+  }
+  
+  .qr-close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  #qrReader {
+    height: calc(100% - 64px);
+    top: 64px;
+  }
+  
+  .qr-scanner-actions {
+    bottom: 16px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  
+  .qr-scanner-actions .btn {
+    padding: 12px 16px;
+    min-width: 120px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  
+  .scan-message {
+    bottom: 100px;
+    font-size: 13px;
+    padding: 10px 20px;
+  }
+}
+
+/* Para pantallas muy pequeñas */
+@media (max-height: 700px) {
+  .scan-indicator {
+    width: 220px;
+    height: 220px;
+  }
+  
+  .scan-message {
+    bottom: 90px;
+    font-size: 12px;
+  }
+  
+  .qr-scanner-actions {
+    bottom: 12px;
+  }
+}
+
+/* Para landscape en móviles */
+@media (orientation: landscape) and (max-height: 500px) {
+  .scan-indicator {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .scan-message {
+    bottom: 80px;
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+  
+  .qr-scanner-actions .btn {
+    padding: 10px 14px;
+    min-height: 40px;
+    min-width: 100px;
+    font-size: 12px;
+  }
+  
+  .qr-scanner-header {
+    padding: 10px 14px;
+  }
+  
+  #qrReader {
+    height: calc(100% - 54px);
+    top: 54px;
+  }
+}
+
+/* Ajustes dentro del frame de la app */
+@media (min-width: 500px) {
+  .qr-scanner-modal {
+    border-radius: 36px;
+  }
+  
+  .qr-scanner-header {
+    border-radius: 28px 28px 0 0;
+  }
 }

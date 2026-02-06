@@ -1,4 +1,4 @@
-// QR Scanner Module para PandaDash
+// QR Scanner Module para PandaDash - VERSIÓN MEJORADA
 class QRScanner {
   constructor() {
     this.scanner = null;
@@ -21,21 +21,57 @@ class QRScanner {
     this.toggleCameraBtn = document.getElementById('toggleCameraBtn');
     this.barcodeInput = document.getElementById('barcode');
     this.statusDiv = document.getElementById('status');
+    
+    // Hacer el icono de QR más atractivo
+    if (this.qrScannerIcon) {
+      this.qrScannerIcon.style.cursor = 'pointer';
+      this.qrScannerIcon.title = 'Escanear código QR';
+      this.qrScannerIcon.addEventListener('mouseenter', () => {
+        this.qrScannerIcon.style.color = 'var(--primary)';
+      });
+      this.qrScannerIcon.addEventListener('mouseleave', () => {
+        this.qrScannerIcon.style.color = '';
+      });
+    }
   }
 
   initEventListeners() {
     // Icono QR para abrir escáner
-    this.qrScannerIcon.addEventListener('click', () => this.openScanner());
+    if (this.qrScannerIcon) {
+      this.qrScannerIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openScanner();
+      });
+    }
     
     // Botones para cerrar
-    this.closeQrScanner.addEventListener('click', () => this.closeScanner());
-    this.cancelQrScan.addEventListener('click', () => this.closeScanner());
+    this.closeQrScanner.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeScanner();
+    });
+    
+    this.cancelQrScan.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeScanner();
+    });
     
     // Botón para cambiar cámara
-    this.toggleCameraBtn.addEventListener('click', () => this.toggleCamera());
+    this.toggleCameraBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleCamera();
+    });
     
     // Cerrar al hacer clic fuera
-    this.qrScannerOverlay.addEventListener('click', () => this.closeScanner());
+    this.qrScannerOverlay.addEventListener('click', (e) => {
+      if (e.target === this.qrScannerOverlay) {
+        this.closeScanner();
+      }
+    });
+    
+    // Prevenir gestos de zoom en el escáner
+    this.qrReader.addEventListener('gesturestart', (e) => e.preventDefault());
+    this.qrReader.addEventListener('gesturechange', (e) => e.preventDefault());
+    this.qrReader.addEventListener('gestureend', (e) => e.preventDefault());
   }
 
   async openScanner() {
@@ -47,16 +83,29 @@ class QRScanner {
       // Ocultar teclado si está visible
       this.barcodeInput.blur();
       
-      // Inicializar escáner
-      await this.initScanner();
+      // Limpiar contenedor anterior
+      this.qrReader.innerHTML = '';
+      
+      // Mostrar loading
+      this.showLoading();
+      
+      // Inicializar escáner después de un breve retraso
+      setTimeout(async () => {
+        try {
+          await this.initScanner();
+        } catch (error) {
+          console.error('Error al iniciar escáner:', error);
+          this.showError('Error al iniciar la cámara');
+          this.closeScanner();
+        }
+      }, 300);
       
       // Actualizar estado
-      this.statusDiv.className = 'loading';
-      this.statusDiv.innerHTML = '<i class="fas fa-qrcode fa-spin"></i> ESCANEANDO QR...';
+      this.updateStatus('loading', '<i class="fas fa-qrcode fa-spin"></i> INICIANDO ESCÁNER...');
       
     } catch (error) {
       console.error('Error al abrir escáner:', error);
-      this.showError('No se pudo acceder a la cámara');
+      this.showError('No se pudo abrir el escáner');
       this.closeScanner();
     }
   }
@@ -66,43 +115,59 @@ class QRScanner {
       // Crear nuevo escáner
       this.scanner = new Html5Qrcode(this.qrReader.id);
       
+      // Configuración del escáner
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 2
+      };
+      
       // Obtener cámaras disponibles
       const devices = await Html5Qrcode.getCameras();
       
       if (devices && devices.length > 0) {
         this.cameras = devices;
         
-        // Usar cámara trasera por defecto si está disponible
+        // Encontrar cámara trasera por defecto
+        let cameraId = devices[0].id;
+        
+        // Priorizar cámara trasera
         const backCamera = devices.find(device => 
           device.label.toLowerCase().includes('back') || 
           device.label.toLowerCase().includes('rear') ||
           device.label.toLowerCase().includes('environment')
         );
         
-        const cameraId = backCamera ? backCamera.id : devices[0].id;
+        if (backCamera) {
+          cameraId = backCamera.id;
+          this.cameraIndex = devices.findIndex(d => d.id === backCamera.id);
+        }
+        
         this.currentCameraId = cameraId;
         
+        // Quitar loading
+        this.hideLoading();
+        
         // Iniciar escaneo
-        await this.startScanning(cameraId);
+        await this.startScanning(cameraId, config);
+        
       } else {
         throw new Error('No se encontraron cámaras disponibles');
       }
       
     } catch (error) {
       console.error('Error al inicializar escáner:', error);
+      this.hideLoading();
       throw error;
     }
   }
 
-  async startScanning(cameraId) {
+  async startScanning(cameraId, config) {
     try {
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        rememberLastUsedCamera: false
-      };
-
       await this.scanner.start(
         cameraId,
         config,
@@ -114,6 +179,9 @@ class QRScanner {
       
       // Crear indicador visual de escaneo
       this.createScanIndicator();
+      
+      // Actualizar estado
+      this.updateStatus('ready', '<i class="fas fa-camera"></i> ESCANEANDO...');
       
     } catch (error) {
       console.error('Error al iniciar escaneo:', error);
@@ -131,7 +199,21 @@ class QRScanner {
     // Crear nuevo indicador
     const indicator = document.createElement('div');
     indicator.className = 'scan-indicator';
-    indicator.innerHTML = '<div class="scan-line"></div>';
+    
+    // Agregar línea de escaneo
+    const scanLine = document.createElement('div');
+    scanLine.className = 'scan-line';
+    
+    // Agregar esquinas
+    const cornerTR = document.createElement('div');
+    cornerTR.className = 'corner-tr';
+    
+    const cornerBL = document.createElement('div');
+    cornerBL.className = 'corner-bl';
+    
+    indicator.appendChild(scanLine);
+    indicator.appendChild(cornerTR);
+    indicator.appendChild(cornerBL);
     
     // Crear mensaje
     const message = document.createElement('div');
@@ -143,7 +225,7 @@ class QRScanner {
   }
 
   onScanSuccess(decodedText) {
-    console.log('QR escaneado:', decodedText);
+    console.log('✅ QR escaneado:', decodedText);
     
     // Reproducir sonido de éxito
     this.playScanSuccessSound();
@@ -155,34 +237,46 @@ class QRScanner {
     }
     
     // Actualizar estado
-    this.statusDiv.className = 'ready';
-    this.statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> QR ESCANEADO';
+    this.updateStatus('success', '<i class="fas fa-check-circle"></i> QR DETECTADO');
     
     // Insertar código en el input
     this.barcodeInput.value = decodedText;
-    this.barcodeInput.focus();
     
-    // Simular evento input para procesar el código
-    const inputEvent = new Event('input', { bubbles: true });
-    this.barcodeInput.dispatchEvent(inputEvent);
+    // Cerrar escáner inmediatamente
+    this.closeScanner();
     
-    // Cerrar escáner después de un breve retraso
+    // Procesar el código después de cerrar el escáner
     setTimeout(() => {
-      this.closeScanner();
-    }, 1000);
+      // Simular entrada del usuario
+      const inputEvent = new Event('input', { bubbles: true });
+      this.barcodeInput.dispatchEvent(inputEvent);
+      
+      // Enfocar el input
+      this.barcodeInput.focus();
+      
+      // Limpiar después de procesar
+      setTimeout(() => {
+        this.barcodeInput.value = '';
+      }, 100);
+    }, 300);
   }
 
   onScanError(errorMessage) {
-    // Solo mostrar errores importantes
-    if (!errorMessage.includes('NotFoundException') && 
-        !errorMessage.includes('NotAllowedError')) {
-      console.warn('Error de escaneo:', errorMessage);
+    // Ignorar errores de "no se encontró código QR"
+    if (errorMessage.includes('NotFoundException')) {
+      return;
+    }
+    
+    // Mostrar otros errores importantes
+    if (!errorMessage.includes('NotAllowedError') && 
+        !errorMessage.includes('NotReadableError')) {
+      console.warn('⚠️ Error de escaneo:', errorMessage);
     }
   }
 
   async toggleCamera() {
     if (this.cameras.length < 2) {
-      this.showError('Solo hay una cámara disponible');
+      this.showToast('Solo hay una cámara disponible', 'warning');
       return;
     }
     
@@ -198,15 +292,56 @@ class QRScanner {
       const nextCameraId = this.cameras[this.cameraIndex].id;
       this.currentCameraId = nextCameraId;
       
+      // Actualizar botón
+      this.updateToggleButton();
+      
       // Reiniciar escaneo con nueva cámara
-      await this.startScanning(nextCameraId);
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      };
+      
+      await this.startScanning(nextCameraId, config);
       
       // Mostrar mensaje
-      this.showMessage(`Cámara: ${this.cameras[this.cameraIndex].label}`);
+      const cameraName = this.getCameraName(this.cameras[this.cameraIndex].label);
+      this.showToast(`Cámara: ${cameraName}`, 'info');
       
     } catch (error) {
       console.error('Error al cambiar cámara:', error);
-      this.showError('Error al cambiar cámara');
+      this.showToast('Error al cambiar cámara', 'error');
+    }
+  }
+
+  getCameraName(label) {
+    if (label.toLowerCase().includes('back') || label.toLowerCase().includes('rear')) {
+      return 'Trasera';
+    } else if (label.toLowerCase().includes('front') || label.toLowerCase().includes('user')) {
+      return 'Frontal';
+    }
+    
+    // Extraer nombre corto
+    const match = label.match(/Camera (\d+)|\((.*?)\)/);
+    if (match && match[1]) {
+      return match[1];
+    } else if (match && match[2]) {
+      return match[2];
+    }
+    
+    return label.substring(0, 20);
+  }
+
+  updateToggleButton() {
+    const icon = this.toggleCameraBtn.querySelector('i');
+    if (this.cameraIndex % 2 === 0) {
+      // Cámara trasera -> mostrar icono de cambiar a frontal
+      icon.className = 'fas fa-camera';
+      this.toggleCameraBtn.title = 'Cambiar a cámara frontal';
+    } else {
+      // Cámara frontal -> mostrar icono de cambiar a trasera
+      icon.className = 'fas fa-camera-rotate';
+      this.toggleCameraBtn.title = 'Cambiar a cámara trasera';
     }
   }
 
@@ -221,27 +356,22 @@ class QRScanner {
       // Limpiar escáner
       this.scanner = null;
       
-      // Limpiar indicadores visuales
-      const indicator = document.querySelector('.scan-indicator');
-      const message = document.querySelector('.scan-message');
-      if (indicator) indicator.remove();
-      if (message) message.remove();
+      // Limpiar contenedor
+      this.qrReader.innerHTML = '';
       
       // Ocultar modal
       this.qrScannerModal.style.display = 'none';
       this.qrScannerOverlay.style.display = 'none';
       
-      // Limpiar contenedor del lector
-      this.qrReader.innerHTML = '';
+      // Restaurar estado normal
+      this.updateStatus('ready', '<i class="fas fa-check-circle"></i> SISTEMA LISTO');
       
-      // Restaurar foco al input
+      // Restaurar foco al input después de un breve retraso
       setTimeout(() => {
-        this.barcodeInput.focus();
-      }, 300);
-      
-      // Actualizar estado
-      this.statusDiv.className = 'ready';
-      this.statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> SISTEMA LISTO';
+        if (this.barcodeInput) {
+          this.barcodeInput.focus();
+        }
+      }, 400);
       
     } catch (error) {
       console.error('Error al cerrar escáner:', error);
@@ -252,8 +382,32 @@ class QRScanner {
     }
   }
 
+  showLoading() {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'qr-scanner-loading';
+    loadingDiv.innerHTML = `
+      <i class="fas fa-spinner fa-spin"></i>
+      <p style="margin: 0; font-size: 14px;">Iniciando cámara...</p>
+    `;
+    this.qrReader.appendChild(loadingDiv);
+  }
+
+  hideLoading() {
+    const loadingDiv = this.qrReader.querySelector('.qr-scanner-loading');
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
+  }
+
   playScanSuccessSound() {
     try {
+      // Usar el sistema de sonido existente si está disponible
+      if (typeof playSuccessSound === 'function') {
+        playSuccessSound();
+        return;
+      }
+      
+      // Fallback: crear sonido simple
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -263,7 +417,7 @@ class QRScanner {
       
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
-      gainNode.gain.value = 0.3;
+      gainNode.gain.value = 0.2;
       
       oscillator.start();
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
@@ -274,63 +428,60 @@ class QRScanner {
     }
   }
 
-  showError(message) {
-    // Mostrar mensaje de error temporal
-    const errorDiv = document.createElement('div');
-    errorDiv.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--danger);
-      color: white;
-      padding: 15px 25px;
-      border-radius: 12px;
-      z-index: 10002;
-      font-weight: 600;
-      box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
-      animation: fade-in 0.3s ease-out;
-    `;
-    errorDiv.textContent = message;
+  updateStatus(type, html) {
+    if (!this.statusDiv) return;
     
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(() => {
-      if (errorDiv.parentNode) {
-        errorDiv.parentNode.removeChild(errorDiv);
-      }
-    }, 3000);
+    this.statusDiv.className = type;
+    this.statusDiv.innerHTML = html;
   }
 
-  showMessage(message) {
-    // Mostrar mensaje informativo temporal
-    const messageDiv = document.createElement('div');
-    messageDiv.style.cssText = `
+  showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'queue-toast show';
+    toast.style.cssText = `
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--primary);
+      background: ${type === 'error' ? 'var(--danger)' : 
+                   type === 'warning' ? 'var(--warning)' : 
+                   type === 'success' ? 'var(--success)' : 
+                   'var(--primary)'};
       color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
       z-index: 10002;
       font-weight: 600;
-      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
-      animation: slide-down 0.3s ease-out;
+      box-shadow: var(--shadow-floating);
+      animation: slideDown 0.3s ease-out;
     `;
-    messageDiv.textContent = message;
     
-    document.body.appendChild(messageDiv);
+    const icon = type === 'error' ? 'exclamation-circle' :
+                 type === 'warning' ? 'exclamation-triangle' :
+                 type === 'success' ? 'check-circle' : 'info-circle';
+    
+    toast.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+    
+    document.body.appendChild(toast);
     
     setTimeout(() => {
-      if (messageDiv.parentNode) {
-        messageDiv.parentNode.removeChild(messageDiv);
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }
-    }, 2000);
+    }, 3000);
   }
 
-  // Método para escanear programáticamente (desde otros módulos)
+  showError(message) {
+    this.showToast(message, 'error');
+  }
+
+  // Método público para escanear programáticamente
   scanQRCode() {
     this.openScanner();
   }
@@ -339,29 +490,44 @@ class QRScanner {
   isScannerAvailable() {
     return typeof Html5Qrcode !== 'undefined';
   }
-
-  // Método para obtener el último código escaneado
-  getLastScannedCode() {
-    return this.barcodeInput ? this.barcodeInput.value : '';
-  }
 }
 
 // Inicializar escáner QR cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
   // Esperar a que se cargue completamente la aplicación
-  setTimeout(() => {
+  const initScanner = () => {
     if (typeof Html5Qrcode !== 'undefined') {
-      window.qrScanner = new QRScanner();
-      console.log('Escáner QR inicializado correctamente');
+      try {
+        window.qrScanner = new QRScanner();
+        console.log('✅ Escáner QR inicializado correctamente');
+        
+        // Asegurar que el icono sea visible y funcional
+        const qrIcon = document.getElementById('qrScannerIcon');
+        if (qrIcon) {
+          qrIcon.style.display = 'inline-block';
+          qrIcon.style.cursor = 'pointer';
+          qrIcon.style.transition = 'color 0.2s';
+        }
+      } catch (error) {
+        console.error('❌ Error al inicializar escáner QR:', error);
+      }
     } else {
-      console.warn('Biblioteca QR no cargada. El escáner no estará disponible.');
+      console.warn('⚠️ Biblioteca QR no cargada. El escáner no estará disponible.');
       // Ocultar icono de escáner si la biblioteca no está disponible
       const qrIcon = document.getElementById('qrScannerIcon');
       if (qrIcon) {
         qrIcon.style.display = 'none';
       }
     }
-  }, 1000);
+  };
+  
+  // Intentar inicializar inmediatamente
+  initScanner();
+  
+  // También intentar después de que se cargue completamente
+  if (document.readyState === 'complete') {
+    setTimeout(initScanner, 1000);
+  }
 });
 
 // Exponer funciones globales para uso externo
