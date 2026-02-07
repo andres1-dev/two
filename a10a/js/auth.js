@@ -25,14 +25,23 @@ function initAuth() {
         });
     }
 
-    // Verificar sesión existente
+    // Link recuperación
+    const forgotLinks = document.getElementById('forgotPasswordLink');
+    if (forgotLinks) {
+        forgotLinks.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRecoveryDialog();
+        });
+    }
+
+    // Checking session
     checkSession();
 }
 
 // Verificar si hay sesión activa
 function checkSession() {
     try {
-        const storedUser = localStorage.getItem(AUTH_KEY);
+        const storedUser = sessionStorage.getItem(AUTH_KEY);
         if (storedUser) {
             currentUser = JSON.parse(storedUser);
             console.log("Sesión restaurada para:", currentUser.nombre);
@@ -64,7 +73,7 @@ async function handleLogin(e) {
     const password = passInput.value.trim();
 
     if (!id || !password) {
-        showLoginError("Por favor ingrese ID y contraseña");
+        showLoginMessage("Por favor ingrese ID y contraseña", 'error');
         return;
     }
 
@@ -92,7 +101,7 @@ async function handleLogin(e) {
         if (result.success && result.user) {
             // Login exitoso
             currentUser = result.user;
-            localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+            sessionStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
 
             // Limpiar form
             idInput.value = '';
@@ -101,12 +110,12 @@ async function handleLogin(e) {
             // Iniciar app
             showApp();
         } else {
-            showLoginError(result.message || "Credenciales incorrectas");
+            showLoginMessage(result.message || "Credenciales incorrectas", 'error');
         }
 
     } catch (error) {
         console.error("Login error:", error);
-        showLoginError("Error de conexión. Intente nuevamente.");
+        showLoginMessage("Error de conexión. Intente nuevamente.", 'error');
     } finally {
         btnLogin.disabled = false;
         btnText.style.display = 'block';
@@ -115,10 +124,7 @@ async function handleLogin(e) {
 }
 
 function showLoginError(msg) {
-    const errorDiv = document.getElementById('loginError');
-    const errorSpan = errorDiv.querySelector('span');
-    errorSpan.textContent = msg;
-    errorDiv.style.display = 'flex';
+    showLoginMessage(msg, 'error');
 }
 
 function showLogin() {
@@ -161,7 +167,7 @@ function showApp() {
 
 function logout() {
     currentUser = null;
-    localStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(AUTH_KEY);
     window.location.reload();
 }
 
@@ -192,8 +198,79 @@ function updateDeleteButtonsVisibility() {
             btn.style.display = 'flex';
         }
     });
+}
 
-    // CSS global rule helper (opcional, pero mejor manejado por JS dinámico en renderizado)
+// Recuperación de contraseña (Directo al Email)
+async function showRecoveryDialog() {
+    const idInput = document.getElementById('loginId');
+    const id = idInput.value.trim();
+    const errorDiv = document.getElementById('loginError');
+
+    // Resetear error/success previo
+    if (errorDiv) errorDiv.style.display = 'none';
+
+    if (!id) {
+        showLoginMessage("Para recuperar tu contraseña, escribe tu ID en el campo de identificación.", "error");
+        idInput.focus();
+        return;
+    }
+
+    // Mostrar carga
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'recovery-loading';
+    loadingDiv.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;color:var(--primary);flex-direction:column;gap:15px;backdrop-filter:blur(5px);';
+    loadingDiv.innerHTML = '<i class="fas fa-paper-plane fa-bounce fa-3x"></i><span style="font-weight:700; font-size:1.2rem; color:var(--text-main);">Enviando correo...</span>';
+    document.body.appendChild(loadingDiv);
+
+    try {
+        const formData = new FormData();
+        formData.append('action', 'recover');
+        formData.append('id', id);
+        formData.append('method', 'email');
+
+        const response = await fetch(API_URL_POST, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        // Remover loading
+        if (loadingDiv.parentNode) document.body.removeChild(loadingDiv);
+
+        if (result.success) {
+            showLoginMessage('Contraseña enviada a tu correo registrado', 'success');
+        } else {
+            showLoginMessage(result.message || 'Error al recuperar contraseña', 'error');
+        }
+
+    } catch (error) {
+        if (document.getElementById('recovery-loading')) document.body.removeChild(document.getElementById('recovery-loading'));
+        console.error(error);
+        showLoginMessage('Error de conexión. Intenta nuevamente.', 'error');
+    }
+}
+
+function showLoginMessage(msg, type) {
+    const errorDiv = document.getElementById('loginError');
+    const errorSpan = errorDiv.querySelector('span');
+    const icon = errorDiv.querySelector('i');
+
+    errorSpan.textContent = msg;
+    errorDiv.style.display = 'flex';
+
+    if (type === 'success') {
+        errorDiv.style.background = '#dcfce7'; // green-100
+        errorDiv.style.color = '#15803d';      // green-700
+        errorDiv.style.border = '1px solid #86efac';// green-300
+        if (icon) icon.className = 'fas fa-check-circle';
+    } else {
+        // Estilo error (default / rojo)
+        errorDiv.style.background = '#fee2e2'; // red-100
+        errorDiv.style.color = '#b91c1c';      // red-700
+        errorDiv.style.border = '1px solid #fca5a5';// red-300
+        if (icon) icon.className = 'fas fa-exclamation-circle';
+    }
 }
 
 // Llamar al inicio
