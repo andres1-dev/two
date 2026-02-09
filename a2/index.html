@@ -45,6 +45,9 @@
   <!-- Upload Siesa Logic -->
   <script src="js/upload_siesa.js"></script>
 
+  <!-- Biblioteca para escanear QR -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
+
   <!-- Custom PC Styles for DataTables -->
   <style>
     /* Estilos para el módulo de historial */
@@ -649,7 +652,7 @@
           </div>
         </div>
         <div class="barcode-input-container">
-          <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
+          <i class="fa-solid fa-qrcode" id="qrScannerIcon" title="Escanear código QR"></i>
           <input type="text" id="barcode" autofocus placeholder="Escanear con PDA (Laser)...">
         </div>
         <div class="data-stats" id="data-stats">Esperando datos...</div>
