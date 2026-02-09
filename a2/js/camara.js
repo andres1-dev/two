@@ -379,7 +379,7 @@ function aplicarMarcaDeAgua(ctx, width, height) {
     if (typeof currentUser !== 'undefined' && currentUser && currentUser.nombre) {
         userName = currentUser.nombre;
     }
-    ctx.fillText(`Entregado por: ${userName}`, marginLeft, posY);
+    ctx.fillText(`${userName}`, marginLeft, posY);
     posY -= lineSpacing;
 
     // 3. Datos técnicos (FACTURA | LOTE | REF | CANT)
