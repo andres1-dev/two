@@ -176,22 +176,14 @@ class QRScanner {
           useBarCodeDetectorIfSupported: true
         },
 
-        // ✅ CONFIGURACIÓN AVANZADA DE VIDEO
+        // ✅ CONFIGURACIÓN COMPATIBLE CON IOS (PWA)
         videoConstraints: {
-          width: { min: 720, ideal: 1280, max: 1920 },  // Alta resolución
-          height: { min: 720, ideal: 1280, max: 1080 },
-          frameRate: { ideal: 30, max: 60 },  // Frame rate alto
+          width: { ideal: 1280 },  // Sin mínimos estrictos
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
 
-          // ✅ FORZAR CÁMARA TRASERA PRIMERO
-          facingMode: {
-            exact: "environment"  // Esto fuerza cámara trasera
-          },
-
-          // ✅ MEJORAR CALIDAD DE IMAGEN
-          advanced: [
-            { focusMode: "continuous" },  // Enfoque continuo
-            { whiteBalance: "continuous" }  // Balance de blancos automático
-          ]
+          // ✅ USAR IDEAL EN LUGAR DE EXACT PARA IOS
+          facingMode: { ideal: "environment" }
         }
       };
 
@@ -294,14 +286,14 @@ class QRScanner {
   // ✅ MÉTODO DE RESPALDO SI FALLA LA CONFIGURACIÓN EXACTA
   async initWithFallbackConfig() {
     try {
-      // Configuración más permisiva
+      // Configuración más permisiva (IOS SAFE)
       const fallbackConfig = {
         fps: 15,
-        qrbox: { width: 300, height: 300 },
-        aspectRatio: 1.333333,
-        rememberLastUsedCamera: true,
+        qrbox: 250,
+        aspectRatio: 1.0,
+        disableFlip: false,
         videoConstraints: {
-          facingMode: { ideal: "environment" }  // Ideal en lugar de exact
+          facingMode: "environment" // Simple string works best as fallback
         }
       };
 
