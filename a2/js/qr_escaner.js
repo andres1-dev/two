@@ -16,7 +16,7 @@ class QRScanner {
   }
 
   initElements() {
-    this.qrScannerIcon = document.getElementById('qrScannerIcon');
+    this.qrScannerIcon = document.getElementById('inputIcon');
     this.qrScannerModal = document.getElementById('qrScannerModal');
     this.qrScannerOverlay = document.getElementById('qrScannerOverlay');
     this.qrReader = document.getElementById('qrReader');
@@ -47,7 +47,9 @@ class QRScanner {
     if (this.qrScannerIcon) {
       this.qrScannerIcon.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openScanner();
+        if (typeof window.APP_MODE !== 'undefined' && window.APP_MODE === 'CAMERA') {
+          this.openScanner();
+        }
       });
     }
 

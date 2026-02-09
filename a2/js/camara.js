@@ -138,7 +138,8 @@ async function subirFoto() {
             fotoBase64: base64Data,
             fotoNombre: nombreArchivo,
             fotoTipo: 'image/jpeg',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            usuario: (typeof currentUser !== 'undefined' && currentUser && currentUser.nombre) ? currentUser.nombre : 'Desconocido'
         };
 
         // Agregar a la cola
@@ -468,7 +469,8 @@ async function subirFotoCapturada(blob) {
             fotoNombre: nombreArchivo,
             fotoTipo: 'image/jpeg',
             timestamp: new Date().toISOString(),
-            esSinFactura: esSinFactura // Pasar esta propiedad a la cola
+            esSinFactura: esSinFactura, // Pasar esta propiedad a la cola
+            usuario: (typeof currentUser !== 'undefined' && currentUser && currentUser.nombre) ? currentUser.nombre : 'Desconocido'
         };
 
         // Agregar a la cola
