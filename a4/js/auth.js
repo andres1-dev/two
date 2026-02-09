@@ -41,7 +41,8 @@ function initAuth() {
 // Verificar si hay sesión activa
 function checkSession() {
     try {
-        const storedUser = sessionStorage.getItem(AUTH_KEY);
+        // Cambiado de sessionStorage a localStorage para persistencia al cerrar app
+        const storedUser = localStorage.getItem(AUTH_KEY);
         if (storedUser) {
             currentUser = JSON.parse(storedUser);
             console.log("Sesión restaurada para:", currentUser.nombre);
@@ -101,7 +102,10 @@ async function handleLogin(e) {
         if (result.success && result.user) {
             // Login exitoso
             currentUser = result.user;
-            sessionStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+            localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+
+            // Inicializar tiempo de actividad
+            updateActivityTime();
 
             // Limpiar form
             idInput.value = '';
@@ -167,13 +171,81 @@ function showApp() {
         // Iniciar listeners normales de la app si no se han iniciado
         // (Esto se maneja en inicio.js, pero aseguramos foco)
         if (barcodeInput) barcodeInput.focus();
+
+        // Iniciar monitor de inactividad
+        initInactivityMonitoring();
     }
 }
 
 function logout() {
     currentUser = null;
-    sessionStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(ACTIVITY_KEY);
     window.location.reload();
+}
+
+// --- LOGICA DE INACTIVIDAD ---
+const ACTIVITY_KEY = 'last_activity_timestamp';
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 hora
+
+function updateActivityTime() {
+    localStorage.setItem(ACTIVITY_KEY, Date.now().toString());
+}
+
+let inactivityInterval = null;
+
+function initInactivityMonitoring() {
+    if (inactivityInterval) return; // Ya iniciado
+
+    // Actualizar timestamp al iniciar
+    updateActivityTime();
+
+    // Eventos que reinician el contador
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+
+    // Usar throttle para no escribir en localStorage constantemente
+    let lastUpdateStr = 0;
+
+    const recordActivity = () => {
+        const now = Date.now();
+        if (now - lastUpdateStr > 5000) { // Actualizar máximo cada 5 segundos
+            updateActivityTime();
+            lastUpdateStr = now;
+        }
+    };
+
+    activityEvents.forEach(evt => {
+        window.addEventListener(evt, recordActivity, { passive: true });
+    });
+
+    // Chequear inactividad cada minuto
+    inactivityInterval = setInterval(checkInactivity, 60000);
+}
+
+function checkInactivity() {
+    const lastActivity = parseInt(localStorage.getItem(ACTIVITY_KEY) || '0');
+    const now = Date.now();
+
+    // Si ha pasado el tiempo límite
+    if (now - lastActivity > INACTIVITY_LIMIT_MS) {
+
+        // VERIFICAR COLA DE CARGA
+        // Si hay elementos pendientes o procesando, NO cerrar sesión
+        if (window.uploadQueue) {
+            const hasPending = window.uploadQueue.queue.length > 0;
+            const isProcessing = window.uploadQueue.isProcessing;
+
+            if (hasPending || isProcessing) {
+                console.log("Inactividad detectada, pero hay elementos en cola. Sesión mantenida.");
+                // Opcional: Actualizar actividad para dar más tiempo sin checkear inmediatamente? 
+                // No, mejor dejamos que siga checkeando. Mientras haya cola, no cierra.
+                return;
+            }
+        }
+
+        console.log("Cerrando sesión por inactividad (> 1h)");
+        logout();
+    }
 }
 
 // Aplicar permisos según rol
