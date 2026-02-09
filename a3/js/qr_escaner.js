@@ -155,37 +155,50 @@ class QRScanner {
     try {
       if (!this.qrReader) throw new Error("No qrReader element found");
 
-      // ✅ CONFIGURACIÓN SUPER ROBUSTA
-      const config = {
-        fps: 30,  // MÁXIMA VELOCIDAD
-        qrbox: function (viewfinderWidth, viewfinderHeight) {
-          // Rectángulo dinámico más grande (80% del menor lado)
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          return {
-            width: Math.floor(minEdge * 0.85),
-            height: Math.floor(minEdge * 0.85)
-          };
-        },
-        aspectRatio: 1.333333,  // 4:3 - mejor para códigos QR
-        disableFlip: false,  // IMPORTANTE: permitir rotación para QR dañados
-        rememberLastUsedCamera: true,
+      // DETECCIÓN DE MODO PWA / SAFARI WEBAPP
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-        // ✅ USAR API NATIVA (BARCODE DETECTOR) SI ESTÁ DISPONIBLE
-        // Esto usa Google Play Services en Android -> MUCHO MÁS POTENTE
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true
-        },
+      let config;
 
-        // ✅ CONFIGURACIÓN COMPATIBLE CON IOS (PWA)
-        videoConstraints: {
-          width: { ideal: 1280 },  // Sin mínimos estrictos
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-
-          // ✅ USAR IDEAL EN LUGAR DE EXACT PARA IOS
-          facingMode: { ideal: "environment" }
-        }
-      };
+      if (isPWA && isIOS) {
+        // ⚠️ CONFIGURACIÓN SEGURA PARA IOS PWA (Evitar OverconstrainedError y Memory Limits)
+        console.log("Modo IOS PWA detectado: Usando configuración simplificada");
+        config = {
+          fps: 15, // Reducir FPS para ahorrar memoria
+          qrbox: 250, // Tamaño fijo seguro
+          aspectRatio: 1.0, // Ratio cuadrado estándar
+          disableFlip: false,
+          videoConstraints: {
+            facingMode: "environment", // String simple, no objeto
+            width: { ideal: 720 } // Resolución modesta
+          }
+        };
+      } else {
+        // ✅ CONFIGURACIÓN SUPER ROBUSTA (Para Navegadores Completos y Android)
+        config = {
+          fps: 30,  // MÁXIMA VELOCIDAD
+          qrbox: function (viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return {
+              width: Math.floor(minEdge * 0.85),
+              height: Math.floor(minEdge * 0.85)
+            };
+          },
+          aspectRatio: 1.333333,
+          disableFlip: false,
+          rememberLastUsedCamera: true,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          },
+          videoConstraints: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+            facingMode: { ideal: "environment" }
+          }
+        };
+      }
 
       // Obtener cámaras disponibles
       const devices = await Html5Qrcode.getCameras();
@@ -247,11 +260,12 @@ class QRScanner {
         // Quitar loading
         this.hideLoading();
 
-        // ✅ CONFIGURACIÓN ESPECIAL PARA QR DAÑADOS
-        const enhancedConfig = {
+        // ✅ CONFIGURACIÓN FINAL
+        // Si es PWA, respetamos la configuración simplificada
+        const enhancedConfig = (isPWA && isIOS) ? config : {
           ...config,
-          // Ajustes adicionales para códigos difíciles
-          qrbox: { width: 300, height: 300 }  // Área más grande
+          // Ajustes adicionales para códigos difíciles (solo en navegadores completos)
+          qrbox: { width: 300, height: 300 }
         };
 
         // Crear nuevo escáner
