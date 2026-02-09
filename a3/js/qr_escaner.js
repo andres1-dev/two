@@ -165,13 +165,13 @@ class QRScanner {
         // ⚠️ CONFIGURACIÓN SEGURA PARA IOS PWA (Evitar OverconstrainedError y Memory Limits)
         console.log("Modo IOS PWA detectado: Usando configuración simplificada");
         config = {
-          fps: 15, // Reducir FPS para ahorrar memoria
-          qrbox: 250, // Tamaño fijo seguro
+          fps: 25, // Aumentar FPS para mejorar velocidad (antes 15)
+          qrbox: 270, // Tamaño mejorado
           aspectRatio: 1.0, // Ratio cuadrado estándar
           disableFlip: false,
           videoConstraints: {
             facingMode: "environment", // String simple, no objeto
-            width: { ideal: 720 } // Resolución modesta
+            width: { ideal: 1080 } // Intentar más resolución (antes 720)
           }
         };
       } else {
