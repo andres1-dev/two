@@ -392,6 +392,21 @@ class QRScanner {
     } catch (error) {
       console.error('Error al iniciar escaneo:', error);
 
+      // GESTIÓN DE CONFLICTOS: Si la cámara está ocupada (posiblemente por camara.js manteniendo el stream)
+      if (error.name === 'NotReadableError' || error.toString().includes('NotReadableError') || error.toString().includes('Could not start video source')) {
+        console.warn('Cámara ocupada. Liberando stream global de camara.js y reintentando...');
+
+        if (typeof window.cameraStream !== 'undefined' && window.cameraStream) {
+          // Detener completamente el stream global para liberar el hardware
+          window.cameraStream.getTracks().forEach(track => track.stop());
+          window.cameraStream = null;
+
+          // Reintentar escaneo después de un breve respiro
+          setTimeout(() => this.startScanning(cameraId, config), 200);
+          return;
+        }
+      }
+
       // Si falla con cameraId, intentar con facingMode
       if (error.toString().includes('NotFoundError') || error.toString().includes('OverconstrainedError')) {
         console.log('Intentando con facingMode simple...');

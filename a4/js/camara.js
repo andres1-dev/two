@@ -19,7 +19,9 @@ function mostrarCamara() {
     const dummyInput = document.getElementById('dummyInput');
 
     // Ocultar teclado al abrir la cámara
-    barcodeInput.blur();
+    if (typeof barcodeInput !== 'undefined' && barcodeInput) {
+        barcodeInput.blur();
+    }
     document.activeElement.blur();
 
     // Forzar que no se muestre el teclado
@@ -29,6 +31,10 @@ function mostrarCamara() {
     }
 
     // Prevenir que cualquier elemento obtenga el foco mientras la cámara está abierta
+    if (typeof preventKeyboardTimer !== 'undefined') {
+        if (preventKeyboardTimer) clearInterval(preventKeyboardTimer);
+    }
+
     preventKeyboardTimer = setInterval(() => {
         if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.id !== 'dummyInput') {
             document.activeElement.blur();
@@ -39,6 +45,19 @@ function mostrarCamara() {
     cameraModal.style.display = 'flex';
     photoPreview.style.display = 'none';
     cameraFeed.style.display = 'block';
+
+    // VERIFICACIÓN DE STREAM EXISTENTE
+    if (typeof cameraStream !== 'undefined' && cameraStream && cameraStream.active) {
+        const tracks = cameraStream.getVideoTracks();
+        if (tracks.length > 0 && tracks[0].readyState === 'live') {
+            // Reactivar tracks
+            tracks.forEach(track => track.enabled = true);
+            cameraFeed.srcObject = cameraStream;
+            cameraFeed.play().catch(e => console.error("Error al reanudar video:", e));
+            configurarUIComun();
+            return;
+        }
+    }
 
     // Configurar cámara - usar cámara trasera por defecto
     navigator.mediaDevices.getUserMedia({
@@ -51,12 +70,18 @@ function mostrarCamara() {
         .then(stream => {
             cameraStream = stream;
             cameraFeed.srcObject = stream;
+            configurarUIComun();
         })
         .catch(error => {
             console.error("Error al acceder a la cámara:", error);
             alert("No se pudo acceder a la cámara. Por favor permite el acceso.");
             cerrarCamara();
         });
+}
+
+function configurarUIComun() {
+    const takePhotoBtn = document.getElementById('takePhotoBtn');
+    const cameraModal = document.getElementById('cameraModal');
 
     // Configurar botones
     takePhotoBtn.innerHTML = '<i class="fas fa-camera"></i> Tomar Foto';
@@ -218,9 +243,12 @@ function getFacturaData(factura) {
 
 // Función para cerrar la cámara
 function cerrarCamara() {
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
+    // MODIFICADO: Solo deshabilitar tracks en lugar de detenerlos para mantener permisos
+    if (typeof cameraStream !== 'undefined' && cameraStream) {
+        cameraStream.getVideoTracks().forEach(track => {
+            track.enabled = false;
+        });
+        // NO seteamos cameraStream = null
     }
 
     const cameraModal = document.getElementById('cameraModal');
@@ -241,7 +269,7 @@ function cerrarCamara() {
     // Restauramos el foco normal después de cerrar la cámara
     setTimeout(() => {
         const barcodeInput = document.getElementById('barcode');
-        barcodeInput.focus();
+        if (barcodeInput) barcodeInput.focus();
     }, 300);
 }
 
