@@ -88,11 +88,19 @@ function initQRListeners() {
             if (code.length < 5) return; // Un código válido debe tener al menos 5 caracteres
 
             // Analizar el formato del código: DOCUMENTO-NIT
+            if (window.isProcessingScan) return; // Prevent loop
+            window.isProcessingScan = true;
+
+            // Analizar el formato del código: DOCUMENTO-NIT
             const parts = parseQRCode(code);
 
             if (parts) {
                 currentQRParts = parts; // Guardar las partes para uso posterior
                 const startTime = Date.now();
+
+                // Clear input immediately to prevent re-trigger
+                this.value = '';
+
                 processQRCodeParts(parts);
                 const searchTime = Date.now() - startTime;
 
@@ -104,12 +112,17 @@ function initQRListeners() {
                 showError(code, "Formato de código QR no válido. Use formato: DOCUMENTO-NIT");
                 playErrorSound();
                 if (statusDiv) statusDiv.textContent = `FORMATO INVÁLIDO`;
+
+                setTimeout(() => {
+                    this.value = '';
+                }, 500);
             }
 
+            // Reset processing flag after a delay
             setTimeout(() => {
-                this.value = '';
+                window.isProcessingScan = false;
                 this.focus();
-            }, 50);
+            }, 1000);
         });
     }
 
