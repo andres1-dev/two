@@ -825,7 +825,7 @@ function initSettingsUI() {
             return;
         }
 
-        modal.style.display = 'block';
+        modal.style.display = 'flex'; // Changed from 'block' to 'flex' to preserve CSS flex layout
         setTimeout(() => modal.classList.add('active'), 10);
 
         if (overlay && modal.id === 'settingsModal') overlay.style.display = 'block';

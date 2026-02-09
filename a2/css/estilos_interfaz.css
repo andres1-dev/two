@@ -1168,6 +1168,16 @@
     flex-direction: column;
 }
 
+.settings-body,
+.manual-body {
+    padding: 24px;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+
 @keyframes modal-pop {
     from {
         opacity: 0;
@@ -1221,16 +1231,7 @@
     color: var(--danger);
 }
 
-.settings-body,
-.manual-body {
-    padding: 24px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    flex: 1;
-    -webkit-overflow-scrolling: touch;
-    /* Smooth scroll on iOS */
-    touch-action: pan-y;
-}
+/* Removed redundant block */
 
 /* Toggle Switch */
 .setting-item {
