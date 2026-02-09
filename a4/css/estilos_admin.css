@@ -10,7 +10,7 @@
     height: 85vh;
     background: var(--surface);
     border-radius: 20px;
-    box-shadow: var(--shadow-floating);
+    /*box-shadow: var(--shadow-floating);*/
     z-index: 10005;
     flex-direction: column;
     overflow: hidden;

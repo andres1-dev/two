@@ -74,7 +74,7 @@ body {
   background-color: var(--background);
   position: relative;
   overflow: visible;
-  box-shadow: var(--shadow-floating);
+  /*box-shadow: var(--shadow-floating);*/
   display: flex;
   flex-direction: column;
   margin: 0 auto;
