@@ -157,10 +157,14 @@ class QRScanner {
 
       // ✅ CONFIGURACIÓN SUPER ROBUSTA
       const config = {
-        fps: 15,  // Balance óptimo entre velocidad y procesamiento
-        qrbox: {
-          width: 280,  // Área grande para facilitar detección
-          height: 280
+        fps: 30,  // MÁXIMA VELOCIDAD
+        qrbox: function (viewfinderWidth, viewfinderHeight) {
+          // Rectángulo dinámico más grande (80% del menor lado)
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          return {
+            width: Math.floor(minEdge * 0.85),
+            height: Math.floor(minEdge * 0.85)
+          };
         },
         aspectRatio: 1.333333,  // 4:3 - mejor para códigos QR
         disableFlip: false,  // IMPORTANTE: permitir rotación para QR dañados
@@ -174,8 +178,8 @@ class QRScanner {
 
         // ✅ CONFIGURACIÓN AVANZADA DE VIDEO
         videoConstraints: {
-          width: { min: 640, ideal: 1280, max: 1920 },  // Alta resolución
-          height: { min: 480, ideal: 960, max: 1080 },
+          width: { min: 720, ideal: 1280, max: 1920 },  // Alta resolución
+          height: { min: 720, ideal: 1280, max: 1080 },
           frameRate: { ideal: 30, max: 60 },  // Frame rate alto
 
           // ✅ FORZAR CÁMARA TRASERA PRIMERO
@@ -259,7 +263,12 @@ class QRScanner {
         };
 
         // Crear nuevo escáner
-        this.scanner = new Html5Qrcode(this.qrReader.id);
+        // Crear nuevo escáner OPTIMIZADO PARA QR
+        // Restringir formatos mejora drásticamente el rendimiento
+        this.scanner = new Html5Qrcode(this.qrReader.id, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false
+        });
 
         // Iniciar escaneo
         await this.startScanning(cameraId, enhancedConfig);
@@ -302,8 +311,10 @@ class QRScanner {
         this.qrReader.style.backgroundColor = '#000';
       }
 
-      // Crear nuevo escáner
-      this.scanner = new Html5Qrcode(this.qrReader.id);
+      // Crear nuevo escáner (Fallback)
+      this.scanner = new Html5Qrcode(this.qrReader.id, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+      });
 
       // Usar facingMode como string directamente
       await this.scanner.start(
@@ -396,39 +407,34 @@ class QRScanner {
   onScanSuccess(decodedText) {
     console.log('✅ QR escaneado:', decodedText);
 
-    // Limpiar timeout
+    // 1. CERRAR ESCÁNER INMEDIATAMENTE (Prioridad Máxima)
+    this.closeScanner().catch(err => console.warn("Error background closing:", err));
+
+    // 2. Limpiar timeout
     if (this.scanTimeout) clearTimeout(this.scanTimeout);
 
-    // Reproducir sonido de éxito
-    this.playScanSuccessSound();
-
-    // Efecto visual de éxito
-    this.showScanSuccessEffect();
-
-    // Insertar código en el input
+    // 3. Insertar código en el input INMEDIATAMENTE
     if (this.barcodeInput) {
       this.barcodeInput.value = decodedText;
     }
 
-    // Cerrar escáner inmediatamente
-    this.closeScanner();
+    // 4. Reproducir sonido y feedback visual (sin bloquear)
+    this.playScanSuccessSound();
 
-    // Procesar el código después de cerrar el escáner
+    // 5. Procesar el código (Pequeño delay para permitir que el UI se renderice cerrado)
     setTimeout(() => {
       if (this.barcodeInput) {
-        // Simular entrada del usuario
+        // Disparar eventos
         const inputEvent = new Event('input', { bubbles: true });
         this.barcodeInput.dispatchEvent(inputEvent);
 
-        // Enfocar el input
+        // Enfocar para siguiente lectura
         this.barcodeInput.focus();
 
-        // Limpiar después de procesar
-        setTimeout(() => {
-          this.barcodeInput.value = '';
-        }, 100);
+        // Limpiar input visualmente (opcional, depende de lógica de negocio)
+        // setTimeout(() => { this.barcodeInput.value = ''; }, 100); 
       }
-    }, 300);
+    }, 50);
   }
 
   onScanError(errorMessage) {
