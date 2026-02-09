@@ -1,0 +1,440 @@
+/* Estilos específicos para Desktop (PC) */
+@media (min-width: 1024px) {
+
+    /* --- LAYOUT PRINCIPAL --- */
+    body {
+        display: flex;
+        align-items: stretch;
+        background: #f1f5f9;
+        padding: 0;
+        overflow: hidden;
+        /* Evitar scroll en body general en PC */
+    }
+
+    /* Sidebar - Solo visible en Desktop */
+    #desktopSidebar {
+        display: flex !important;
+        flex-direction: column;
+        width: 70px;
+        /* Collapsed width */
+        background: white;
+        border-right: 1px solid var(--border);
+        height: 100vh;
+        z-index: 100;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-x: hidden;
+        white-space: nowrap;
+    }
+
+    #desktopSidebar:hover {
+        width: 260px;
+        /* Expanded width */
+    }
+
+    #desktopSidebar .sidebar-header {
+        padding: 24px 14px;
+        /* Adjusted padding */
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid var(--border-light);
+        height: 85px;
+        /* Fixed height for consistency */
+        box-sizing: border-box;
+    }
+
+    #desktopSidebar .sidebar-logo {
+        min-width: 40px;
+        /* Prevent shrinking */
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    #desktopSidebar .sidebar-title {
+        opacity: 0;
+        /* Hide by default */
+        transition: opacity 0.2s;
+        transition-delay: 0.1s;
+    }
+
+    #desktopSidebar:hover .sidebar-title {
+        opacity: 1;
+        /* Show on hover */
+    }
+
+    #desktopSidebar .sidebar-title h1 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-main);
+    }
+
+    #desktopSidebar .sidebar-title p {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    #desktopSidebar .sidebar-nav {
+        flex: 1;
+        padding: 24px 10px;
+        /* Reduced padding */
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px;
+        width: 100%;
+        border-radius: 12px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        background: transparent;
+        text-align: left;
+        justify-content: flex-start;
+        box-sizing: border-box;
+    }
+
+    .nav-item:hover {
+        background: var(--background);
+        color: var(--text-main);
+    }
+
+    .nav-item.active {
+        background: var(--primary-soft);
+        color: var(--primary-dark);
+        border-color: rgba(37, 99, 235, 0.1);
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        min-width: 24px;
+        /* Fixed width for icon */
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav-item span {
+        opacity: 0;
+        transition: opacity 0.2s;
+        white-space: nowrap;
+    }
+
+    #desktopSidebar:hover .nav-item span {
+        opacity: 1;
+        transition-delay: 0.1s;
+    }
+
+    #desktopSidebar .sidebar-footer {
+        padding: 20px 10px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .user-mini-profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px;
+        background: transparent;
+        /* Cleaner look when collapsed */
+        border-radius: 12px;
+        transition: background 0.2s;
+    }
+
+    #desktopSidebar:hover .user-mini-profile {
+        background: var(--background);
+    }
+
+    .user-avatar-mini {
+        min-width: 36px;
+        width: 36px;
+        height: 36px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .user-mini-profile>div:nth-child(2) {
+        opacity: 0;
+        transition: opacity 0.2s;
+        width: 0;
+        display: none;
+        /* Hide via display to avoid layout issues */
+    }
+
+    #desktopSidebar:hover .user-mini-profile>div:nth-child(2) {
+        opacity: 1;
+        width: auto;
+        display: block;
+        transition-delay: 0.1s;
+    }
+
+    .user-mini-profile button {
+        display: none;
+        /* Hide logout button when collapsed */
+    }
+
+    #desktopSidebar:hover .user-mini-profile button {
+        display: block;
+    }
+
+    /* --- CONTENIDO PRINCIPAL --- */
+    #app-frame {
+        flex: 1;
+        width: calc(100% - 80px);
+        /* Adjust width based on collapsed sidebar */
+        max-width: none;
+        height: 100vh;
+        max-height: 100vh;
+        border: none;
+        border-radius: 0;
+        background: #f8fafc;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Optional: Animate content width */
+    }
+
+    /* Adaptar Scanner para que ocupe todo */
+    #scanner {
+        padding: 40px;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .app-header {
+        background: transparent;
+        border-bottom: none;
+        box-shadow: none;
+        padding: 0 0 20px 0;
+    }
+
+    /* Ocultar elementos móviles en desktop */
+    #openSettingsBtn {
+        display: none;
+    }
+
+    /* Configuración ahora está en sidebar */
+
+    /* VISTAS COMO PÁGINAS (Transformar Modales) */
+
+    /* Helper class para activar vista desktop */
+    .desktop-view-active {
+        display: flex !important;
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        animation: none !important;
+        padding: 40px;
+        overflow-y: auto;
+    }
+
+    /* Admin Modal a Panel */
+    #userAdminModal.desktop-view-active .user-admin-header {
+        background: transparent;
+        padding: 0 0 24px 0;
+        border-bottom: 2px solid var(--border-light);
+    }
+
+    #userAdminModal.desktop-view-active .user-admin-header h3 {
+        font-size: 1.5rem;
+    }
+
+    #userAdminModal.desktop-view-active .close-btn {
+        display: none;
+    }
+
+    #userAdminModal.desktop-view-active .user-admin-toolbar {
+        background: transparent;
+        padding: 20px 0;
+        border: none;
+    }
+
+    #userAdminModal.desktop-view-active .user-list-container {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+
+    /* Settings Modal a Panel */
+    /* Settings Modal "Native" Page Look */
+    #settingsModal.desktop-view-active {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 40px;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        overflow-y: auto;
+        transform: none !important;
+        animation: none !important;
+    }
+
+    #settingsModal.desktop-view-active .settings-header {
+        background: transparent;
+        padding: 0 0 30px 0;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #settingsModal.desktop-view-active .settings-header h3 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        letter-spacing: -0.5px;
+    }
+
+    #settingsModal.desktop-view-active .close-btn {
+        display: none;
+    }
+
+    /* Container for settings content in Desktop */
+    #settingsModal.desktop-view-active .settings-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 24px;
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* Cards for settings groups */
+    #settingsModal.desktop-view-active .setting-item {
+        background: white;
+        padding: 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        height: fit-content;
+        margin-bottom: 0 !important;
+        /* Override inline styles if any */
+        border-bottom: 1px solid var(--border) !important;
+        /* Reset border styles */
+    }
+
+    /* Estilo especial para la tarjeta de modos */
+    #settingsModal.desktop-view-active .setting-item:first-of-type {
+        grid-column: 1 / -1;
+        /* Ocupar todo el ancho */
+    }
+
+    #settingsModal.desktop-view-active .setting-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    #settingsModal.desktop-view-active .setting-desc {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    #settingsModal.desktop-view-active .settings-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 40px 0;
+        grid-column: 1 / -1;
+        background: transparent;
+        border-top: 2px solid rgba(0, 0, 0, 0.06);
+        margin-top: 20px;
+    }
+
+    #settingsModal.desktop-view-active .btn-save {
+        width: auto;
+        padding: 12px 40px;
+        font-size: 1rem;
+        border-radius: 12px;
+        background: var(--primary);
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    #settingsModal.desktop-view-active .btn-save:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Layout grid adjustments for Mode Cards */
+    #settingsModal.desktop-view-active .mode-selection-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    /* Ocultar overlays de modales transformados */
+    #settingsOverlay {
+        display: none !important;
+    }
+
+    /* #userFormModalOverlay se mantiene visible por defecto cuando está activo */
+
+    /* Pero User Form modal (popup dentro de admin) debe seguir siendo modal */
+    .user-form-modal-overlay {
+        position: fixed !important;
+        /* Forzar fixed */
+        z-index: 10010;
+    }
+
+    /* Ocultar botones redundantes en settings */
+    #adminSection {
+        display: none !important;
+    }
+
+    /* Layout Login PC */
+    #login-screen {
+        background: #f8fafc;
+    }
+
+    #login-screen .login-container {
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border);
+    }
+}
