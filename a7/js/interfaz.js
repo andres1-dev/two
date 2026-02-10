@@ -689,15 +689,9 @@ function initUIListeners() {
 
         // Start Default
         setMode('PDA');
-
-        // Hook into settings save
-        const saveBtn = document.getElementById('saveSettingsBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                setTimeout(updateClientBadge, 100);
-            });
-        }
     }
+
+
 
 
     // Manejar el cambio de orientación en dispositivos móviles
@@ -745,7 +739,7 @@ function initSettingsUI() {
     const modal = document.getElementById('settingsModal');
     const closeBtn = document.getElementById('closeSettingsBtn');
     const overlay = document.getElementById('settingsOverlay');
-    const saveBtn = document.getElementById('saveSettingsBtn');
+
     const clientSelect = document.getElementById('clientSelect');
 
     // Toggles
@@ -863,29 +857,39 @@ function initSettingsUI() {
     closeBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', closeModal);
 
-    // Toggle Logic
-    filterToggle.addEventListener('change', (e) => {
-        clientContainer.style.display = e.target.checked ? 'block' : 'none';
-    });
-
-    // Save Logic
-    saveBtn.addEventListener('click', () => {
+    // Lógica de Auto-Guardado y UI Inmediata
+    const updateSettings = () => {
         USER_SETTINGS.persistentFocus = focusToggle.checked;
         USER_SETTINGS.filterEnabled = filterToggle.checked;
         USER_SETTINGS.selectedClient = clientSelect.value;
 
         saveUserSettings();
 
-        // Update display needed?
-        if (USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient) {
-            document.getElementById('status').textContent = `FILTRO: ${USER_SETTINGS.selectedClient.substring(0, 15)}...`;
-        } else {
-            document.getElementById('status').textContent = 'Sistema Listo';
+        // Actualizar estado visual
+        const statusEl = document.getElementById('status');
+        if (statusEl) {
+            if (USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient) {
+                statusEl.textContent = `FILTRO: ${USER_SETTINGS.selectedClient.substring(0, 15)}...`;
+            } else {
+                statusEl.textContent = 'Sistema Listo';
+            }
         }
 
-        closeModal();
+        // Actualizar UI global si es necesario
+        if (typeof window.updateUserUI === 'function') window.updateUserUI();
+    };
 
-        // Show success toast?
-        // alert("Configuración guardada");
-    });
+    // Listeners para cambios inmediatos
+    if (focusToggle) focusToggle.addEventListener('change', updateSettings);
+
+    if (filterToggle) {
+        filterToggle.addEventListener('change', (e) => {
+            // Mostrar/Ocultar dropdown inmediatamente
+            if (clientContainer) clientContainer.style.display = e.target.checked ? 'block' : 'none';
+            // Guardar cambio
+            updateSettings();
+        });
+    }
+
+    if (clientSelect) clientSelect.addEventListener('change', updateSettings);
 }

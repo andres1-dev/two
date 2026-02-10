@@ -148,28 +148,3 @@ button {
     max-height: 80vh;
   }
 }
-
-/* FUERZA BRUTA: SIEMPRE PORTRAIT
-   Si el dispositivo ignora el bloqueo de JS y rota la pantalla,
-   esto rota visualmente la interfaz para que siempre se vea vertical
-   respecto al dispositivo físico.
-*/
-@media screen and (orientation: landscape) {
-  html {
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
-  }
-
-  body {
-    height: 100vw;
-    /* Ajuste para el contenido */
-    width: 100vh;
-    overflow-y: auto;
-  }
-}
