@@ -64,7 +64,7 @@ body {
   align-items: flex-start;
   min-height: 100vh;
   overflow-y: auto;
-  padding: 0;
+  padding: 20px 0;
 }
 
 /* MARCO PRINCIPAL DE LA APLICACION (App Frame) */
@@ -73,14 +73,11 @@ body {
   max-width: var(--app-width);
   background-color: var(--background);
   position: relative;
-  overflow: hidden;
-  /* Important for sticky header inside */
+  overflow: visible;
   /*box-shadow: var(--shadow-floating);*/
   display: flex;
   flex-direction: column;
   margin: 0 auto;
-  height: 100vh;
-  /* Full height */
 }
 
 /* Escritorio: Añadir margen y bordes redondeados al frame completo */

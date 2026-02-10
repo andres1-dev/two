@@ -44,10 +44,31 @@ USER_SETTINGS.persistentFocus = false;
 
 function saveUserSettings() {
     try {
-        // Guardamos todo para mantener otras prefs, pero al cargar se ignora el focus
-        localStorage.setItem('pdaUserSettings', JSON.stringify(USER_SETTINGS));
+        // Crear copia para guardar
+        const settingsToSave = { ...USER_SETTINGS };
+        // NO guardar persistentFocus (conflictivo)
+        delete settingsToSave.persistentFocus;
+
+        localStorage.setItem('pdaUserSettings', JSON.stringify(settingsToSave));
     } catch (e) {
         console.error("Error guardando configuración:", e);
+    }
+}
+
+// Guardar/Cargar Modo de App
+function saveAppMode(mode) {
+    try {
+        localStorage.setItem('pdaAppMode', mode);
+    } catch (e) {
+        console.error("Error guardando modo:", e);
+    }
+}
+
+function getSavedAppMode() {
+    try {
+        return localStorage.getItem('pdaAppMode') || 'PDA';
+    } catch (e) {
+        return 'PDA';
     }
 }
 

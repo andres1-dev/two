@@ -356,6 +356,8 @@ function initUIListeners() {
             }
 
             window.APP_MODE = mode;
+            // Guardar modo seleccionado
+            if (typeof saveAppMode === 'function') saveAppMode(mode);
 
             // Visual Updates (Grid Cards)
             document.querySelectorAll('.mode-option-card').forEach(b => b.classList.remove('active'));
@@ -687,8 +689,19 @@ function initUIListeners() {
             });
         }
 
-        // Start Default
-        setMode('PDA');
+        // Start Default: Recobrar modo anterior o PDA por defecto
+        const savedMode = (typeof getSavedAppMode === 'function') ? getSavedAppMode() : 'PDA';
+        // Verificar si se puede restaurar modo manual (cliente requerido)
+        if (savedMode === 'MANUAL') {
+            const hasClient = (typeof USER_SETTINGS !== 'undefined' && USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient);
+            if (hasClient) {
+                setMode('MANUAL');
+            } else {
+                setMode('PDA'); // Fallback
+            }
+        } else {
+            setMode(savedMode);
+        }
     }
 
 
@@ -869,7 +882,7 @@ function initSettingsUI() {
         const statusEl = document.getElementById('status');
         if (statusEl) {
             if (USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient) {
-                statusEl.textContent = `FILTRO: ${USER_SETTINGS.selectedClient.substring(0, 15)}...`;
+                statusEl.textContent = `${USER_SETTINGS.selectedClient.substring(0, 1000)}`;
             } else {
                 statusEl.textContent = 'Sistema Listo';
             }
