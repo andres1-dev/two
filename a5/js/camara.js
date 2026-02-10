@@ -516,41 +516,84 @@ async function subirFotoCapturada(blob) {
             const processingIcon = document.createElement('div');
             processingIcon.className = 'status-icon-only processing';
             processingIcon.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
-            // Mantener data-factura para que upload-queue pueda encontrarlo si es necesario (aunque el selector busca button, podriamos necesitar ajustar)
+            // Mantener data-factura para que upload-queue pueda encontrarlo si es necesario
             processingIcon.setAttribute('data-factura', factura);
 
             if (btnElement.parentNode) {
                 btnElement.parentNode.replaceChild(processingIcon, btnElement);
-                // Actualizar referencia en el job si es necesario, pero btnElement ya no esta en DOM
-                // El uploadQueue busca por selector, asi que si cambiamos a div, el selector button[...] fallara.
-                // Pero está bien, porque el estado visual ya es "procesando".
             }
 
             // ACTUALIZACIÓN VISUAL TARJETA: Cambiar a AZUL (Procesando)
-            // Buscamos la tarjeta padre para cambiar su estado visual completo
             const card = processingIcon.closest('.siesa-item');
             if (card) {
                 card.classList.remove('status-pendiente', 'status-nofacturado', 'status-entregado');
                 card.classList.add('status-processing');
             }
+        }
 
-            // Si es sin factura, actualizamos el botón inmediatamente después de añadirlo a la cola
-            if (esSinFactura) {
-                setTimeout(() => {
-                    // Cambiar a exito
+        // --- NUEVO: Actualizar base de datos local y refrescar vista para mostrar miniatura ---
+        if (typeof database !== 'undefined' && Array.isArray(database)) {
+            // Crear URL temporal para mostrar inmediatamente
+            const tempImageUrl = URL.createObjectURL(blob);
+
+            // Buscar y actualizar en la base de datos local
+            let found = false;
+            for (const doc of database) {
+                if (doc.datosSiesa && Array.isArray(doc.datosSiesa)) {
+                    const item = doc.datosSiesa.find(s => s.factura === factura);
+                    if (item) {
+                        item.confirmacion = "ENTREGADO"; // Asumimos entregado localmente mientras carga
+                        item.Ih3 = tempImageUrl; // Asignar URL temporal
+                        found = true;
+
+                        // Si estamos viendo este documento actualmente, refrescar la vista
+                        if (currentDocumentData && doc.documento === currentDocumentData.documento) {
+                            // Usar setTimeout para asegurar que la UI se actualice después de los cambios del botón
+                            setTimeout(() => {
+                                if (typeof displayFullResult === 'function') {
+                                    // Necesitamos pasar qrParts, intentamos obtenerlo del contexto global o reconstruirlo
+                                    const mockQrParts = {
+                                        documento: doc.documento,
+                                        nit: currentDocumentData.nit
+                                    };
+                                    // Si existe currentQRParts global, usarlo
+                                    const qrPartsToUse = (typeof currentQRParts !== 'undefined') ? currentQRParts : mockQrParts;
+
+                                    displayFullResult(doc, qrPartsToUse);
+
+                                    // Después de re-renderizar, restaurar el estado expandido del item si es posible
+                                    // (Opcional, pero mejora la experiencia)
+                                }
+                            }, 100);
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+        // ----------------------------------------------------------------------------------
+
+        // Si es sin factura, actualizamos el botón inmediatamente después
+        if (esSinFactura && btnElement) {
+            setTimeout(() => {
+                // Recuperar iconos y tarjeta nuevamente ya que el scope anterior se cerró
+                const processingIcon = document.querySelector(`.status-icon-only.processing[data-factura="${factura}"]`);
+                const card = processingIcon ? processingIcon.closest('.siesa-item') : null;
+
+                if (processingIcon) {
                     processingIcon.className = 'status-icon-only success';
                     processingIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                }
 
-                    // Actualizar tarjeta a VERDE
-                    if (card) {
-                        card.classList.remove('status-processing');
-                        card.classList.add('status-entregado');
-                    }
+                if (card) {
+                    card.classList.remove('status-processing');
+                    card.classList.add('status-entregado');
+                }
 
-                    // Actualizar estado global
-                    actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
-                }, 2000);
-            }
+                // Actualizar estado global
+                actualizarEstado('processed', '<i class="fas fa-check-circle"></i> ENTREGA SIN FACTURA CONFIRMADA');
+            }, 2000);
         }
 
         // Reproducir sonido de éxito

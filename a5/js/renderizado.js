@@ -46,8 +46,8 @@ function displayFullResult(item, qrParts) {
             const referencia = siesa.referencia || item.referencia || 'Sin referencia';
             const cantidad = siesa.cantidad || 0;
 
-            // Verificar si hay imagen IH3
-            const tieneIh3 = siesa.Ih3 && siesa.Ih3.trim() !== '' && siesa.Ih3.includes('googleusercontent.com/d/');
+            // Verificar si hay imagen IH3 (Soporta Google Drive, Blob o Data URL)
+            const tieneIh3 = siesa.Ih3 && siesa.Ih3.trim() !== '';
 
             // Estado Lógica
             let estadoConf = "PENDIENTE";
@@ -159,8 +159,16 @@ function displayFullResult(item, qrParts) {
             }
 
             if (tieneIh3) {
-                const imageId = siesa.Ih3.split('/').pop();
-                const thumbnailUrl = `https://lh3.googleusercontent.com/d/${imageId}=s200`;
+                let thumbnailUrl;
+                // Si es URL de Google Drive
+                if (siesa.Ih3.includes('googleusercontent.com/d/')) {
+                     const imageId = siesa.Ih3.split('/').pop();
+                     thumbnailUrl = `https://lh3.googleusercontent.com/d/${imageId}=s200`;
+                } 
+                // Si es Blob o Data URL (Local) o URL directa
+                else {
+                    thumbnailUrl = siesa.Ih3;
+                }
 
                 html += `
           <div class="ih3-thumbnail-container">

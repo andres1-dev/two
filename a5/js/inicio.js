@@ -68,6 +68,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Cargar datos
     loadDataFromServer();
+
+    // 5. Auto-reload al volver a la app
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log("App visible nuevamente - recargando datos...");
+            const statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> ACTUALIZANDO DATOS...';
+                statusDiv.className = 'loading';
+            }
+            loadDataFromServer();
+        }
+    });
 });
 
 function initPullToRefresh() {

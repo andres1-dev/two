@@ -520,7 +520,7 @@ function initUIListeners() {
                 submitKeypad();
                 return;
             } else {
-                if (keypadValue.length < 10) { // Max length safety
+                if (keypadValue.length < 20) { // Max length safety (increased)
                     keypadValue += key;
                 }
             }
@@ -556,10 +556,21 @@ function initUIListeners() {
         // Keypad Listeners
         if (keyBtns) {
             keyBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
+                const handleInput = (e) => {
+                    // Prevenir doble disparo y zoom/selección
+                    if (e.type === 'touchstart') {
+                        e.preventDefault();
+                    }
                     const key = btn.getAttribute('data-key');
                     handleKeypadInput(key);
-                });
+
+                    // Feedback visual (opcional)
+                    btn.classList.add('active-key');
+                    setTimeout(() => btn.classList.remove('active-key'), 100);
+                };
+
+                btn.addEventListener('touchstart', handleInput, { passive: false });
+                btn.addEventListener('click', handleInput);
             });
         }
         if (closeKeypadBtn) closeKeypadBtn.addEventListener('click', closeKeypad);
