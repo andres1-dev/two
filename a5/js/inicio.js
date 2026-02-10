@@ -89,7 +89,8 @@ function initPullToRefresh() {
     let isPulling = false;
 
     document.addEventListener('touchstart', function (e) {
-        if (window.scrollY === 0 && e.touches.length === 2) {
+        // Standard 1-finger pull to refresh
+        if (window.scrollY === 0 && e.touches.length === 1) {
             startY = e.touches[0].clientY;
             isPulling = true;
         }

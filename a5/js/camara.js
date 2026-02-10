@@ -551,6 +551,19 @@ async function subirFotoCapturada(blob) {
                             // Usar setTimeout para asegurar que la UI se actualice después de los cambios del botón
                             setTimeout(() => {
                                 if (typeof displayFullResult === 'function') {
+                                    // Clonar el documento para no mutar la base de datos con el filtro visual
+                                    const filteredDoc = JSON.parse(JSON.stringify(doc));
+
+                                    // Aplicar el MISMO filtro que en lector_qr.js
+                                    if (currentDocumentData.nit && filteredDoc.datosSiesa) {
+                                        const scanNitDigits = currentDocumentData.nit.replace(/\D/g, '');
+
+                                        filteredDoc.datosSiesa = filteredDoc.datosSiesa.filter(siesa => {
+                                            const siesaNitDigits = siesa.nit ? siesa.nit.toString().replace(/\D/g, '') : '';
+                                            return siesaNitDigits.includes(scanNitDigits) || scanNitDigits.includes(siesaNitDigits);
+                                        });
+                                    }
+
                                     // Necesitamos pasar qrParts, intentamos obtenerlo del contexto global o reconstruirlo
                                     const mockQrParts = {
                                         documento: doc.documento,
@@ -559,10 +572,22 @@ async function subirFotoCapturada(blob) {
                                     // Si existe currentQRParts global, usarlo
                                     const qrPartsToUse = (typeof currentQRParts !== 'undefined') ? currentQRParts : mockQrParts;
 
-                                    displayFullResult(doc, qrPartsToUse);
+                                    displayFullResult(filteredDoc, qrPartsToUse);
 
-                                    // Después de re-renderizar, restaurar el estado expandido del item si es posible
-                                    // (Opcional, pero mejora la experiencia)
+                                    // Auto-expandir el item que acabamos de actualizar para mejor UX
+                                    // Buscamos el índice del item actualizado en el array filtrado
+                                    if (filteredDoc.datosSiesa) {
+                                        const updatedIndex = filteredDoc.datosSiesa.findIndex(s => s.factura === factura);
+                                        if (updatedIndex !== -1) {
+                                            setTimeout(() => {
+                                                const itemEl = document.getElementById(`siesa-item-${updatedIndex}`);
+                                                if (itemEl && itemEl.classList.contains('collapsed')) {
+                                                    itemEl.classList.remove('collapsed');
+                                                    itemEl.classList.add('expanded');
+                                                }
+                                            }, 50);
+                                        }
+                                    }
                                 }
                             }, 100);
                         }
