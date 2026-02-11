@@ -205,7 +205,7 @@ function construirObjetoFactura(filaSiesa, documento, lote, referencia, datosSop
 
 // Función para obtener datos de Sheets API
 async function obtenerDatosDeSheet(spreadsheetId, range) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}&_t=${Date.now()}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
 
     try {
         const response = await fetch(url, { cache: 'no-store' });
