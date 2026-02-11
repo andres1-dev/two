@@ -208,7 +208,7 @@ async function obtenerDatosDeSheet(spreadsheetId, range) {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-store' });
         if (!response.ok) {
             throw new Error(`Error HTTP ${response.status} en ${range}`);
         }
