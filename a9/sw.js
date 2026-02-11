@@ -117,6 +117,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Ignorar requests a APIs de Google (Sheets y Script) para garantizar datos frescos
+  if (url.hostname.includes('sheets.googleapis.com') ||
+    url.hostname.includes('script.google.com')) {
+    return;
+  }
+
   // Para navegación (HTML): Network First con cache fallback
   if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
