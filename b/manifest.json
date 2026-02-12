@@ -1,0 +1,16 @@
+{
+  "name": "PandaDash",
+  "short_name": "PandaDash",
+  "description": "Sistema de gestión y escaneo de códigos QR para entregas",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4361ee",
+  "lang": "es-ES",
+  "dir": "ltr",
+  "orientation": "portrait",
+  "categories": ["business", "productivity", "utilities"],
+  "prefer_related_applications": false,
+  "icons": []
+}
