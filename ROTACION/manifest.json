@@ -4,8 +4,12 @@
   "description": "Sistema de gestión y escaneo de códigos QR para entregas",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "lock_screen": {
+    "orientation": "portrait"
+  },
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "lang": "es-ES",
