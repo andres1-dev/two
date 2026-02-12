@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <!-- FIX: Viewport estrictamente mobile, sin escalado -->
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
   <meta name="theme-color" content="#ffffff" />
+   <!-- PWA iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="PandaDash" />
   <link rel="manifest" href="manifest.json" />
 
+  <!-- PWA Android - FORZAR ORIENTACIÓN -->
+  <meta name="orientation" content="portrait">
+  <meta name="screen-orientation" content="portrait">
+
   <!-- Favicon y iconos mejorados -->
   <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+
+    <!-- Eliminar selección de texto en toda la app -->
+  <meta name="format-detection" content="telephone=no, address=no, email=no">
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,6 +58,65 @@
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
 
   <style>
+  /* =========================================
+     BLOQUEO DE ROTACIÓN - ANDROID PWA
+     Funciona en TC210K, Samsung, Xiaomi
+     ========================================= */
+  
+  html, body {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    touch-action: pan-y !important; /* Solo scroll vertical */
+    -ms-touch-action: pan-y !important;
+  }
+  
+  #scanner {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Forzar orientación portrait vía CSS */
+  @media (orientation: landscape) {
+    html, body {
+      transform: rotate(90deg);
+      transform-origin: left top;
+      width: 100vh !important;
+      height: 100vw !important;
+      overflow: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    body {
+      transform: translateY(100%) rotate(90deg);
+      transform-origin: bottom left;
+    }
+  }
+  
+  /* Prevenir cualquier rotación automática */
+  @view-transition {
+    navigation: auto;
+  }
+
+
+
     /* Estilos para el módulo de historial - MOBILE OPTIMIZED */
     .history-container {
       padding: 16px;
@@ -879,6 +946,125 @@
     </div>
 
   </div> <!-- #app-frame -->
+
+  <script>
+  // ===========================================
+  // BLOQUEO DE ROTACIÓN - COMPATIBLE CON TC210K
+  // ===========================================
+  
+  (function hardLockOrientation() {
+    // 1. BLOQUEO POR CSS (FORZADO)
+    document.documentElement.style.position = 'fixed';
+    document.documentElement.style.width = '100vw';
+    document.documentElement.style.height = '100vh';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100vw';
+    document.body.style.height = '100vh';
+    document.body.style.overflow = 'hidden';
+    
+    // 2. DETECTAR SI ESTÁ EN LANDSCAPE Y FORZAR PORTRAIT
+    function forcePortrait() {
+      if (window.innerWidth > window.innerHeight) {
+        // Está en landscape - forzar rotación visual
+        document.documentElement.style.transform = 'rotate(90deg)';
+        document.documentElement.style.transformOrigin = 'left top';
+        document.documentElement.style.width = '100vh';
+        document.documentElement.style.height = '100vw';
+        document.documentElement.style.position = 'absolute';
+        document.documentElement.style.top = '0';
+        document.documentElement.style.left = '0';
+        
+        document.body.style.transform = 'translateY(100%) rotate(90deg)';
+        document.body.style.transformOrigin = 'bottom left';
+      } else {
+        // Está en portrait - resetear transform
+        document.documentElement.style.transform = 'none';
+        document.body.style.transform = 'none';
+      }
+    }
+    
+    // 3. EJECUTAR INICIALMENTE
+    forcePortrait();
+    
+    // 4. BLOQUEO DE ORIENTACIÓN POR API (fallback)
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(function(e) {
+        console.log('Screen lock falló, usando método CSS:', e);
+      });
+    }
+    
+    // 5. DETECTOR DE ROTACIÓN MÁS AGRESIVO
+    let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    
+    function checkOrientation() {
+      const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+      
+      if (currentOrientation !== lastOrientation) {
+        lastOrientation = currentOrientation;
+        
+        if (currentOrientation === 'landscape') {
+          // Forzar corrección inmediata
+          forcePortrait();
+          
+          // Opcional: mostrar mensaje (solo una vez)
+          if (!window.orientationWarningShown) {
+            const warning = document.createElement('div');
+            warning.style.position = 'fixed';
+            warning.style.top = '50%';
+            warning.style.left = '50%';
+            warning.style.transform = 'translate(-50%, -50%)';
+            warning.style.background = 'rgba(0,0,0,0.9)';
+            warning.style.color = 'white';
+            warning.style.padding = '20px';
+            warning.style.borderRadius = '10px';
+            warning.style.zIndex = '999999';
+            warning.style.textAlign = 'center';
+            warning.style.fontSize = '16px';
+            warning.style.boxShadow = '0 0 30px rgba(0,0,0,0.5)';
+            warning.innerHTML = '<i class="fas fa-rotate-left"></i> Gira el dispositivo a vertical<br><small>(modo portrait)</small>';
+            document.body.appendChild(warning);
+            
+            setTimeout(() => {
+              warning.style.opacity = '0';
+              setTimeout(() => warning.remove(), 500);
+            }, 3000);
+            
+            window.orientationWarningShown = true;
+            setTimeout(() => { window.orientationWarningShown = false; }, 10000);
+          }
+        }
+      }
+    }
+    
+    // 6. EVENTOS DE ROTACIÓN (múltiples capas)
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', function() {
+      setTimeout(checkOrientation, 50);
+      setTimeout(checkOrientation, 150);
+      setTimeout(checkOrientation, 300);
+    });
+    
+    // 7. POLLING AGRESIVO (para dispositivos que no disparan eventos)
+    setInterval(checkOrientation, 500);
+    
+    // 8. PREVENIR ZOOM Y ROTACIÓN POR GESTOS
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+    document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+    
+    // 9. BLOQUEAR TECLAS DE ROTACIÓN (Ctrl + flechas, etc)
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || 
+                        e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                        e.key === 'F5' || e.key === 'F11')) {
+        e.preventDefault();
+      }
+    });
+    
+    console.log('🔒 Orientation lock HARD activado');
+  })();
+</script>
 
   <!-- JS Modularizado -->
   <script src="js/cola_carga.js"></script>
