@@ -118,3 +118,47 @@ input,
 button {
   font-size: 16px !important;
 }
+
+/* ===== BLOQUEO TOTAL DE ROTACIÓN ===== */
+@media screen and (orientation: landscape) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: fixed;
+    top: 100%;
+    left: 0;
+  }
+  
+  body {
+    width: 100vh;
+    height: 100vw;
+    overflow: hidden;
+  }
+  
+  #app-frame {
+    width: 100vh;
+    height: 100vw;
+    max-width: none;
+    transform: rotate(90deg);
+    transform-origin: top left;
+    position: absolute;
+    top: 0;
+    left: 100%;
+  }
+}
+
+/* Forzar orientación en dispositivos que ignoran el lock */
+@media (min-aspect-ratio: 1/1) and (orientation: landscape) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    position: fixed;
+    top: 100%;
+    left: 0;
+  }
+}

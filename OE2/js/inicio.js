@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Inicializar Listeners UI
     initUIListeners();
 
+      // Bloqueo de rotación
+  lockOrientation();
+
     // 2. Inicializar Listeners QR
     initQRListeners();
 
@@ -78,6 +81,109 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 });
+
+// Bloqueo de rotación - VERSIÓN HÍBRIDA (CSS + JS + Android Hijack)
+function lockOrientation() {
+  // 1. Intentar con la API moderna
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait')
+      .then(() => console.log('✅ Orientación bloqueada vía API'))
+      .catch(err => {
+        console.warn('⚠️ Orientación no bloqueada por API:', err);
+        // 2. Fallback: Forzar con CSS
+        forcePortraitCSS();
+      });
+  } else {
+    // 3. iOS PWA / Safari
+    forcePortraitCSS();
+  }
+
+  // 4. Detectar cambio forzado por hardware (ANDROID PDA)
+  window.addEventListener('orientationchange', function() {
+    if (window.orientation === 90 || window.orientation === -90) {
+      forcePortraitCSS();
+      // 5. Reintentar lock después del cambio
+      setTimeout(() => {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('portrait').catch(() => {});
+        }
+      }, 100);
+    }
+  });
+
+  // 6. Intervalo de seguridad para TC210K (re-lock cada 2 segundos)
+  setInterval(() => {
+    if (window.orientation === 90 || window.orientation === -90 || 
+        window.matchMedia("(orientation: landscape)").matches) {
+      
+      document.documentElement.style.transform = 'rotate(-90deg)';
+      document.documentElement.style.width = '100vh';
+      document.documentElement.style.height = '100vw';
+      document.documentElement.style.position = 'fixed';
+      document.documentElement.style.top = '100%';
+      document.documentElement.style.left = '0';
+      
+      // Reintentar API
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+    }
+  }, 2000); // Cada 2 segundos fuerza portrait
+}
+
+function forcePortraitCSS() {
+  const html = document.documentElement;
+  const body = document.body;
+  const app = document.getElementById('app-frame');
+  
+  if (window.orientation === 90 || window.orientation === -90 ||
+      window.matchMedia("(orientation: landscape)").matches) {
+    
+    html.style.transform = 'rotate(-90deg)';
+    html.style.width = '100vh';
+    html.style.height = '100vw';
+    html.style.position = 'fixed';
+    html.style.top = '100%';
+    html.style.left = '0';
+    html.style.overflow = 'hidden';
+    
+    body.style.width = '100vh';
+    body.style.height = '100vw';
+    body.style.overflow = 'hidden';
+    
+    if (app) {
+      app.style.width = '100vh';
+      app.style.height = '100vw';
+      app.style.transform = 'rotate(90deg)';
+      app.style.transformOrigin = 'top left';
+      app.style.position = 'absolute';
+      app.style.top = '0';
+      app.style.left = '100%';
+    }
+  } else {
+    // Modo portrait - resetear estilos
+    html.style.transform = '';
+    html.style.width = '';
+    html.style.height = '';
+    html.style.position = '';
+    html.style.top = '';
+    html.style.left = '';
+    
+    body.style.width = '';
+    body.style.height = '';
+    body.style.overflow = '';
+    
+    if (app) {
+      app.style.width = '';
+      app.style.height = '';
+      app.style.transform = '';
+      app.style.transformOrigin = '';
+      app.style.position = '';
+      app.style.top = '';
+      app.style.left = '';
+    }
+  }
+}
 
 function initPullToRefresh() {
     const statusDiv = document.getElementById('status');
