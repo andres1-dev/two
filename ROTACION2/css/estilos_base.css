@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Palette - Modern & Premium */
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-soft: #dbeafe;
+  --success: #10b981;
+  --success-dark: #059669;
+  --success-soft: #d1fae5;
+  --warning: #f59e0b;
+  --warning-dark: #d97706;
+  --warning-soft: #fef3c7;
+  --danger: #ef4444;
+  --danger-dark: #b91c1c;
+  --danger-soft: #fee2e2;
+  --surface: #ffffff;
+  --background: #f8fafc;
+  --text-main: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-floating: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --font-main: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --app-width: 100%;
+}
+
+/* RESET TOTAL PARA MÓVIL */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* SOLO MÓVIL - ANCHO FIJO 480PX */
+html, body {
+  width: 100%;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+  background: #f5f7fa !important;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: var(--font-main);
+  color: var(--text-main);
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* FRAME PRINCIPAL - ANCHO EXACTO DE MÓVIL */
+#app-frame {
+  width: 100%;
+  max-width: 480px !important;
+  background-color: white;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* SCANNER - CONTENEDOR SCROLLABLE */
+#scanner {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 20px;
+}
+
+/* SCROLL PERSONALIZADO - DELGADO */
+#results::-webkit-scrollbar,
+#scanner::-webkit-scrollbar {
+  width: 4px;
+}
+#results::-webkit-scrollbar-thumb,
+#scanner::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
+}
+
+/* PREVENIR ZOOM EN INPUTS */
+input, button, select, textarea {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* BOTONES CON FEEDBACK TÁCTIL */
+.btn:active,
+button:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* ELIMINAR CUALQUIER ESTILO DE ESCRITORIO */
+@media (min-width: 481px) {
+  html, body {
+    background: #f5f7fa !important;
+    display: flex;
+    justify-content: center;
+  }
+  #app-frame {
+    margin: 0 auto !important;
+  }
+}
+
+/* BLOQUEO DE ROTACIÓN VÍA CSS */
+@media (orientation: landscape) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
