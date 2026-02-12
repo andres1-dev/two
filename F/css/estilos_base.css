@@ -53,23 +53,17 @@
       text-size-adjust: 100%;
       overflow-x: hidden;
     }
+    
+    body {
+      /* Fuerza el tamaño en desktop */
+      max-width: 450px; /* Tamaño móvil estándar */
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-color);
+    }
 
-/* MOBILE-FIRST ABSOLUTO */
-body {
-  max-width: 450px; /* Tamaño móvil estándar */
-  font-family: var(--font-main);
-  background-color: #ffffff;
-  color: var(--text-main);
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  padding: 0;
-}
-
+    
 /* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
 #app-frame {
   width: 100%;
