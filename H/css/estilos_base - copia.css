@@ -53,20 +53,16 @@
       text-size-adjust: 100%;
       overflow-x: hidden;
     }
-
-/* MOBILE-FIRST ABSOLUTO */
-body {
-  max-width: 450px; /* Tamaño móvil estándar */
-  margin: 0;
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-main);
-  background-color: #ffffff;
-  color: var(--text-main);
-  justify-content: center;
-  align-items: flex-start;
-}
-
+    
+    body {
+      /* Fuerza el tamaño en desktop */
+      max-width: 450px; /* Tamaño móvil estándar */
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    
 /* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
 #app-frame {
   width: 100%;
