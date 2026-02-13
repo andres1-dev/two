@@ -344,7 +344,7 @@ function initUIListeners() {
                     inputIcon.className = "fas fa-keyboard";
                     inputIcon.title = "Tocar para abrir teclado";
                 }
-                if (statusDiv) statusDiv.textContent = `Modo Manual: ${USER_SETTINGS.selectedClient.substring(0, 15)}...`;
+                if (statusDiv) statusDiv.textContent = `${USER_SETTINGS.selectedClient.substring(0, 200)}`;
 
             } else if (mode === 'CAMERA') {
                 if (btnCamera) btnCamera.classList.add('active');

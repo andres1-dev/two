@@ -512,10 +512,10 @@ async function subirFotoCapturada(blob) {
 
         // Actualizar botón de entrega si existe
         if (btnElement) {
-            // Reemplazar boton con icono de procesando
+            // Reemplazar boton con icono de procesando (UNIFICADO & CONTEXTUALIZADO)
             const processingIcon = document.createElement('div');
-            processingIcon.className = 'status-icon-only processing';
-            processingIcon.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+            processingIcon.className = 'status-icon-only processing contextual';
+            processingIcon.innerHTML = '<div class="premium-spinner"></div>';
             // Mantener data-factura para que upload-queue pueda encontrarlo si es necesario
             processingIcon.setAttribute('data-factura', factura);
 
@@ -572,22 +572,26 @@ async function subirFotoCapturada(blob) {
                                     // Si existe currentQRParts global, usarlo
                                     const qrPartsToUse = (typeof currentQRParts !== 'undefined') ? currentQRParts : mockQrParts;
 
+                                    // PRESERVAR ESTADO DE EXPASIÓN
+                                    // Capturar estado actual antes de renderizar
+                                    const expandedState = {};
+                                    document.querySelectorAll('.siesa-item').forEach((el, idx) => {
+                                        if (el.classList.contains('expanded')) {
+                                            expandedState[idx] = true;
+                                        }
+                                    });
+
                                     displayFullResult(filteredDoc, qrPartsToUse);
 
-                                    // Auto-expandir el item que acabamos de actualizar para mejor UX
-                                    // Buscamos el índice del item actualizado en el array filtrado
-                                    if (filteredDoc.datosSiesa) {
-                                        const updatedIndex = filteredDoc.datosSiesa.findIndex(s => s.factura === factura);
-                                        if (updatedIndex !== -1) {
-                                            setTimeout(() => {
-                                                const itemEl = document.getElementById(`siesa-item-${updatedIndex}`);
-                                                if (itemEl && itemEl.classList.contains('collapsed')) {
-                                                    itemEl.classList.remove('collapsed');
-                                                    itemEl.classList.add('expanded');
-                                                }
-                                            }, 50);
+                                    // RESTAURAR ESTADO DE EXPANSIÓN
+                                    // Solo expandir si el usuario lo tenía abierto previamente
+                                    Object.keys(expandedState).forEach(idx => {
+                                        const itemEl = document.getElementById(`siesa-item-${idx}`);
+                                        if (itemEl) {
+                                            itemEl.classList.remove('collapsed');
+                                            itemEl.classList.add('expanded');
                                         }
-                                    }
+                                    });
                                 }
                             }, 100);
                         }
@@ -657,14 +661,37 @@ async function eliminarEntrega(factura) {
     }
 
     // 1. Mostrar estado de "Eliminando..." en la UI
-    // Buscar contenedores afectados para mostrar spinner
+    // Buscar contenedores afectados para mostrar spinner ROJO
     const elements = document.querySelectorAll(`[data-factura="${factura}"]`);
     elements.forEach(el => {
         const statusContainer = el.closest('.status-actions');
+        // Usar clase 'deleting' e ICONO UNIFICADO (premium-spinner) y CONTEXTUAL (sin fondo)
+        // El color rojo lo hereda por la clase 'deleting'
+        const spinnerHtml = '<div class="status-icon-only deleting contextual"><div class="premium-spinner"></div></div>';
+
         if (statusContainer) {
-            statusContainer.innerHTML = '<div class="status-icon-only processing"><i class="fas fa-spinner fa-spin"></i></div>';
+            statusContainer.innerHTML = spinnerHtml;
         } else if (el.classList.contains('status-actions')) {
-            el.innerHTML = '<div class="status-icon-only processing"><i class="fas fa-spinner fa-spin"></i></div>';
+            el.innerHTML = spinnerHtml;
+        }
+
+        // TRANSICIÓN VISUAL: Tarjeta ROJA + PULSO durante eliminación
+        // Usamos la clase CSS .status-deleting en lugar de estilos inline
+        const card = el.closest('.siesa-item');
+        if (card) {
+            // Remover otros estados visuales para evitar conflictos
+            card.classList.remove('status-entregado', 'status-pendiente', 'status-processing');
+            card.classList.add('status-deleting');
+
+            // Limpiar estilos inline previos si existen para que mande la clase CSS
+            card.style.background = '';
+            card.style.borderColor = '';
+
+            const solapa = card.querySelector('.status-solapa');
+            if (solapa) {
+                solapa.style.background = '';
+                solapa.style.borderColor = '';
+            }
         }
     });
 
@@ -738,12 +765,27 @@ async function eliminarEntrega(factura) {
             if (container) {
                 const card = container.closest('.siesa-item');
                 if (card) {
-                    card.classList.remove('status-entregado');
+                    card.classList.remove('status-entregado', 'status-deleting');
                     card.classList.add('status-pendiente');
+                    // Limpiar estilos inline forzados anteriormente
+                    card.style.background = '';
+                    card.style.borderColor = '';
+
+                    // Limpiar también la solapa
+                    const solapa = card.querySelector('.status-solapa');
+                    if (solapa) {
+                        solapa.style.background = '';
+                        solapa.style.borderColor = '';
+                        // Asegurar que no quede animación residual
+                        solapa.style.animation = '';
+                    }
                 }
 
                 if (foundDoc && foundSiesa) {
-                    // Recrear botón de cámara
+                    // Recrear botón de cámara con la lógica correcta
+                    // Nota: el onclick debe llamar a procesarEntrega con los parametros correctos
+                    // Usamos foundDoc y foundSiesa que obtuvimos de la base de datos local
+
                     const btnHtml = `<button class="action-btn-mini btn-scan" 
                         data-factura="${foundSiesa.factura}" 
                         onclick="event.stopPropagation(); procesarEntrega('${foundDoc.documento}', '${foundSiesa.lote || foundDoc.lote}', '${foundSiesa.referencia}', '${foundSiesa.cantidad}', '${foundSiesa.factura}', '${foundSiesa.nit || ''}', this)">
@@ -754,6 +796,7 @@ async function eliminarEntrega(factura) {
                     tempDiv.innerHTML = btnHtml;
                     const newBtn = tempDiv.firstElementChild;
 
+                    // Reemplazar el contenedor de acciones por el botón de cámara
                     if (container.parentNode) {
                         container.parentNode.replaceChild(newBtn, container);
                     }
@@ -785,7 +828,7 @@ async function eliminarEntrega(factura) {
             if (container || el.classList.contains('status-actions')) {
                 const target = container || el;
                 target.innerHTML = `
-                    <button class="action-btn-mini btn-delete" onclick="event.stopPropagation(); eliminarEntrega('${factura}')" title="Eliminar entrega">
+                    <button class="action-btn-mini btn-delete contextual" style="background: transparent; box-shadow: none;" onclick="event.stopPropagation(); eliminarEntrega('${factura}')" title="Eliminar entrega">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                     <div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>

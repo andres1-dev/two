@@ -48,8 +48,8 @@ function handleDataLoadSuccess(serverData) {
         }
 
         // Mostrar contenido principal con nuevo diseño
-if (resultsDiv) {
-    resultsDiv.innerHTML = `
+        if (resultsDiv) {
+            resultsDiv.innerHTML = `
         <div class="result-item" style="text-align: center; padding: 40px 20px;">
             <div style="margin-bottom: 30px;">
                 <!-- REEMPLAZADO: Logo SVG oficial - CON COLORES ORIGINALES, FONDO TRANSPARENTE -->
@@ -91,7 +91,7 @@ if (resultsDiv) {
             </div>
         </div>
     `;
-}
+        }
 
         if (hideLoadingScreen && typeof hideLoadingScreen === 'function') hideLoadingScreen();
         if (playSuccessSound && typeof playSuccessSound === 'function') playSuccessSound();
@@ -117,8 +117,8 @@ function handleDataLoadError(error) {
         if (dataStats) dataStats.innerHTML = `${database.length} registros | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
 
         // En handleDataLoadError, dentro del else (caché)
-if (resultsDiv) {
-    resultsDiv.innerHTML = `
+        if (resultsDiv) {
+            resultsDiv.innerHTML = `
         <div class="result-item" style="text-align: center; color: var(--gray);">
             <!-- REEMPLAZADO: Logo SVG oficial - Tamaño 4rem (64px) -->
             <div style="width: 4rem; height: 4rem; margin: 0 auto 0.15rem auto; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">
@@ -145,7 +145,7 @@ if (resultsDiv) {
             </div>
         </div>
     `;
-}
+        }
 
         if (offlineBanner) offlineBanner.style.display = 'block';
 
@@ -227,5 +227,41 @@ function clearOldCache() {
         if (key.startsWith('pdaScannerCache')) {
             localStorage.removeItem(key);
         }
+    }
+}
+
+// Función para recargar datos silenciosamente (sin borrar la UI)
+async function silentReloadData() {
+    console.log("🔄 Iniciando actualización silenciosa de datos...");
+
+    if (typeof obtenerDatosFacturados !== 'function') {
+        console.warn("obtenerDatosFacturados no disponible");
+        return;
+    }
+
+    try {
+        const serverData = await obtenerDatosFacturados();
+
+        if (serverData && serverData.success && serverData.data) {
+            // Actualizar base de datos global
+            database = serverData.data;
+
+            // Actualizar caché
+            cacheData(database);
+
+            console.log(`✅ Datos actualizados silenciosamente: ${database.length} registros`);
+
+            // Actualizar estadísticas si existen en pantalla
+            const dataStats = document.getElementById('data-stats');
+            if (dataStats) {
+                const timeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+                dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} reg | ${timeStr}`;
+            }
+
+            return true;
+        }
+    } catch (e) {
+        console.error("Error en actualización silenciosa:", e);
+        return false;
     }
 }

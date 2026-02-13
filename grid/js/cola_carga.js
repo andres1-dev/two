@@ -423,58 +423,67 @@ class UploadQueue {
 
       // Solo actualizar si el elemento existe y no es una entrega sin factura
       if (element && !job.esSinFactura) {
-        if (element.tagName === 'BUTTON') {
-          // Crear contenedor
-          const statusContainer = document.createElement('div');
-          statusContainer.className = 'status-actions';
-          statusContainer.setAttribute('data-factura', job.btnElementId);
-          // Comprobar rol de admin para mostrar botón de eliminar
-          const isAdmin = (typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN');
-          const displayStyle = isAdmin ? 'flex' : 'none';
+        // Comprobar rol de admin para mostrar botón de eliminar
+        const isAdmin = (typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN');
+        const displayStyle = isAdmin ? 'flex' : 'none';
 
-          statusContainer.innerHTML = `
-              <button class="action-btn-mini btn-delete" style="display: ${displayStyle}" onclick="event.stopPropagation(); eliminarEntrega('${job.btnElementId}')" title="Eliminar entrega">
+        // HTML para el contenedor de acciones (Delete + Check)
+        const newContent = `
+              <button class="action-btn-mini btn-delete contextual" style="display: ${displayStyle}; background: transparent; box-shadow: none;" onclick="event.stopPropagation(); eliminarEntrega('${job.btnElementId}')" title="Eliminar entrega">
                   <i class="fas fa-trash-alt"></i>
               </button>
               <div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>
           `;
 
+        if (element.tagName === 'BUTTON') {
+          // Crear contenedor si era un botón
+          const statusContainer = document.createElement('div');
+          statusContainer.className = 'status-actions';
+          statusContainer.setAttribute('data-factura', job.btnElementId);
+          statusContainer.innerHTML = newContent;
+
           if (element.parentNode) {
             element.parentNode.replaceChild(statusContainer, element);
           }
         } else {
-          // Si ya es un div (icono), actualizamos contenido
-          // Reemplazar el elemento existente por el contenedor completo con botón eliminar
+          // Si ya es un div/icono, reemplazamos su contenido o el elemento entero
+          // Mejor reemplazar el elemento entero para asegurar la estructura correcta
           const statusContainer = document.createElement('div');
           statusContainer.className = 'status-actions';
           statusContainer.setAttribute('data-factura', job.btnElementId);
-          // Comprobar rol de admin
-          const isAdmin = (typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN');
-          const displayStyle = isAdmin ? 'flex' : 'none';
-
-          statusContainer.innerHTML = `
-            <button class="action-btn-mini btn-delete" style="display: ${displayStyle}" onclick="event.stopPropagation(); eliminarEntrega('${job.btnElementId}')" title="Eliminar entrega">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-            <div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>
-          `;
+          statusContainer.innerHTML = newContent;
 
           if (element.parentNode) {
-            element.parentNode.replaceChild(statusContainer, element);
+            // Si el elemento es parte de un status-actions ya existente, reemplazamos el contenedor padre
+            if (element.classList.contains('status-actions')) {
+              element.innerHTML = newContent;
+            } else if (element.parentNode.classList.contains('status-actions')) {
+              element.parentNode.innerHTML = newContent;
+            } else {
+              element.parentNode.replaceChild(statusContainer, element);
+            }
           }
         }
 
         // ACTUALIZACIÓN VISUAL TARJETA: Cambiar a VERDE (Entregado)
-        const card = element.closest('.siesa-item');
+        const card = document.querySelector(`[data-factura="${job.btnElementId}"]`).closest('.siesa-item');
         if (card) {
           card.classList.remove('status-processing', 'status-pendiente', 'status-nofacturado');
           card.classList.add('status-entregado');
+          // Forzar estilo verde por si acaso CSS falla
+          card.style.background = '#f0fdf4';
+          card.style.borderColor = '#bbf7d0';
         }
       }
     }
 
     // Actualizar base de datos local para persistencia inmediata (sin recarga)
     this.updateLocalDatabase(job.factura);
+
+    // Iniciar recarga silenciosa de datos desde Sheets
+    if (typeof silentReloadData === 'function') {
+      silentReloadData();
+    }
   }
 
   async processDataJob(job) {
