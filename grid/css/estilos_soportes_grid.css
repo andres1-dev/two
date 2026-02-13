@@ -1,6 +1,6 @@
 /* =========================================
    SOPORTES GRID - MOBILE FIRST
-   Visual, Rápido, Táctil
+   IMÁGENES MEJORADAS - HD QUALITY
    ========================================= */
 
 /* Modal principal */
@@ -145,7 +145,7 @@
   background: white;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
   transition: all 0.2s;
   animation: fadeIn 0.3s ease;
@@ -162,6 +162,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -170,27 +171,84 @@
 
 .grid-item:active {
   transform: scale(0.98);
-  box-shadow: 0 4px 12px rgba(37,99,235,0.1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
-/* Imagen del Item */
+/* =========================================
+   IMÁGENES MEJORADAS - HD QUALITY
+   ========================================= */
+
 .grid-item-image {
   position: relative;
   width: 100%;
-  height: 140px;
+  height: 160px;
+  /* Aumentado de 140px */
   background: #0f172a;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .grid-item-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  object-position: center;
+  transition: transform 0.3s ease;
+
+  /* MEJORAS DE CALIDAD DE IMAGEN */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+
+  /* Anti-aliasing mejorado */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.grid-item-image:hover img {
+/* Efecto hover/tap en la imagen */
+.grid-item-image:hover img,
+.grid-item-image:active img {
   transform: scale(1.05);
+}
+
+/* Placeholder mientras carga la imagen */
+.grid-item-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+      #0f172a 0%,
+      #1e293b 50%,
+      #0f172a 100%);
+  background-size: 200% 200%;
+  animation: shimmer 2s infinite;
+  z-index: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* La imagen cargada se muestra sobre el placeholder */
+.grid-item-image img {
+  position: relative;
+  z-index: 1;
 }
 
 .image-overlay {
@@ -199,34 +257,38 @@
   left: 0;
   right: 0;
   padding: 12px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   color: white;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  z-index: 2;
 }
 
 .image-badge {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(37,99,235,0.9);
+  background: rgba(37, 99, 235, 0.95);
   color: white;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
-  backdrop-filter: blur(4px);
+  font-size: 0.85rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
 }
 
 /* Sin imagen */
 .grid-item-noimage {
-  height: 140px;
+  height: 160px;
+  /* Consistente con grid-item-image */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,18 +300,19 @@
 }
 
 .noimage-content i {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
   opacity: 0.7;
 }
 
 .noimage-factura {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   background: white;
-  padding: 4px 10px;
+  padding: 6px 14px;
   border-radius: 20px;
   color: #0f172a;
+  display: inline-block;
 }
 
 /* Contenido del Item */
@@ -265,6 +328,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .cliente-badge {
@@ -279,10 +343,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 70%;
+  flex-shrink: 1;
 }
 
 .cliente-badge i {
   font-size: 0.6rem;
+  flex-shrink: 0;
 }
 
 .item-time {
@@ -295,6 +361,8 @@
   padding: 4px 8px;
   border-radius: 20px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Chips de detalles */
@@ -496,7 +564,10 @@
   background: #1e40af;
 }
 
-/* Modal de imagen */
+/* =========================================
+   MODAL DE IMAGEN - HD FULLSCREEN
+   ========================================= */
+
 .soportes-image-modal {
   display: none;
   position: fixed;
@@ -504,19 +575,27 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.95);
+  background: rgba(0, 0, 0, 0.95);
   z-index: 10010;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  backdrop-filter: blur(10px);
 }
 
 .soportes-image-modal img {
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 85vh;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+  /* CALIDAD HD EN FULLSCREEN */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  object-fit: contain;
 }
 
 .soportes-modal-footer {
@@ -527,6 +606,7 @@
   display: flex;
   justify-content: center;
   gap: 16px;
+  z-index: 10;
 }
 
 .soportes-modal-footer .btn {
@@ -543,8 +623,9 @@
 }
 
 .btn-light {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   color: #0f172a;
+  backdrop-filter: blur(10px);
 }
 
 .btn-light:active {
@@ -562,6 +643,7 @@
   align-items: center;
   font-size: 0.75rem;
   color: #64748b;
+  flex-shrink: 0;
 }
 
 .stats-info {
@@ -578,33 +660,139 @@
   font-weight: 700;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
+/* =========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================= */
+
+/* Móviles pequeños (< 375px) */
+@media (max-width: 374px) {
   .soportes-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .grid-item.wide {
     grid-column: span 1;
   }
-  
+
+  .grid-item-image,
+  .grid-item-noimage {
+    height: 180px;
+    /* Más alto en pantallas pequeñas */
+  }
+}
+
+/* Móviles estándar (375px - 480px) */
+@media (max-width: 480px) {
   .filter-buttons {
     width: 100%;
   }
-  
+
   .filter-btn {
     flex: 1;
     justify-content: center;
   }
 }
 
-/* Animaciones */
+/* Tablets pequeñas (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .soportes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+
+  .grid-item-image,
+  .grid-item-noimage {
+    height: 180px;
+  }
+}
+
+/* Tablets grandes y desktop (> 768px) */
+@media (min-width: 769px) {
+  .soportes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .grid-item-image,
+  .grid-item-noimage {
+    height: 200px;
+  }
+
+  .grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* =========================================
+   ANIMACIONES
+   ========================================= */
+
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .loading-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* Fade in suave para imágenes */
+.grid-item-image img {
+  animation: fadeInImage 0.3s ease-in;
+}
+
+@keyframes fadeInImage {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* =========================================
+   UTILIDADES
+   ========================================= */
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.close-btn:active {
+  transform: scale(0.9);
+  background: #e2e8f0;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1004;
+  display: none;
+}

@@ -303,7 +303,7 @@ const SoportesGrid = {
     div.innerHTML = `
       ${item.tieneImagen ? `
         <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')">
-          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s200" alt="Soporte" loading="lazy">
+          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s600-c" alt="Soporte" loading="lazy">
           <div class="image-overlay">
             <span>${item.factura}</span>
           </div>
