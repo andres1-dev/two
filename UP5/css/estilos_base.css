@@ -26,7 +26,7 @@
 
   --border: #e2e8f0;
   --border-light: #f1f5f9;
-  
+
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 8px;
@@ -46,25 +46,34 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-    /* Estilos para bloquear zoom y escalado */
-    html {
-      touch-action: manipulation;
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-      overflow-x: hidden;
-    }
+/* Estilos para bloquear zoom y escalado */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+}
 
 /* MOBILE-FIRST ABSOLUTO */
 body {
-  max-width: 450px; /* Tamaño móvil estándar */
+  max-width: 450px;
+  width: 100%;
+  /* Tamaño móvil estándar */
   margin: 0;
   position: relative;
   overflow: hidden;
+  height: 100dvh;
   font-family: var(--font-main);
   background-color: #ffffff;
   color: var(--text-main);
   justify-content: center;
   align-items: flex-start;
+}
+
+/* Padding seguro para áreas de seguridad */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
@@ -78,7 +87,7 @@ body {
   flex-direction: column;
   margin: 0 auto;
   min-height: 100vh;
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
 /* Contenido SCROLLABLE */
