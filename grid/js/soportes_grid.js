@@ -1,6 +1,6 @@
 // =========================================
-// SOPORTES GRID - VERSIÓN CORREGIDA
-// Con infinite scroll funcional y filtros de fecha arreglados
+// SOPORTES GRID - INFINITE SCROLL CORREGIDO
+// Ahora carga todos los registros progresivamente
 // =========================================
 
 const SoportesGrid = {
@@ -8,115 +8,114 @@ const SoportesGrid = {
   entregas: [],
   filteredEntregas: [],
   currentPage: 1,
-  itemsPerPage: 30, // Aumentado para mejor prueba
+  itemsPerPage: 10,
   isLoading: true,
   hasMore: true,
-  isLoadingMore: true,
-  
+  isLoadingMore: false,
+
   // Elementos DOM
   container: null,
   loadingEl: null,
   emptyEl: null,
   sentinelEl: null,
-  
+  intersectionObserver: null,
+
   // Inicializar
-  init: async function() {
+  init: async function () {
     console.log('📱 Inicializando Soportes Grid...');
     this.container = document.getElementById('soportesGridContainer');
     this.loadingEl = document.getElementById('soportesGridLoading');
     this.emptyEl = document.getElementById('soportesGridEmpty');
     this.sentinelEl = document.getElementById('grid-sentinel');
-    
+
     await this.cargarDatos();
-    this.initEventListeners();
     this.initInfiniteScroll();
   },
-  
+
   // Cargar datos desde Google Sheets
-  cargarDatos: async function() {
+  cargarDatos: async function () {
     this.showLoading();
-    
+
     try {
       if (typeof obtenerDatosSoportes !== 'function') {
         throw new Error('obtenerDatosSoportes no está disponible');
       }
-      
+
       const soportesMap = await obtenerDatosSoportes();
       this.entregas = this.mapToGridItems(soportesMap);
       this.filteredEntregas = [...this.entregas];
       this.currentPage = 1;
       this.hasMore = this.filteredEntregas.length > this.itemsPerPage;
-      
-      // Limpiar contenedor y renderizar
+
+      console.log(`Total entregas: ${this.entregas.length}`);
+      console.log(`Mostrando inicialmente: ${this.itemsPerPage}`);
+
+      // Limpiar contenedor y renderizar primera página
       this.container.innerHTML = '';
       this.render();
-      
-      // Actualizar contador
       this.updateStats();
-      
+
     } catch (error) {
       console.error('Error cargando soportes:', error);
       this.showError(error.message);
     }
-    
+
     this.hideLoading();
   },
-  
+
   // Convertir mapa de soportes a items del grid
-  mapToGridItems: function(soportesMap) {
+  mapToGridItems: function (soportesMap) {
     const items = [];
-    
+
     if (!soportesMap || typeof soportesMap !== 'object') {
       console.warn('Mapa de soportes vacío');
       return items;
     }
-    
+
     console.log('Procesando soportes:', Object.keys(soportesMap).length);
-    
+
     Object.keys(soportesMap).forEach(key => {
       // Saltar entradas BY_FACTURA_ y vacías
       if (key.startsWith('BY_FACTURA_') || !key || key === 'undefined') return;
-      
+
       const soporte = soportesMap[key];
       if (!soporte) return;
-      
+
       const partes = key.split('_');
-      
+
       // Extraer datos
       const documento = partes[0] || '';
       const lote = partes[1] || '';
       const referencia = partes[2] || '';
       const cantidad = partes[3] || '';
       const nit = partes.slice(4).join('_') || '';
-      
-      // Procesar fecha - CORREGIDO
+
+      // Procesar fecha
       let fechaObj = null;
       let fechaFormateada = '';
       let fechaRelativa = '';
-      
+
       if (soporte.fechaEntrega) {
-        // Intentar parsear la fecha correctamente
         fechaObj = this.parseFecha(soporte.fechaEntrega);
         if (fechaObj) {
           fechaFormateada = this.formatearFecha(fechaObj);
           fechaRelativa = this.getTiempoRelativo(fechaObj);
         }
       }
-      
+
       // Si no hay fecha válida, usar fecha actual
       if (!fechaObj) {
         fechaObj = new Date();
         fechaFormateada = this.formatearFecha(fechaObj);
         fechaRelativa = 'Reciente';
       }
-      
+
       // Determinar color basado en el cliente
       const colorScheme = this.getColorForClient(nit);
-      
-      // Buscar nombre del cliente - COMPLETO, no abreviado
+
+      // Buscar nombre del cliente
       let nombreCliente = nit;
       if (typeof CLIENTS_MAP !== 'undefined') {
-        // Invertir el mapa para buscar por NIT
         for (const [nombre, nitCliente] of Object.entries(CLIENTS_MAP)) {
           if (nitCliente === nit) {
             nombreCliente = nombre;
@@ -124,7 +123,7 @@ const SoportesGrid = {
           }
         }
       }
-      
+
       items.push({
         id: `${documento}_${lote}_${referencia}_${Date.now()}_${Math.random()}`,
         documento: documento,
@@ -133,7 +132,7 @@ const SoportesGrid = {
         referencia: referencia,
         cantidad: cantidad,
         nit: nit,
-        cliente: nombreCliente, // NOMBRE COMPLETO
+        cliente: nombreCliente,
         ih3: soporte.imageId || '',
         fecha: fechaFormateada,
         fechaObj: fechaObj,
@@ -144,74 +143,69 @@ const SoportesGrid = {
         tieneImagen: !!soporte.imageId
       });
     });
-    
+
     // Ordenar por fecha (más reciente primero)
     const ordenados = items.sort((a, b) => b.timestamp - a.timestamp);
-    console.log(`✅ ${ordenados.length} entregas procesadas`);
+    console.log(`${ordenados.length} entregas procesadas y ordenadas`);
     return ordenados;
   },
-  
-  // PARSEAR FECHA - CORREGIDO
-  parseFecha: function(fechaStr) {
+
+  // PARSEAR FECHA
+  parseFecha: function (fechaStr) {
     if (!fechaStr) return null;
-    
+
     try {
-      // Si ya es un objeto Date
       if (fechaStr instanceof Date) return fechaStr;
-      
-      // Formato: "DD/MM/YYYY HH:MM:SS" o "DD/MM/YYYY"
+
       if (typeof fechaStr === 'string') {
-        // Separar fecha y hora
         const partes = fechaStr.split(' ');
         const fechaPartes = partes[0].split('/');
-        
+
         if (fechaPartes.length === 3) {
           const dia = parseInt(fechaPartes[0], 10);
           const mes = parseInt(fechaPartes[1], 10) - 1;
           const anio = parseInt(fechaPartes[2], 10);
-          
+
           let hora = 0, minuto = 0, segundo = 0;
-          
+
           if (partes.length > 1) {
             const tiempoPartes = partes[1].split(':');
             hora = parseInt(tiempoPartes[0] || 0, 10);
             minuto = parseInt(tiempoPartes[1] || 0, 10);
             segundo = parseInt(tiempoPartes[2] || 0, 10);
           }
-          
+
           return new Date(anio, mes, dia, hora, minuto, segundo);
         }
       }
-      
-      // Intentar con Date.parse
+
       const timestamp = Date.parse(fechaStr);
       if (!isNaN(timestamp)) return new Date(timestamp);
-      
+
     } catch (e) {
       console.warn('Error parseando fecha:', fechaStr, e);
     }
-    
+
     return null;
   },
-  
+
   // Obtener color por cliente
-  getColorForClient: function(nit) {
+  getColorForClient: function (nit) {
     const colors = [
-      { color: '#2563eb', bgColor: '#dbeafe' }, // Azul
-      { color: '#7c3aed', bgColor: '#ede9fe' }, // Púrpura
-      { color: '#db2777', bgColor: '#fce7f3' }, // Rosa
-      { color: '#059669', bgColor: '#d1fae5' }, // Verde
-      { color: '#d97706', bgColor: '#fef3c7' }, // Ámbar
-      { color: '#dc2626', bgColor: '#fee2e2' }, // Rojo
-      { color: '#6b7280', bgColor: '#f3f4f6' }  // Gris
+      { color: '#2563eb', bgColor: '#dbeafe' },
+      { color: '#7c3aed', bgColor: '#ede9fe' },
+      { color: '#db2777', bgColor: '#fce7f3' },
+      { color: '#059669', bgColor: '#d1fae5' },
+      { color: '#d97706', bgColor: '#fef3c7' },
+      { color: '#dc2626', bgColor: '#fee2e2' },
+      { color: '#6b7280', bgColor: '#f3f4f6' }
     ];
-    
-    // Usar el NIT para generar un índice consistente
+
     const index = Math.abs(this.hashCode(nit || '')) % colors.length;
     return colors[index];
   },
-  
-  hashCode: function(str) {
+
+  hashCode: function (str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = ((hash << 5) - hash) + str.charCodeAt(i);
@@ -219,9 +213,9 @@ const SoportesGrid = {
     }
     return hash;
   },
-  
+
   // Formatear fecha
-  formatearFecha: function(date) {
+  formatearFecha: function (date) {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '---';
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -230,17 +224,17 @@ const SoportesGrid = {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   },
-  
-  // Tiempo relativo - CORREGIDO
-  getTiempoRelativo: function(date) {
+
+  // Tiempo relativo
+  getTiempoRelativo: function (date) {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) return 'Fecha desconocida';
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours} h`;
@@ -249,57 +243,63 @@ const SoportesGrid = {
     if (diffDays < 30) return `Hace ${diffDays} días`;
     return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
   },
-  
-  // Renderizar grid - CORREGIDO
-  render: function() {
+
+  // =========================================
+  // RENDERIZAR - CORREGIDO PARA INFINITE SCROLL
+  // =========================================
+  render: function () {
     if (!this.container) return;
-    
-    const start = 0;
+
+    const start = (this.currentPage - 1) * this.itemsPerPage;
     const end = this.currentPage * this.itemsPerPage;
     const itemsToShow = this.filteredEntregas.slice(start, end);
-    
-    console.log(`Renderizando página ${this.currentPage}: ${itemsToShow.length} items (total: ${this.filteredEntregas.length})`);
-    
-    // Limpiar solo si es primera página
-    if (this.currentPage === 1) {
-      this.container.innerHTML = '';
+
+    console.log(`Página ${this.currentPage}: mostrando items ${start}-${end} de ${this.filteredEntregas.length}`);
+    console.log(`Items en esta página: ${itemsToShow.length}`);
+
+    if (itemsToShow.length === 0) {
+      console.log('No hay items para mostrar en esta página');
+      return;
     }
-    
+
     // Crear fragment para mejor rendimiento
     const fragment = document.createDocumentFragment();
-    
+
     itemsToShow.forEach(item => {
       fragment.appendChild(this.createGridItem(item));
     });
-    
+
+    // APPEND (no reemplazar) - esto es clave para infinite scroll
     this.container.appendChild(fragment);
-    
+
     // Actualizar estado de "hasMore"
     this.hasMore = end < this.filteredEntregas.length;
-    
+
+    console.log(`   Has more: ${this.hasMore} (${end} < ${this.filteredEntregas.length})`);
+
     // Mostrar/ocultar sentinel
     if (this.sentinelEl) {
       this.sentinelEl.style.display = this.hasMore ? 'flex' : 'none';
     }
-    
+
     // Actualizar contador
     this.updateStats();
   },
-  
-  // Crear item del grid - CORREGIDO (sin abreviar)
-  createGridItem: function(item) {
+
+  // Crear item del grid
+  createGridItem: function (item) {
     const div = document.createElement('div');
     div.className = 'grid-item';
     div.setAttribute('data-id', item.id);
     div.setAttribute('data-factura', item.factura);
-    
-    // Determinar si es ancho (destacar algunos)
+
+    // Determinar si es ancho
     const shouldBeWide = item.tieneImagen || parseInt(item.cantidad) > 30;
     if (shouldBeWide) {
       div.classList.add('wide');
     }
-    
-    // Template del item - CON NOMBRE COMPLETO
+
+    // Template del item
     div.innerHTML = `
       ${item.tieneImagen ? `
         <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')">
@@ -360,76 +360,107 @@ const SoportesGrid = {
         </div>
       </div>
     `;
-    
+
     return div;
   },
-  
+
+  // =========================================
   // INFINITE SCROLL - CORREGIDO
-  initInfiniteScroll: function() {
+  // =========================================
+  initInfiniteScroll: function () {
     if (!this.sentinelEl) {
       console.warn('Sentinel no encontrado');
       return;
     }
-    
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && this.hasMore && !this.isLoadingMore) {
+
+    // Limpiar observer anterior si existe
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
+    }
+
+    console.log('Configurando Intersection Observer');
+
+    this.intersectionObserver = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+
+      console.log('Sentinel visible:', entry.isIntersecting);
+      console.log('Has more:', this.hasMore);
+      console.log('Is loading:', this.isLoadingMore);
+
+      if (entry.isIntersecting && this.hasMore && !this.isLoadingMore) {
+        console.log('✅ Cargando más items...');
         this.loadMore();
       }
     }, {
       threshold: 0.1,
-      rootMargin: '100px' // Cargar antes de llegar al final
+      rootMargin: '200px' // Cargar antes de llegar al final
     });
-    
-    observer.observe(this.sentinelEl);
-    this.intersectionObserver = observer;
+
+    this.intersectionObserver.observe(this.sentinelEl);
+    console.log('Observer configurado y observando sentinel');
   },
-  
-  // Cargar más items - CORREGIDO
-  loadMore: function() {
-    if (this.isLoadingMore || !this.hasMore) return;
-    
+
+  // =========================================
+  // CARGAR MÁS ITEMS - CORREGIDO
+  // =========================================
+  loadMore: function () {
+    if (this.isLoadingMore || !this.hasMore) {
+      console.log('No se puede cargar más:', {
+        isLoadingMore: this.isLoadingMore,
+        hasMore: this.hasMore
+      });
+      return;
+    }
+
+    console.log('Iniciando carga de más items...');
     this.isLoadingMore = true;
-    
+
     // Mostrar indicador en el sentinel
     if (this.sentinelEl) {
       this.sentinelEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cargando más entregas...';
     }
-    
-    // Simular carga async
+
+    // Simular carga async (puedes ajustar el delay o removerlo)
     setTimeout(() => {
       this.currentPage++;
+      console.log(`Nueva página: ${this.currentPage}`);
+
       this.render();
       this.isLoadingMore = false;
-      
-      // Restaurar sentinel
+
+      console.log(`Carga completada. Página ${this.currentPage}`);
+
+      // Restaurar sentinel si aún hay más
       if (this.sentinelEl && this.hasMore) {
         this.sentinelEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cargando más...';
       }
-    }, 300); // Pequeño delay para feedback visual
+    }, 300);
   },
-  
+
+  // =========================================
   // FILTROS - CORREGIDO
-  aplicarFiltros: function(filtros = {}) {
+  // =========================================
+  aplicarFiltros: function (filtros = {}) {
     console.log('Aplicando filtros:', filtros);
-    
+
     let resultados = [...this.entregas];
-    
-    // Filtro por fecha - CORREGIDO
+
+    // Filtro por fecha
     if (filtros.fechaInicio && filtros.fechaFin) {
       const inicio = this.normalizarFecha(filtros.fechaInicio);
       const fin = this.normalizarFecha(filtros.fechaFin);
       fin.setHours(23, 59, 59, 999);
-      
+
       console.log('Filtrando fechas:', inicio, 'a', fin);
-      
+
       resultados = resultados.filter(item => {
         if (!item.fechaObj) return false;
         return item.fechaObj >= inicio && item.fechaObj <= fin;
       });
-      
-      console.log(`Filtro de fecha: ${resultados.length} resultados`);
+
+      console.log(`   Resultados después de filtro fecha: ${resultados.length}`);
     }
-    
+
     // Filtro por búsqueda
     if (filtros.busqueda && filtros.busqueda.trim() !== '') {
       const busqueda = filtros.busqueda.toLowerCase().trim();
@@ -440,33 +471,35 @@ const SoportesGrid = {
         item.referencia.toLowerCase().includes(busqueda) ||
         item.cliente.toLowerCase().includes(busqueda)
       );
+
+      console.log(`   Resultados después de búsqueda: ${resultados.length}`);
     }
-    
+
     this.filteredEntregas = resultados;
     this.currentPage = 1;
     this.hasMore = this.filteredEntregas.length > this.itemsPerPage;
-    
-    // Limpiar contenedor y renderizar
+
+    // Limpiar contenedor y renderizar desde cero
     this.container.innerHTML = '';
     this.render();
-    
+
     // Mostrar/ocultar empty state
     if (this.filteredEntregas.length === 0) {
       this.showEmpty();
     } else {
       this.hideEmpty();
     }
-    
+
     // Actualizar sentinel
     if (this.sentinelEl) {
       this.sentinelEl.style.display = this.hasMore ? 'flex' : 'none';
     }
-    
+
     this.updateStats();
   },
-  
-  // Normalizar fecha para comparación - CORREGIDO
-  normalizarFecha: function(fecha) {
+
+  // Normalizar fecha para comparación
+  normalizarFecha: function (fecha) {
     if (fecha instanceof Date) {
       return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
     }
@@ -478,30 +511,36 @@ const SoportesGrid = {
     }
     return new Date();
   },
-  
+
   // Reset filtros
-  resetFiltros: function() {
+  resetFiltros: function () {
+    console.log('Reseteando filtros');
     this.filteredEntregas = [...this.entregas];
     this.currentPage = 1;
     this.hasMore = this.filteredEntregas.length > this.itemsPerPage;
     this.container.innerHTML = '';
     this.render();
     this.hideEmpty();
-    
+
     if (this.sentinelEl) {
       this.sentinelEl.style.display = this.hasMore ? 'flex' : 'none';
     }
-    
+
     this.updateStats();
   },
-  
+
   // Actualizar estadísticas
-  updateStats: function() {
+  updateStats: function () {
+    const totalMostrados = Math.min(
+      this.currentPage * this.itemsPerPage,
+      this.filteredEntregas.length
+    );
+
     const countEl = document.getElementById('soportesGridCount');
     if (countEl) {
-      countEl.textContent = `${this.filteredEntregas.length} entregas`;
+      countEl.textContent = `${totalMostrados} de ${this.filteredEntregas.length} entregas`;
     }
-    
+
     const badge = document.getElementById('soportesGridBadge');
     if (badge) {
       const now = new Date();
@@ -509,15 +548,15 @@ const SoportesGrid = {
       badge.innerHTML = `<i class="fas fa-check-circle"></i> ${timeStr}`;
     }
   },
-  
+
   // Vista previa de imagen
-  previewImage: function(imageId, factura) {
+  previewImage: function (imageId, factura) {
     if (!imageId) return;
-    
+
     const url = `https://lh3.googleusercontent.com/d/${imageId}`;
     const modal = document.getElementById('soportesImageModal');
     const modalImg = document.getElementById('soportesModalImage');
-    
+
     if (modal && modalImg) {
       modalImg.src = url;
       modal.style.display = 'flex';
@@ -525,47 +564,46 @@ const SoportesGrid = {
       window.open(url, '_blank');
     }
   },
-  
+
   // Mostrar detalles
-  showDetails: function(itemId) {
+  showDetails: function (itemId) {
     const item = this.filteredEntregas.find(i => i.id === itemId);
     if (!item) return;
-    
-    // Formatear mensaje de detalles
+
     alert(`
-📄 FACTURA: ${item.factura}
-📦 DOCUMENTO: ${item.documento}
-🏷️ LOTE: ${item.lote}
-🔖 REFERENCIA: ${item.referencia}
-📊 CANTIDAD: ${item.cantidad}
-🏢 CLIENTE: ${item.cliente}
-📅 FECHA: ${item.fecha}
+      FACTURA: ${item.factura}
+      DOCUMENTO: ${item.documento}
+      LOTE: ${item.lote}
+      REFERENCIA: ${item.referencia}
+      CANTIDAD: ${item.cantidad}
+      CLIENTE: ${item.cliente}
+      FECHA: ${item.fecha}
     `);
   },
-  
+
   // UI Helpers
-  showLoading: function() {
+  showLoading: function () {
     this.isLoading = true;
     if (this.loadingEl) this.loadingEl.style.display = 'flex';
     if (this.sentinelEl) this.sentinelEl.style.display = 'none';
   },
-  
-  hideLoading: function() {
+
+  hideLoading: function () {
     this.isLoading = false;
     if (this.loadingEl) this.loadingEl.style.display = 'none';
     if (this.sentinelEl && this.hasMore) this.sentinelEl.style.display = 'flex';
   },
-  
-  showEmpty: function() {
+
+  showEmpty: function () {
     if (this.emptyEl) this.emptyEl.style.display = 'flex';
     if (this.sentinelEl) this.sentinelEl.style.display = 'none';
   },
-  
-  hideEmpty: function() {
+
+  hideEmpty: function () {
     if (this.emptyEl) this.emptyEl.style.display = 'none';
   },
-  
-  showError: function(message) {
+
+  showError: function (message) {
     if (this.container) {
       this.container.innerHTML = `
         <div class="grid-error">
@@ -579,14 +617,14 @@ const SoportesGrid = {
       `;
     }
   },
-  
+
   // Exportar a Excel
-  exportarExcel: function() {
+  exportarExcel: function () {
     if (typeof XLSX === 'undefined') {
       alert('Excel export no disponible');
       return;
     }
-    
+
     try {
       const data = this.filteredEntregas.map(item => ({
         'Fecha': item.fecha,
@@ -599,11 +637,11 @@ const SoportesGrid = {
         'NIT': item.nit,
         'Soporte': item.ih3 ? `https://lh3.googleusercontent.com/d/${item.ih3}` : ''
       }));
-      
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(data);
       XLSX.utils.book_append_sheet(wb, ws, 'Entregas');
-      XLSX.writeFile(wb, `entregas_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `entregas_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (e) {
       console.error('Error exportando Excel:', e);
       alert('Error al exportar');
@@ -611,14 +649,17 @@ const SoportesGrid = {
   }
 };
 
-// Inicialización con retry
+// =========================================
+// INICIALIZACIÓN CON RETRY
+// =========================================
 function initSoportesGrid() {
   if (typeof obtenerDatosSoportes === 'function') {
     SoportesGrid.init();
     window.SoportesGrid = SoportesGrid;
-    console.log('✅ SoportesGrid inicializado');
+    console.log('SoportesGrid inicializado correctamente');
     return true;
   }
+  console.log('Esperando obtenerDatosSoportes...');
   return false;
 }
 
@@ -627,7 +668,12 @@ let attempts = 0;
 const maxAttempts = 20;
 const initInterval = setInterval(() => {
   attempts++;
+  console.log(`🔄 Intento ${attempts}/${maxAttempts} de inicialización`);
+
   if (initSoportesGrid() || attempts >= maxAttempts) {
     clearInterval(initInterval);
+    if (attempts >= maxAttempts) {
+      console.error('❌ No se pudo inicializar SoportesGrid - timeout');
+    }
   }
 }, 500);
