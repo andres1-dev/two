@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Palette - Modern & Premium */
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-soft: #dbeafe;
+
+  --success: #10b981;
+  --success-dark: #059669;
+  --success-soft: #d1fae5;
+
+  --warning: #f59e0b;
+  --warning-dark: #d97706;
+  --warning-soft: #fef3c7;
+
+  --danger: #ef4444;
+  --danger-dark: #b91c1c;
+  --danger-soft: #fee2e2;
+
+  --surface: #ffffff;
+  --background: #ffffff;
+  --text-main: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-floating: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  --font-main: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --app-width: 460px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+    /* Estilos para bloquear zoom y escalado */
+    html {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      overflow-x: hidden;
+    }
+
+/* MOBILE-FIRST ABSOLUTO */
+body {
+  max-width: 450px; /* Tamaño móvil estándar */
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-main);
+  background-color: #ffffff;
+  color: var(--text-main);
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
+#app-frame {
+  width: 100%;
+  max-width: var(--app-width);
+  background-color: white;
+  position: relative;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
+/* Contenido SCROLLABLE */
+#scanner {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Footer dentro del scanner */
+#scanner footer {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+}
+
+/* Scrollbar personalizado - móvil */
+#results::-webkit-scrollbar {
+  width: 4px;
+}
+
+#results::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+/* Botones accesibles */
+.btn {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+input,
+button {
+  font-size: 16px !important;
+}
