@@ -28,8 +28,81 @@ const SoportesGrid = {
     this.emptyEl = document.getElementById('soportesGridEmpty');
     this.sentinelEl = document.getElementById('grid-sentinel');
 
-    await this.cargarDatos();
+    // Elementos del Modal
+    this.modal = document.getElementById('soportesGridModal');
+    this.openBtn = document.getElementById('openSoportesGridBtn');
+    this.closeBtn = document.getElementById('closeSoportesGridBtn');
+    this.refreshBtn = document.getElementById('refreshSoportesBtn');
+
+    // Filtros
+    this.filterTodayBtn = document.getElementById('filterTodayBtn');
+    this.filterWeekBtn = document.getElementById('filterWeekBtn');
+    this.resetFilterBtn = document.getElementById('resetFilterBtn');
+    this.searchInput = document.getElementById('soportesGridSearch');
+
+    this.bindEvents();
+
+    // Carga inicial (opcional, se hará al abrir)
+    // await this.cargarDatos(); 
     this.initInfiniteScroll();
+  },
+
+  bindEvents: function () {
+    // Abrir/Cerrar
+    if (this.openBtn) this.openBtn.addEventListener('click', () => this.open());
+    if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.close());
+
+    // Refresh
+    if (this.refreshBtn) {
+      this.refreshBtn.addEventListener('click', () => {
+        this.cargarDatos();
+      });
+    }
+
+    // Filtros
+    if (this.filterTodayBtn) {
+      this.filterTodayBtn.addEventListener('click', () => {
+        const hoy = new Date();
+        this.aplicarFiltros({ fechaInicio: hoy, fechaFin: hoy });
+      });
+    }
+
+    if (this.filterWeekBtn) {
+      this.filterWeekBtn.addEventListener('click', () => {
+        const hoy = new Date();
+        const hace7dias = new Date();
+        hace7dias.setDate(hoy.getDate() - 7);
+        this.aplicarFiltros({ fechaInicio: hace7dias, fechaFin: hoy });
+      });
+    }
+
+    if (this.resetFilterBtn) {
+      this.resetFilterBtn.addEventListener('click', () => this.resetFiltros());
+    }
+
+    // Búsqueda
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+          this.aplicarFiltros({ busqueda: e.target.value });
+        }, 300);
+      });
+    }
+  },
+
+  open: function () {
+    if (this.modal) {
+      this.modal.style.display = 'flex';
+      // Cargar datos al abrir como pidió el usuario
+      this.cargarDatos();
+    }
+  },
+
+  close: function () {
+    if (this.modal) {
+      this.modal.style.display = 'none';
+    }
   },
 
   // Cargar datos desde Google Sheets
