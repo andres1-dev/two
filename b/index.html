@@ -53,36 +53,36 @@
   <!-- Biblioteca para escanear QR -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
 
-  <!-- GENERADOR DE ICONOS PWA - DEBE IR PRIMERO -->
-  <script src="js/generador_iconos.js"></script>
-  <script>
-    // Inicialización PWA - Se ejecuta inmediatamente
+  <!-- Generador de iconos PWA - React Version -->
+<script src="js/generador_iconos.js"></script>
+<script>
     (async function initPWA() {
-      try {
-        // Esperar a que el DOM esté listo
-        if (document.readyState === 'loading') {
-          await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+        try {
+            // Esperar a que el DOM esté listo
+            if (document.readyState === 'loading') {
+                await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+            }
+            
+            // Generar iconos de React
+            await window.IconGenerator.updateManifest();
+            
+            // Registrar Service Worker
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.register('sw.js');
+                console.log('[React PWA] Service Worker registrado:', registration.scope);
+            }
+            
+            // Actualizar theme-color
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#61dafb');
+            document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute('content', 'black-translucent');
+            
+            console.log('[React PWA] ✅ Listo para instalar');
+        } catch (error) {
+            console.warn('[React PWA] Error:', error);
         }
-        
-        // Generar iconos y actualizar manifest
-        await window.IconGenerator.updateManifest();
-        
-        // Forzar registro de Service Worker después de tener los iconos
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.register('sw.js');
-          console.log('[PWA] Service Worker registrado:', registration.scope);
-          
-          // Verificar si la app es instalable
-          registration.addEventListener('updatefound', () => {
-            console.log('[PWA] Nueva versión encontrada');
-          });
-        }
-      } catch (error) {
-        console.warn('[PWA] Error en inicialización:', error);
-      }
     })();
-  </script>
-  
+</script>
+
   <style>
     /* Estilos para el módulo de historial - MOBILE OPTIMIZED */
     .history-container {

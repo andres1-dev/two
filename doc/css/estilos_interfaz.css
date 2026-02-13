@@ -391,13 +391,12 @@
 .logo-icon {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+  /*box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);*/
   animation: subtleFloat 3s ease-in-out infinite;
 }
 
@@ -643,7 +642,6 @@
 .login-logo-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   border-radius: 16px;
   display: flex;
   align-items: center;

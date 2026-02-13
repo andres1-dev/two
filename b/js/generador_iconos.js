@@ -1,14 +1,13 @@
-// Generador dinámico de iconos para PWA - PandaDash
-// Versión estable con soporte completo para instalación PWA
+// Generador dinámico de iconos para PWA - PandaDash con React Logo
 const IconGenerator = {
     // Configuración de iconos - TODOS los tamaños requeridos
     sizes: [192, 256, 384, 512, 1024],
     
-    // Colores del tema PandaDash
+    // Colores del tema React
     backgroundColor: '#ffffff',
-    primaryColor: '#4361ee', // Azul principal
-    secondaryColor: '#3a0ca3', // Azul oscuro para detalles
-    iconColor: '#4361ee',
+    primaryColor: '#61dafb', // Azul React
+    secondaryColor: '#282c34', // Gris oscuro React
+    iconColor: '#61dafb',
     
     // Canvas oculto
     canvas: null,
@@ -25,7 +24,7 @@ const IconGenerator = {
     // Genera TODOS los iconos necesarios para PWA
     async generateAllIcons() {
         this.init();
-        console.log('[PWA] Generando iconos dinámicos para instalación...');
+        console.log('[PWA] Generando iconos dinámicos con React...');
         
         const icons = [];
         
@@ -60,7 +59,7 @@ const IconGenerator = {
             purpose: 'any'
         });
         
-        console.log(`[PWA] ✓ ${icons.length} iconos generados correctamente`);
+        console.log(`[PWA] ✓ ${icons.length} iconos de React generados`);
         return icons;
     },
     
@@ -74,10 +73,8 @@ const IconGenerator = {
             this.ctx.clearRect(0, 0, size, size);
             
             if (purpose === 'maskable') {
-                // Para maskable: el icono debe llenar el área segura (80% del canvas)
                 this.drawMaskableIcon(size);
             } else {
-                // Para any: icono normal con padding
                 this.drawStandardIcon(size);
             }
             
@@ -92,90 +89,154 @@ const IconGenerator = {
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, size, size);
         
-        // Círculo de fondo suave
+        // Círculo de fondo con gradiente
         const padding = size * 0.1;
         const circleSize = size - (padding * 2);
         
+        // Gradiente radial para el fondo
+        const gradient = this.ctx.createRadialGradient(
+            size/2, size/2, 0,
+            size/2, size/2, circleSize/2
+        );
+        gradient.addColorStop(0, '#f0f9ff');
+        gradient.addColorStop(1, '#e6f3ff');
+        
         this.ctx.beginPath();
         this.ctx.arc(size/2, size/2, circleSize/2, 0, Math.PI * 2);
-        this.ctx.fillStyle = '#f8fafc';
+        this.ctx.fillStyle = gradient;
         this.ctx.fill();
         
         // Borde sutil
         this.ctx.beginPath();
         this.ctx.arc(size/2, size/2, circleSize/2, 0, Math.PI * 2);
-        this.ctx.strokeStyle = '#e2e8f0';
+        this.ctx.strokeStyle = '#b0e0ff';
         this.ctx.lineWidth = size * 0.01;
         this.ctx.stroke();
         
-        // Dibujar logo QR
-        this.drawQRLogo(size);
+        // Dibujar logo de React
+        this.drawReactLogo(size);
     },
     
     // Dibuja icono maskable (área segura para Android)
     drawMaskableIcon(size) {
-        // Fondo de color sólido (llenar todo el canvas)
+        // Fondo de color sólido
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, size, size);
         
         // Área segura (80% del centro)
         const safeArea = size * 0.8;
-        const startX = (size - safeArea) / 2;
-        const startY = (size - safeArea) / 2;
+        
+        // Gradiente para maskable
+        const gradient = this.ctx.createRadialGradient(
+            size/2, size/2, 0,
+            size/2, size/2, safeArea/2
+        );
+        gradient.addColorStop(0, '#f0f9ff');
+        gradient.addColorStop(1, '#d9eeff');
         
         // Fondo circular dentro del área segura
         this.ctx.beginPath();
         this.ctx.arc(size/2, size/2, safeArea/2 * 0.9, 0, Math.PI * 2);
-        this.ctx.fillStyle = '#f8fafc';
+        this.ctx.fillStyle = gradient;
         this.ctx.fill();
         
-        // Borde
+        // Borde con color primario
         this.ctx.beginPath();
         this.ctx.arc(size/2, size/2, safeArea/2 * 0.9, 0, Math.PI * 2);
         this.ctx.strokeStyle = this.primaryColor;
-        this.ctx.lineWidth = size * 0.02;
+        this.ctx.lineWidth = size * 0.015;
         this.ctx.stroke();
         
-        // Logo más grande para maskable
-        this.drawQRLogo(size, 0.6); // 60% del tamaño
+        // Logo React más grande para maskable
+        this.drawReactLogo(size, 0.6); // 60% del tamaño
     },
     
-    // Dibuja el logo de QR de FontAwesome
-    drawQRLogo(size, scaleFactor = 0.5) {
+    // Dibuja el logo de React (átomo)
+    drawReactLogo(size, scaleFactor = 0.5) {
         const iconSize = size * scaleFactor;
-        const startX = (size - iconSize) / 2;
-        const startY = (size - iconSize) / 2;
-        const cellSize = iconSize / 9; // Grid 9x9 para más detalle
+        const centerX = size / 2;
+        const centerY = size / 2;
         
-        this.ctx.fillStyle = this.primaryColor;
+        // === NÚCLEO CENTRAL ===
+        // Círculo central con gradiente
+        const coreGradient = this.ctx.createRadialGradient(
+            centerX - iconSize * 0.02, centerY - iconSize * 0.02, 0,
+            centerX, centerY, iconSize * 0.15
+        );
+        coreGradient.addColorStop(0, '#61dafb');
+        coreGradient.addColorStop(1, '#4fa8c9');
         
-        // Dibujar cuadrícula de QR estilizada
-        for (let i = 0; i < 9; i++) {
-            for (let j = 0; j < 9; j++) {
-                // Patrón de QR reconocible
-                if ((i < 3 && j < 3) || // Esquina superior izquierda
-                    (i < 3 && j > 5) || // Esquina superior derecha
-                    (i > 5 && j < 3) || // Esquina inferior izquierda
-                    (i === 4 || j === 4) || // Línea central
-                    (i === j) || // Diagonal principal
-                    (i + j === 8) || // Diagonal secundaria
-                    (i % 2 === 0 && j % 2 === 0)) { // Patrón de puntos
-                    
-                    this.ctx.fillRect(
-                        startX + j * cellSize,
-                        startY + i * cellSize,
-                        cellSize * 0.8,
-                        cellSize * 0.8
-                    );
-                }
-            }
-        }
-        
-        // Detalle central
-        this.ctx.fillStyle = this.secondaryColor;
+        this.ctx.fillStyle = coreGradient;
         this.ctx.beginPath();
-        this.ctx.arc(size/2, size/2, cellSize * 0.8, 0, Math.PI * 2);
+        this.ctx.arc(centerX, centerY, iconSize * 0.15, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // Reflejo en el núcleo
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - iconSize * 0.03, centerY - iconSize * 0.03, iconSize * 0.04, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // === ANILLOS ORBITALES ===
+        this.ctx.lineWidth = iconSize * 0.06;
+        this.ctx.lineCap = 'round';
+        
+        // Anillo 1 - Horizontal (0°)
+        this.ctx.strokeStyle = '#61dafb';
+        this.ctx.beginPath();
+        this.ctx.ellipse(centerX, centerY, iconSize * 0.4, iconSize * 0.12, 0, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Anillo 2 - Rotado 60°
+        this.ctx.strokeStyle = '#4fa8c9';
+        this.ctx.beginPath();
+        this.ctx.ellipse(centerX, centerY, iconSize * 0.4, iconSize * 0.12, Math.PI / 3, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Anillo 3 - Rotado 120°
+        this.ctx.strokeStyle = '#3d8caa';
+        this.ctx.beginPath();
+        this.ctx.ellipse(centerX, centerY, iconSize * 0.4, iconSize * 0.12, Math.PI / 1.5, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // === ELECTRONES ===
+        // Pequeñas esferas en los anillos para dar sensación de movimiento
+        this.ctx.fillStyle = '#61dafb';
+        
+        // Electrón 1 (anillo horizontal)
+        this.ctx.beginPath();
+        this.ctx.arc(centerX + iconSize * 0.4, centerY, iconSize * 0.06, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Electrón 2 (anillo 60°)
+        const angle60 = Math.PI / 3;
+        this.ctx.beginPath();
+        this.ctx.arc(
+            centerX + iconSize * 0.4 * Math.cos(angle60),
+            centerY + iconSize * 0.12 * Math.sin(angle60),
+            iconSize * 0.06, 0, Math.PI * 2
+        );
+        this.ctx.fill();
+        
+        // Electrón 3 (anillo 120°)
+        const angle120 = Math.PI / 1.5;
+        this.ctx.beginPath();
+        this.ctx.arc(
+            centerX + iconSize * 0.4 * Math.cos(angle120),
+            centerY + iconSize * 0.12 * Math.sin(angle120),
+            iconSize * 0.06, 0, Math.PI * 2
+        );
+        this.ctx.fill();
+        
+        // Brillo adicional
+        this.ctx.shadowColor = '#61dafb';
+        this.ctx.shadowBlur = iconSize * 0.1;
+        this.ctx.strokeStyle = '#61dafb';
+        this.ctx.lineWidth = iconSize * 0.04;
+        this.ctx.beginPath();
+        this.ctx.ellipse(centerX, centerY, iconSize * 0.4, iconSize * 0.12, 0, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.shadowBlur = 0;
     },
     
     // Actualiza el manifest.json con iconos dinámicos
@@ -183,7 +244,6 @@ const IconGenerator = {
         try {
             const icons = await this.generateAllIcons();
             
-            // Manifest completo con TODOS los campos requeridos para PWA
             const manifest = {
                 name: "PandaDash",
                 short_name: "PandaDash",
@@ -192,11 +252,11 @@ const IconGenerator = {
                 scope: "./",
                 display: "standalone",
                 background_color: "#ffffff",
-                theme_color: "#4361ee", // Color primario para la barra
+                theme_color: "#61dafb", // Color React
                 lang: "es-ES",
                 dir: "ltr",
                 orientation: "portrait",
-                categories: ["business", "productivity", "utilities"],
+                categories: ["business", "productivity", "utilities", "developer-tools"],
                 prefer_related_applications: false,
                 icons: icons
             };
@@ -214,7 +274,6 @@ const IconGenerator = {
                 document.head.appendChild(manifestLink);
             }
             
-            // Asignar nueva URL y limpiar anterior
             if (window.manifestObjectURL) {
                 URL.revokeObjectURL(window.manifestObjectURL);
             }
@@ -222,9 +281,8 @@ const IconGenerator = {
             manifestLink.href = manifestURL;
             window.manifestObjectURL = manifestURL;
             
-            console.log('[PWA] ✓ Manifest actualizado - App instalable lista');
+            console.log('[PWA] ✓ Manifest actualizado con iconos de React');
             
-            // También generar favicon y apple touch icons
             this.generateAppleIcons();
             this.generateFavicon();
             
@@ -266,3 +324,14 @@ const IconGenerator = {
 
 // Iniciar generación automáticamente
 window.IconGenerator = IconGenerator;
+
+// Auto-ejecutar al cargar la página
+if (typeof window !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            IconGenerator.updateManifest();
+        });
+    } else {
+        IconGenerator.updateManifest();
+    }
+}
