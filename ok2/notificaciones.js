@@ -3,7 +3,7 @@ class NotificationManager {
         this.swRegistration = null;
         this.isSubscribed = false;
         this.vapidPublicKey = 'BCmC8fdwQf-J8GzQJ902q-gA';
-        this.lastNotificationTimestamp = 0; // Se sincronizará con DB
+        this.lastNotificationTimestamp = 0;
 
         console.log('🔔 NotificationManager Constructor iniciado');
         this.setupUI();
@@ -20,17 +20,13 @@ class NotificationManager {
         }
 
         try {
-            // Intentar obtener el registro del SW
             this.swRegistration = await navigator.serviceWorker.getRegistration() || await navigator.serviceWorker.ready;
 
             if (this.swRegistration) {
                 console.log('✅ Service Worker vinculado a Notificaciones');
                 this.updateUIForState(Notification.permission);
-
-                // Configurar el polling en el SW
                 this.sendPollingConfigToSW();
 
-                // Intentar registrar Periodic Sync (Android - permite checks incluso cerrada)
                 if ('periodicSync' in this.swRegistration) {
                     try {
                         const status = await navigator.permissions.query({
@@ -38,7 +34,7 @@ class NotificationManager {
                         });
                         if (status.state === 'granted') {
                             await this.swRegistration.periodicSync.register('check-notif', {
-                                minInterval: 60 * 60 * 1000, // 1 hora (mínimo permitido por Chrome)
+                                minInterval: 60 * 60 * 1000,
                             });
                             console.log('✅ Periodic Sync registrado');
                         }
@@ -47,7 +43,6 @@ class NotificationManager {
                     }
                 }
 
-                // Si ya tenemos permiso, asegurar suscripción
                 if (Notification.permission === 'granted') {
                     this.subscribeToPush();
                 }
@@ -81,17 +76,12 @@ class NotificationManager {
             };
         }
 
-        // Aplicar permisos de rol después de una pequeña espera
         setTimeout(() => this.applyRolePermissions(), 1000);
     }
 
     applyRolePermissions() {
-        // El botón de reporte ahora se inyecta en la sección de Administración de interfaz.js
-        // No necesitamos mostrar adminNotifSection si el botón está en otro lugar, 
-        // pero podemos usarlo para activar/desactivar el botón inyectado.
-
         const adminNotifSection = document.getElementById('adminNotifSection');
-        if (adminNotifSection) adminNotifSection.style.display = 'none'; // Ya no lo usamos por separado
+        if (adminNotifSection) adminNotifSection.style.display = 'none';
 
         let role = null;
         if (window.currentUser && window.currentUser.rol) {
@@ -108,9 +98,6 @@ class NotificationManager {
         }
 
         console.log(`🔔 NotificationManager: Verificando acceso para rol [${role}]`);
-
-        // La visibilidad del botón de reporte se maneja ahora en interfaz.js/refreshSettingsUI
-        // para estar junto al de usuarios.
     }
 
     async sendDailySummary() {
@@ -123,12 +110,9 @@ class NotificationManager {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
             btn.disabled = true;
 
-            // 1. Obtener datos frescos
             const result = await window.obtenerDatosFacturados();
             if (!result || !result.success) throw new Error('No se pudieron obtener los datos');
 
-            // 3. Procesar datos (Detección inteligente de entregas)
-            // Buscaremos el último día que tenga registros de entrega
             let maxDateVal = 0;
             let finalDateStr = "";
             let finalStats = { facturas: new Set(), unidades: 0, valor: 0 };
@@ -142,33 +126,21 @@ class NotificationManager {
                     const esEntregado = f.confirmacion && f.confirmacion.includes('ENTREGADO');
                     if (!esEntregado) return;
 
-                    // Priorizar fechaEntrega (real) sobre fecha (factura)
-                    // La fecha de entrega suele ser D/M/Y H:M:S
-                    // La fecha de siesa puede haber sido trocada a M/D/Y por formatearFecha
                     const rawDate = f.fechaEntrega || f.fecha || "";
                     if (!rawDate) return;
 
                     let day, month, year;
-
-                    // Intento de extracción robusto (D/M/Y o M/D/Y)
-                    // Usamos regex para encontrar 3 grupos de números
                     const match = rawDate.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
 
                     if (match) {
-                        // Si viene de fechaEntrega (Soportes), el formato es D/M/Y
-                        // Si viene de fecha (Siesa), el formato fue trocado a M/D/Y
                         if (f.fechaEntrega) {
                             day = parseInt(match[1]);
                             month = parseInt(match[2]);
                         } else {
-                            // Asumimos que f.fecha fue trocada en principal.js:formatearFecha
                             day = parseInt(match[2]);
                             month = parseInt(match[1]);
                         }
                         year = parseInt(match[3]);
-
-                        // Validar mes (si el día era el primero y el mes el segundo, y el mes > 12, es que el orden es distinto)
-                        // Pero aquí confiamos en nuestra lógica de origen.
 
                         const dateVal = (year * 10000) + (month * 100) + day;
                         const dateStr = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
@@ -195,7 +167,6 @@ class NotificationManager {
 
             console.log(`✅ Reporte generado para la fecha: ${finalDateStr} (${finalStats.facturas.size} facturas)`);
 
-            // 4. Formatear Mensaje Profesional
             const formatter = new Intl.NumberFormat('es-CO', {
                 style: 'currency',
                 currency: 'COP',
@@ -205,7 +176,6 @@ class NotificationManager {
             const titulo = `REPORTE DE ENTREGAS | ${finalDateStr}`;
             const cuerpo = `Entregas: ${finalStats.facturas.size} | Unidades: ${finalStats.unidades.toLocaleString('es-CO')} | Total: ${formatter.format(finalStats.valor)}`;
 
-            // 5. Enviar vía Broadcast
             const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
             const formData = new FormData();
             formData.append('action', 'send_push_notification');
@@ -217,7 +187,6 @@ class NotificationManager {
 
             if (resData.success) {
                 alert('✅ Resumen diario enviado correctamente.');
-                // Notificar al SW que revise inmediatamente
                 if (this.swRegistration && this.swRegistration.active) {
                     this.swRegistration.active.postMessage({ type: 'CHECK_NOW' });
                 }
@@ -286,7 +255,6 @@ class NotificationManager {
     }
 
     async saveSubscriptionToBackend(subscription) {
-        // CORRECCIÓN: Usar API_URL_POST global en lugar de CONFIG.API_URL_POST
         const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
         if (!urlToUse) return;
 
@@ -304,17 +272,16 @@ class NotificationManager {
 
     sendPollingConfigToSW() {
         const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
+        const userId = window.currentUser ? window.currentUser.id : 'anonimo';
+
         if (this.swRegistration && this.swRegistration.active && urlToUse) {
             this.swRegistration.active.postMessage({
                 type: 'SET_POLLING_CONFIG',
                 url: urlToUse,
+                userId: userId,
                 lastTs: this.lastNotificationTimestamp
             });
         }
-    }
-
-    async sendBroadcast() {
-        // Función deshabilitada por petición del usuario
     }
 
     sendTestNotification(msg = 'Prueba de notificación local') {
@@ -331,7 +298,6 @@ class NotificationManager {
                 new Notification('PandaDash', { body: msg });
             }
         } else {
-            // Si no tiene permiso, lo pedimos, pero sin disparar el test auto de nuevo para evitar bucles
             this.requestPermission(false);
         }
     }
@@ -346,7 +312,6 @@ class NotificationManager {
     }
 }
 
-// Inicializar cuando el DOM esté listo o de inmediato si ya lo está
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.notificationManager = new NotificationManager();
