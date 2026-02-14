@@ -50,6 +50,13 @@ function doPost(e) {
     else if (action === 'send_push_notification') {
        return procesarEnvioNotificacion(e.parameter.title, e.parameter.body);
     }
+    else if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
     
     // --- ACCIONES DE DATOS ---
     if (action === 'delete') {

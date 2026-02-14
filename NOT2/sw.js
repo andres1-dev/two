@@ -234,63 +234,44 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Manejar notificaciones Push
-self.addEventListener('push', (event) => {
-  console.log('[SW] 📩 Notificación Push recibida');
+// --- POLLING DE NOTIFICACIONES (SOLUCIÓN INTERNA) ---
+let lastCheckedNotif = 0;
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOwBp1er4nu9Uth2nS5rY2tYfvY-NMdWJkA3dIjmuaVUTLvnUyKtJIG62ACK22RpNWRQ/exec';
 
-  let data = {
-    title: 'Nueva Notificación',
-    body: 'Tienes una nueva actualización en PandaDash',
-    icon: 'icons/icon-192.png',
-    badge: 'icons/icon-192.png'
-  };
+async function checkBackgroundNotifications() {
+  try {
+    const response = await fetch(`${GAS_URL}?action=check_notification&t=${Date.now()}`);
+    const data = await response.json();
 
-  if (event.data) {
-    try {
-      const payload = event.data.json();
-      data = { ...data, ...payload };
-    } catch (e) {
-      data.body = event.data.text();
+    if (data.success && data.notification) {
+      const ts = data.notification.timestamp;
+
+      // Solo notificar si es una marca de tiempo nueva
+      if (ts > lastCheckedNotif) {
+        lastCheckedNotif = ts;
+
+        // Guardar en cache del SW para evitar repeticiones si se reinicia
+        const options = {
+          body: data.notification.body,
+          icon: 'icons/icon-192.png',
+          badge: 'icons/icon-192.png',
+          vibrate: [200, 100, 200, 100, 200],
+          tag: 'panda-global-push',
+          renotify: true,
+          data: {
+            url: self.location.origin
+          }
+        };
+
+        self.registration.showNotification(data.notification.title, options);
+      }
     }
+  } catch (e) {
+    // Silencio en errores de polling para no llenar consola
   }
+}
 
-  const options = {
-    body: data.body,
-    icon: data.icon,
-    badge: data.badge,
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || self.location.origin
-    },
-    actions: [
-      { action: 'open', title: 'Ver App' },
-      { action: 'close', title: 'Cerrar' }
-    ]
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
-});
-
-// Manejar click en notificación
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.action === 'close') return;
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url);
-      }
-    })
-  );
-});
+// Iniciar polling solo si es el navegador quien controla
+setInterval(checkBackgroundNotifications, 30000); // Cada 30 segundos
 
 console.log('[SW] 📱 Service Worker cargado - Versión:', CACHE_NAME);
