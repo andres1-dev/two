@@ -69,18 +69,18 @@ const PushManager = {
 
     // Actualizar UI si existe algún indicador
     statusFeedback: function (text) {
-        // Actualizar botón premium de configuración
-        const btn = document.getElementById('btnActivateNotif');
-        if (btn && text.includes('✅')) {
-            btn.innerHTML = '<i class="fas fa-check"></i> Activo';
-            btn.style.borderColor = '#10b981';
-            btn.style.color = '#059669';
-        }
-
-        const indicator = document.getElementById('notif-status-badge');
+        const indicator = document.getElementById('notif-status-info');
         if (indicator) {
-            indicator.textContent = text;
-            indicator.className = 'status-badge ' + (text.includes('✅') ? 'active' : 'inactive');
+            const isGranted = text.includes('✅') || text.includes('Activas');
+            indicator.textContent = isGranted ? 'Activo' : 'Bloqueado';
+            indicator.className = isGranted ? 'active' : 'inactive';
+
+            const btn = document.getElementById('btnActivateNotif');
+            if (btn && isGranted) {
+                btn.innerHTML = '<i class="fas fa-check"></i> Activo';
+                btn.style.opacity = '0.7';
+                btn.disabled = true;
+            }
         }
     },
 
