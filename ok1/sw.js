@@ -191,6 +191,10 @@ self.addEventListener('message', async (event) => {
     console.log('[SW] URL de Polling configurada y persistida');
     startBackgroundPolling();
   }
+
+  if (event.data && event.data.type === 'CHECK_NOW') {
+    checkNotifications();
+  }
 });
 
 let pollingActive = false;
@@ -203,21 +207,30 @@ async function startBackgroundPolling() {
     API_URL_POLLING = await getPersistentValue('pollingUrl');
   }
 
+  console.log('[SW] Iniciando ciclo de polling en segundo plano...');
+
   // Intervalo de polling (Ajustado a 1 minuto para Android)
-  // Nota: iOS matará este proceso rápidamente al cerrar la app.
   setInterval(async () => {
     await checkNotifications();
   }, 60000);
+
+  // Primer chequeo inmediato al arrancar
+  await checkNotifications();
 }
 
 async function checkNotifications() {
   const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
-  if (!url) return;
+  if (!url) {
+    console.log('[SW Polling] Sin URL configurada, abortando check.');
+    return;
+  }
 
   try {
     const lastTs = await getPersistentValue('lastNotifTs') || 0;
+    // Cache busting con timestamp para evitar respuestas viejas
     const fetchUrl = `${url}${url.includes('?') ? '&' : '?'}action=check_notification&_cb=${Date.now()}`;
 
+    console.log(`[SW Polling] Consultando servidor... (Last TS: ${lastTs})`);
     const res = await fetch(fetchUrl);
     const data = await res.json();
 
@@ -226,20 +239,23 @@ async function checkNotifications() {
       const ts = parseInt(notif.timestamp);
 
       if (ts > lastTs) {
+        console.log(`[SW Polling] ¡Nueva notificación detectada! TS: ${ts}`);
         await setPersistentValue('lastNotifTs', ts);
 
         self.registration.showNotification(notif.title || 'PandaDash', {
           body: notif.body || 'Nuevo aviso del sistema',
           icon: './icons/icon-192.png',
           badge: './icons/icon-192.png',
-          tag: 'panda-notif-' + ts,
+          tag: 'panda-notif', // Usar tag fijo para sobreescribir si llega otra igual
           vibrate: [200, 100, 200],
           data: { url: './' }
         });
+      } else {
+        console.log('[SW Polling] Sin cambios (TS no ha incrementado)');
       }
     }
   } catch (e) {
-    console.warn('[SW Polling] Error:', e.message);
+    console.warn('[SW Polling] Error de conexión:', e.message);
   }
 }
 
@@ -296,3 +312,6 @@ self.addEventListener('periodicsync', (event) => {
     event.waitUntil(checkNotifications());
   }
 });
+
+// INICIO AUTOMÁTICO: Este es el secreto para que funcione al cerrarse y reabrirse
+startBackgroundPolling();

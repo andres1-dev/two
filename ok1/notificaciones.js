@@ -3,15 +3,10 @@ class NotificationManager {
         this.swRegistration = null;
         this.isSubscribed = false;
         this.vapidPublicKey = 'BCmC8fdwQf-J8GzQJ902q-gA';
-        this.lastNotificationTimestamp = parseInt(localStorage.getItem('last_push_notif_ts')) || 0;
-        this.pollingInterval = null;
+        this.lastNotificationTimestamp = 0; // Se sincronizará con DB
 
         console.log('🔔 NotificationManager Constructor iniciado');
-
-        // Configurar UI de inmediato
         this.setupUI();
-
-        // Inicializar SW y Polling
         this.init();
     }
 
@@ -222,7 +217,10 @@ class NotificationManager {
 
             if (resData.success) {
                 alert('✅ Resumen diario enviado correctamente.');
-                this.checkBackendNotifications();
+                // Notificar al SW que revise inmediatamente
+                if (this.swRegistration && this.swRegistration.active) {
+                    this.swRegistration.active.postMessage({ type: 'CHECK_NOW' });
+                }
             } else {
                 throw new Error(resData.message);
             }
@@ -336,33 +334,6 @@ class NotificationManager {
             // Si no tiene permiso, lo pedimos, pero sin disparar el test auto de nuevo para evitar bucles
             this.requestPermission(false);
         }
-    }
-
-    startPolling(ms) {
-        if (this.pollingInterval) clearInterval(this.pollingInterval);
-        this.pollingInterval = setInterval(() => this.checkBackendNotifications(), ms);
-        this.checkBackendNotifications();
-    }
-
-    async checkBackendNotifications() {
-        const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
-        if (!urlToUse || Notification.permission !== 'granted') return;
-
-        try {
-            const res = await fetch(`${urlToUse}${urlToUse.includes('?') ? '&' : '?'}action=check_notification`);
-            const data = await res.json();
-
-            if (data.success && data.notification) {
-                const notif = data.notification;
-                const ts = parseInt(notif.timestamp);
-
-                if (ts > this.lastNotificationTimestamp) {
-                    this.lastNotificationTimestamp = ts;
-                    localStorage.setItem('last_push_notif_ts', ts);
-                    this.sendTestNotification(notif.body);
-                }
-            }
-        } catch (e) { }
     }
 
     urlBase64ToUint8Array(base64String) {
