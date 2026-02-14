@@ -1,5 +1,5 @@
 // Service Worker para PandaDash - Versión optimizada para PWA
-const CACHE_NAME = 'pandadash-v10.5';
+const CACHE_NAME = 'pandadash-v10.4';
 
 // Base URL relativa al lugar donde está este archivo sw.js
 const BASE = (new URL('.', self.location)).href;
@@ -50,7 +50,7 @@ const ASSETS_TO_CACHE = [
 
 // Instalación y cacheo inicial
 self.addEventListener('install', (event) => {
-  console.log(`[SW] 🔧 Instalando Service Worker ${CACHE_NAME}...`);
+  console.log('[SW] 🔧 Instalando Service Worker v10.3...');
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -123,6 +123,7 @@ async function checkBackgroundNotifications() {
   try {
     console.log('[SW] 🔍 Revisando servidor (GET) para notificaciones...');
 
+    // Volvemos a GET porque el usuario GARANTIZÓ que modificará el GAS con doGet
     const response = await fetch(`${GAS_URL}?action=check_notification&t=${Date.now()}`, {
       method: 'GET',
       mode: 'cors',
@@ -133,7 +134,9 @@ async function checkBackgroundNotifications() {
 
     if (data.success && data.notification) {
       const ts = data.notification.timestamp;
+      const now = Date.now();
 
+      // Si es la primera vez, solo marcamos el tiempo actual
       if (lastCheckedNotif === 0) {
         lastCheckedNotif = ts;
         return;
@@ -162,16 +165,8 @@ async function checkBackgroundNotifications() {
   }
 }
 
-// Escuchar mensajes desde el cliente (wake up)
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'check_now') {
-    console.log('[SW] ⚡ Wake-up recibido, revisando ahora...');
-    checkBackgroundNotifications();
-  }
-});
-
 // Iniciar revisión cada 10 segundos
 setInterval(checkBackgroundNotifications, 10000);
 checkBackgroundNotifications();
 
-console.log(`[SW] 📱 PWA Ready - ${CACHE_NAME}`);
+console.log('[SW] 📱 PWA Ready - v10.3');

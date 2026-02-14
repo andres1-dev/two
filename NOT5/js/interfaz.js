@@ -292,7 +292,14 @@ function initUIListeners() {
         // Listeners para botones de notificación Premium
         document.getElementById('btnActivateNotif')?.addEventListener('click', async () => {
             if (typeof PushManager !== 'undefined') {
-                await PushManager.solicitarPermisos();
+                const granted = await PushManager.solicitarPermisos();
+                if (granted) {
+                    // Feedback visual en el botón
+                    const btn = document.getElementById('btnActivateNotif');
+                    btn.innerHTML = '<i class="fas fa-check"></i> Activo';
+                    btn.style.borderColor = '#10b981';
+                    btn.style.color = '#059669';
+                }
             }
         });
 

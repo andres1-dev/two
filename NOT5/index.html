@@ -801,26 +801,27 @@
           </select>
         </div>
 
-        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 10px; padding-top: 15px;">
+        <!-- SECCIÓN PROFESIONAL DE NOTIFICACIONES -->
+        <div class="settings-divider">CENTRO DE CONTROL</div>
+
+        <div class="setting-item">
           <div class="setting-info">
-            <span class="setting-title">Notificaciones PWA</span>
-            <span class="setting-desc" id="notif-status-text">Estado: Desactivas</span>
+            <span class="setting-title">Estado de Alertas</span>
+            <span class="setting-desc">Notificaciones del sistema</span>
           </div>
-          <button class="btn-premium-toggle" id="btnActivateNotif"
-            style="border: 1px solid var(--primary); color: var(--primary); background: transparent;">
+          <button class="btn-premium-toggle" id="btnActivateNotif">
             <i class="fas fa-bell"></i> Activar
           </button>
         </div>
 
         <div id="adminSummarySection" class="admin-only" style="display: none;">
-          <div class="setting-item" style="background: #fdf2f8; border-radius: 12px; margin: 10px 0; padding: 12px;">
+          <div class="setting-item summary-item">
             <div class="setting-info">
-              <span class="setting-title" style="color: #be185d;">Resumen Gerencial</span>
-              <span class="setting-desc">Enviar reporte de hoy</span>
+              <span class="setting-title" style="color: #6366f1; font-weight: 700;">Broadcast Administrativo</span>
+              <span class="setting-desc">Enviar resumen técnico de hoy</span>
             </div>
-            <button class="btn-premium-summary" id="btnSendProfessionalSummary"
-              style="background: #be185d; box-shadow: 0 4px 10px rgba(190, 24, 93, 0.2);">
-              <i class="fas fa-paper-plane"></i> Enviar
+            <button class="btn-premium-summary" id="btnSendProfessionalSummary">
+              <i class="fas fa-paper-plane"></i> Enviar Resumen
             </button>
           </div>
         </div>
