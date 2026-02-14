@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- FIX: Viewport estrictamente mobile, sin escalado -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PandaDash" />
+
+  <title>PandaDash - Delivery System</title>
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Favicon y iconos mejorados -->
+  <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Modularizado - SOLO MOBILE -->
+  <link rel="stylesheet" href="css/estilos_base.css">
+  <link rel="stylesheet" href="css/estilos_interfaz.css">
+  <link rel="stylesheet" href="css/estilos_contenido.css">
+  <link rel="stylesheet" href="css/estilos_qr_escaner.css">
+  <link rel="stylesheet" href="css/estilos_admin.css">
+  <link rel="stylesheet" href="css/estilos_upload.css">
+  <link rel="stylesheet" href="css/estilos_soportes.css">
+  <!-- ELIMINADO: estilos_pc.css -->
+
+  <!-- jQuery and DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+  <!-- Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+
+  <!-- SheetJS for Excel processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- Upload Siesa Logic -->
+  <script src="js/upload_siesa.js"></script>
+
+  <!-- Biblioteca para escanear QR -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
+
+  <style>
+    /* Estilos para el módulo de historial - MOBILE OPTIMIZED */
+    .history-container {
+      padding: 16px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .history-header h2 {
+      font-size: 1.25rem;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .status-delivered {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .status-pending {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+
+    .img-preview-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    /* Ajustes DataTables para móvil */
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 14px;
+      max-width: 100%;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+      width: 180px !important;
+    }
+
+    /* Modal Filtros - Mobile First */
+    .filter-modal {
+      position: fixed;
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      transform: none;
+      background: white;
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+      z-index: 2000;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .filter-modal-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+    }
+
+    .filter-modal-body {
+      padding: 16px;
+    }
+
+    .filter-group {
+      margin-bottom: 16px;
+    }
+
+    .filter-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 12px;
+      flex-direction: column;
+    }
+
+    .filter-group.half {
+      flex: 1;
+    }
+
+    .toggle-group {
+      display: flex;
+      background: var(--bg-light);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .toggle-option {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .toggle-option input {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .toggle-option span {
+      display: block;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .toggle-option input:checked+span {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      font-weight: 600;
+    }
+
+    /* Botones pequeños móvil */
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-sm.btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-sm.btn-secondary {
+      background: white;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    /* Responsive DataTables - mobile */
+    table.dataTable.no-footer {
+      border-bottom: 1px solid var(--border) !important;
+    }
+
+    #deliveryTable {
+      width: 100% !important;
+      font-size: 0.8rem;
+    }
+
+    #deliveryTable thead th {
+      background-color: #f8fafc;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.7rem;
+      padding: 10px 8px;
+    }
+
+    #deliveryTable tbody td {
+      padding: 10px 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- MARCO PRINCIPAL - 100% MOBILE -->
+  <div id="app-frame">
+
+    <!-- Pantalla de carga -->
+    <div id="loadingScreen">
+      <div class="loading-container">
+        <div class="loading-logo">
+          <div class="logo-icon">
+            <svg id="design-icon" width="100%" height="100%" viewBox="0 0 500 500">
+              <path
+                d="M118.123,348.231h69.323h12.2h88.173l-23.295-40.363H231.98h-21.291h-46.392v0.013H63.876 l55.329-95.83l0.656-1.058l36.706-63.568l-0.039-0.013l19.3-33.426l19.252,33.341l0.047,0.098l8.474,14.675l0.291,0.497 c3.473,6.094,6.941,12.2,10.414,18.332l0.073-0.146l23.222-40.218l0.021-0.047l-7.609-13.172l-0.047-0.094l-36.707-63.568 c-5.558-9.626-17.882-12.902-27.508-7.331c-3.554,2.064-6.248,5.062-7.948,8.496l-36.039,62.425l-0.039-0.021L85.022,190.82 l-0.604,1.126L12.581,316.367c-2.342,3.302-3.725,7.331-3.725,11.686c0,11.146,9.044,20.177,20.186,20.177h88.85H118.123z"
+                style="fill: rgb(59, 130, 246);" />
+              <path
+                d="M357.541,348.231l-0.039-0.086l-17.428-30.176l-0.013-0.026l-5.764-9.99l-0.052-0.073 l-13.193-22.854l-0.047-0.086l-17.638-30.553l-0.039,0.026l-19.24-33.332l-23.376,40.492c2.599,4.346,5.22,8.68,7.854,12.975 l-0.039,0.026l19.227,33.293l17.479,30.275l5.828,10.089l50.105,86.786h-38.513v0.073H175.841v-0.073h-38.5l38.475-66.664h-46.474 l-44.32,76.753l-0.253,0.45l-0.244,0.458l-0.231,0.462l-0.218,0.462l-0.193,0.463l-0.197,0.471l-0.18,0.475l-0.158,0.471 l-0.158,0.475l-0.133,0.484h-0.013l-0.12,0.475l-0.124,0.484l-0.094,0.484l-0.099,0.488l-0.073,0.484l-0.073,0.488l-0.047,0.484 l-0.052,0.484l-0.021,0.488l-0.026,0.484v0.488v0.484l0.013,0.484l0.025,0.488h0.009l0.039,0.484l0.047,0.475l0.06,0.484 l0.073,0.475l0.086,0.484l0.099,0.475l0.111,0.458l0.12,0.475l0.12,0.462h0.013l0.133,0.458l0.146,0.462h0.013l0.158,0.463 l0.171,0.449l0.18,0.445h0.013l0.18,0.437h0.013l0.197,0.441h0.008l0.21,0.437l0.231,0.424l0.24,0.424l0.244,0.424l0.266,0.415 l0.27,0.398l0.278,0.403l0.291,0.398l0.291,0.39l0.317,0.377l0.313,0.377l0.33,0.364h0.013l0.338,0.364l0.339,0.351l0.364,0.338 l0.368,0.343h0.009l0.377,0.325l0.389,0.33l0.398,0.313l0.403,0.304l0.424,0.291l0.424,0.283l0.437,0.278l0.45,0.266l0.449,0.257 l0.146,0.073l0.304,0.158l0.013,0.009l0.45,0.219l0.013,0.013l0.292,0.133l0.158,0.073h0.009l0.137,0.064l0.313,0.133l0.013,0.013 l0.45,0.18l0.026,0.013l0.133,0.047l0.159,0.06l0.158,0.064l0.021,0.009l0.133,0.039l0.146,0.06l0.159,0.047l0.038,0.013 l0.12,0.051l0.159,0.047l0.158,0.047l0.034,0.013h0.026l0.266,0.086l0.158,0.038l0.039,0.009l0.12,0.038l0.291,0.086h0.026 l0.034,0.013l0.124,0.021l0.154,0.038l0.158,0.047l0.052,0.013l0.107,0.026l0.159,0.021l0.171,0.039l0.047,0.013l0.111,0.021 l0.154,0.026l0.158,0.034l0.06,0.013l0.098,0.013l0.171,0.026l0.158,0.021l0.06,0.013l0.094,0.013l0.171,0.026l0.158,0.021 l0.06,0.013l0.099,0.013l0.317,0.039h0.073l0.094,0.009l0.158,0.013l0.159,0.013l0.073,0.013h0.098l0.154,0.013l0.159,0.013h0.073 h0.085l0.171,0.009l0.158,0.013h0.073h0.086h0.154h0.171h0.073h0.086v0.051h73.4v-0.073h146.813v0.073h73.4 c11.142,0,20.173-9.031,20.173-20.177c0-4.175-1.259-8.046-3.434-11.262L357.541,348.231z"
+                style="fill: rgb(37, 99, 235);" />
+              <path
+                d="M489.627,327.45v-0.026l-0.009-0.39v-0.022l-0.013-0.171l-0.013-0.206l-0.013-0.137v-0.06 l-0.034-0.398l-0.013-0.051l-0.038-0.351l-0.013-0.158l-0.008-0.034l-0.026-0.193l-0.025-0.21l-0.013-0.06l-0.021-0.133 l-0.026-0.193l-0.034-0.171v-0.026l-0.038-0.193l-0.034-0.193l-0.026-0.085l-0.013-0.099l-0.047-0.193l-0.039-0.197l-0.013-0.008 l-0.034-0.184l-0.047-0.184l-0.025-0.12l-0.026-0.073l-0.094-0.377l-0.013-0.021l-0.052-0.158l-0.047-0.197l-0.047-0.12 l-0.013-0.06l-0.06-0.184l-0.06-0.18l-0.013-0.051l-0.052-0.133l-0.06-0.18l-0.06-0.158l-0.013-0.026l-0.06-0.18l-0.073-0.184 l-0.026-0.073l-0.047-0.107l-0.073-0.171l-0.073-0.171v-0.013l-0.073-0.18l-0.085-0.171l-0.034-0.086l-0.039-0.081l-0.158-0.355 l-0.013-0.008l-0.154-0.33l-0.064-0.107l-0.034-0.064l-0.086-0.167l-0.085-0.171l-0.021-0.026l-0.073-0.146l-0.085-0.158 l-0.073-0.133l-0.026-0.034l-0.098-0.171l-0.094-0.158l-0.124-0.18l-0.167-0.283l-0.013-0.021l-0.111-0.158l-0.094-0.158 l-0.052-0.06l-0.06-0.098l-0.107-0.159l-0.111-0.146v-0.009c-23.95-41.477-47.544-84.859-72.466-125.526l0.038-0.021 l-73.28-126.905c-0.621-1.105-1.336-2.15-2.163-3.135l-0.081-0.094l-0.27-0.304l-0.021-0.026l-0.304-0.325l-0.013-0.026 l-0.231-0.231l-0.12-0.133l-0.218-0.219l-0.137-0.124l-0.227-0.227l-0.026-0.013l-0.33-0.304l-0.034-0.026l-0.291-0.266 l-0.112-0.086c-1.032-0.874-2.137-1.627-3.314-2.269l-0.021-0.013c-0.304-0.171-0.608-0.317-0.925-0.471l-0.351-0.171 l-0.107-0.047 l-0.33-0.146h-0.034c-2.248-0.972-4.603-1.495-6.945-1.606h-0.06l-0.317-0.013h-0.167l-0.317-0.009h-0.171l-0.313,0.009h-0.171 l-0.317,0.013h-0.06c-2.342,0.111-4.698,0.634-6.941,1.606h-0.038l-0.325,0.146l-0.111,0.047l-0.351,0.171 c-0.317,0.154-0.621,0.3-0.925,0.471l-0.021,0.013c-1.177,0.642-2.282,1.396-3.314,2.269l-0.112,0.086l-0.291,0.266l-0.034,0.026 l-0.33,0.304l-0.021,0.013l-0.231,0.227l-0.133,0.124l-0.218,0.219l-0.124,0.133l-0.231,0.231l-0.009,0.026l-0.304,0.325 l-0.026,0.026l-0.265,0.304l-0.086,0.094c-0.826,0.985-1.542,2.03-2.163,3.135l-32.022,55.458l-23.826,41.284l-0.026,0.034 l-17.394,30.129l-0.013,0.013l-5.811,10.072l-0.197,0.343l0.026,0.047l-49.912,86.448h46.393l26.618-46.11l0.026,0.034 l17.651-30.574l0.06-0.098l55.98-96.973l55.993,96.973l0.026-0.013l55.946,96.9h-38.552h-38.573l23.291,40.35h15.283h73.4 c11.142,0,20.173-9.031,20.173-20.177v-0.206v-0.206v-0.111L489.627,327.45z"
+                style="fill: rgb(59, 130, 246);" />
+            </svg>
+          </div>
+          <h1 class="logo-text">PandaDash</h1>
+          <p class="version-text">Build 4.0.0</p>
+
+          <div class="loading-spinner">
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+          </div>
+        </div>
+
+        <div class="loading-footer">
+          <div class="footer-content">
+            <p class="credits">
+              Developed by <strong>Andrés Mendoza</strong><br>
+              © 2026 · Supported by GrupoTDM
+            </p>
+
+            <div class="social-icons">
+              <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-facebook-f"></i>
+              </a>
+              <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-instagram"></i>
+              </a>
+              <a href="https://wa.me/573168007979" target="_blank" class="social-icon">
+                <i class="fab fa-whatsapp"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantalla de Login -->
+    <div id="login-screen" style="display: none;">
+      <div class="login-container">
+        <div class="login-header">
+          <div class="login-logo-icon">
+            <svg id="design-icon" width="100%" height="100%" viewBox="0 0 500 500">
+              <path
+                d="M118.123,348.231h69.323h12.2h88.173l-23.295-40.363H231.98h-21.291h-46.392v0.013H63.876 l55.329-95.83l0.656-1.058l36.706-63.568l-0.039-0.013l19.3-33.426l19.252,33.341l0.047,0.098l8.474,14.675l0.291,0.497 c3.473,6.094,6.941,12.2,10.414,18.332l0.073-0.146l23.222-40.218l0.021-0.047l-7.609-13.172l-0.047-0.094l-36.707-63.568 c-5.558-9.626-17.882-12.902-27.508-7.331c-3.554,2.064-6.248,5.062-7.948,8.496l-36.039,62.425l-0.039-0.021L85.022,190.82 l-0.604,1.126L12.581,316.367c-2.342,3.302-3.725,7.331-3.725,11.686c0,11.146,9.044,20.177,20.186,20.177h88.85H118.123z"
+                style="fill: rgb(59, 130, 246);" />
+              <path
+                d="M357.541,348.231l-0.039-0.086l-17.428-30.176l-0.013-0.026l-5.764-9.99l-0.052-0.073 l-13.193-22.854l-0.047-0.086l-17.638-30.553l-0.039,0.026l-19.24-33.332l-23.376,40.492c2.599,4.346,5.22,8.68,7.854,12.975 l-0.039,0.026l19.227,33.293l17.479,30.275l5.828,10.089l50.105,86.786h-38.513v0.073H175.841v-0.073h-38.5l38.475-66.664h-46.474 l-44.32,76.753l-0.253,0.45l-0.244,0.458l-0.231,0.462l-0.218,0.462l-0.193,0.463l-0.197,0.471l-0.18,0.475l-0.158,0.471 l-0.158,0.475l-0.133,0.484h-0.013l-0.12,0.475l-0.124,0.484l-0.094,0.484l-0.099,0.488l-0.073,0.484l-0.073,0.488l-0.047,0.484 l-0.052,0.484l-0.021,0.488l-0.026,0.484v0.488v0.484l0.013,0.484l0.025,0.488h0.009l0.039,0.484l0.047,0.475l0.06,0.484 l0.073,0.475l0.086,0.484l0.099,0.475l0.111,0.458l0.12,0.475l0.12,0.462h0.013l0.133,0.458l0.146,0.462h0.013l0.158,0.463 l0.171,0.449l0.18,0.445h0.013l0.18,0.437h0.013l0.197,0.441h0.008l0.21,0.437l0.231,0.424l0.24,0.424l0.244,0.424l0.266,0.415 l0.27,0.398l0.278,0.403l0.291,0.398l0.291,0.39l0.317,0.377l0.313,0.377l0.33,0.364h0.013l0.338,0.364l0.339,0.351l0.364,0.338 l0.368,0.343h0.009l0.377,0.325l0.389,0.33l0.398,0.313l0.403,0.304l0.424,0.291l0.424,0.283l0.437,0.278l0.45,0.266l0.449,0.257 l0.146,0.073l0.304,0.158l0.013,0.009l0.45,0.219l0.013,0.013l0.292,0.133l0.158,0.073h0.009l0.137,0.064l0.313,0.133l0.013,0.013 l0.45,0.18l0.026,0.013l0.133,0.047l0.159,0.06l0.158,0.064l0.021,0.009l0.133,0.039l0.146,0.06l0.159,0.047l0.038,0.013 l0.12,0.051l0.159,0.047l0.158,0.047l0.034,0.013h0.026l0.266,0.086l0.158,0.038l0.039,0.009l0.12,0.038l0.291,0.086h0.026 l0.034,0.013l0.124,0.021l0.154,0.038l0.158,0.047l0.052,0.013l0.107,0.026l0.159,0.021l0.171,0.039l0.047,0.013l0.111,0.021 l0.154,0.026l0.158,0.034l0.06,0.013l0.098,0.013l0.171,0.026l0.158,0.021l0.06,0.013l0.094,0.013l0.171,0.026l0.158,0.021 l0.06,0.013l0.099,0.013l0.317,0.039h0.073l0.094,0.009l0.158,0.013l0.159,0.013l0.073,0.013h0.098l0.154,0.013l0.159,0.013h0.073 h0.085l0.171,0.009l0.158,0.013h0.073h0.086h0.154h0.171h0.073h0.086v0.051h73.4v-0.073h146.813v0.073h73.4 c11.142,0,20.173-9.031,20.173-20.177c0-4.175-1.259-8.046-3.434-11.262L357.541,348.231z"
+                style="fill: rgb(37, 99, 235);" />
+              <path
+                d="M489.627,327.45v-0.026l-0.009-0.39v-0.022l-0.013-0.171l-0.013-0.206l-0.013-0.137v-0.06 l-0.034-0.398l-0.013-0.051l-0.038-0.351l-0.013-0.158l-0.008-0.034l-0.026-0.193l-0.025-0.21l-0.013-0.06l-0.021-0.133 l-0.026-0.193l-0.034-0.171v-0.026l-0.038-0.193l-0.034-0.193l-0.026-0.085l-0.013-0.099l-0.047-0.193l-0.039-0.197l-0.013-0.008 l-0.034-0.184l-0.047-0.184l-0.025-0.12l-0.026-0.073l-0.094-0.377l-0.013-0.021l-0.052-0.158l-0.047-0.197l-0.047-0.12 l-0.013-0.06l-0.06-0.184l-0.06-0.18l-0.013-0.051l-0.052-0.133l-0.06-0.18l-0.06-0.158l-0.013-0.026l-0.06-0.18l-0.073-0.184 l-0.026-0.073l-0.047-0.107l-0.073-0.171l-0.073-0.171v-0.013l-0.073-0.18l-0.085-0.171l-0.034-0.086l-0.039-0.081l-0.158-0.355 l-0.013-0.008l-0.154-0.33l-0.064-0.107l-0.034-0.064l-0.086-0.167l-0.085-0.171l-0.021-0.026l-0.073-0.146l-0.085-0.158 l-0.073-0.133l-0.026-0.034l-0.098-0.171l-0.094-0.158l-0.124-0.18l-0.167-0.283l-0.013-0.021l-0.111-0.158l-0.094-0.158 l-0.052-0.06l-0.06-0.098l-0.107-0.159l-0.111-0.146v-0.009c-23.95-41.477-47.544-84.859-72.466-125.526l0.038-0.021 l-73.28-126.905c-0.621-1.105-1.336-2.15-2.163-3.135l-0.081-0.094l-0.27-0.304l-0.021-0.026l-0.304-0.325l-0.013-0.026 l-0.231-0.231l-0.12-0.133l-0.218-0.219l-0.137-0.124l-0.227-0.227l-0.026-0.013l-0.33-0.304l-0.034-0.026l-0.291-0.266 l-0.112-0.086c-1.032-0.874-2.137-1.627-3.314-2.269l-0.021-0.013c-0.304-0.171-0.608-0.317-0.925-0.471l-0.351-0.171 l-0.107-0.047 l-0.33-0.146h-0.034c-2.248-0.972-4.603-1.495-6.945-1.606h-0.06l-0.317-0.013h-0.167l-0.317-0.009h-0.171l-0.313,0.009h-0.171 l-0.317,0.013h-0.06c-2.342,0.111-4.698,0.634-6.941,1.606h-0.038l-0.325,0.146l-0.111,0.047l-0.351,0.171 c-0.317,0.154-0.621,0.3-0.925,0.471l-0.021,0.013c-1.177,0.642-2.282,1.396-3.314,2.269l-0.112,0.086l-0.291,0.266l-0.034,0.026 l-0.33,0.304l-0.021,0.013l-0.231,0.227l-0.133,0.124l-0.218,0.219l-0.124,0.133l-0.231,0.231l-0.009,0.026l-0.304,0.325 l-0.026,0.026l-0.265,0.304l-0.086,0.094c-0.826,0.985-1.542,2.03-2.163,3.135l-32.022,55.458l-23.826,41.284l-0.026,0.034 l-17.394,30.129l-0.013,0.013l-5.811,10.072l-0.197,0.343l0.026,0.047l-49.912,86.448h46.393l26.618-46.11l0.026,0.034 l17.651-30.574l0.06-0.098l55.98-96.973l55.993,96.973l0.026-0.013l55.946,96.9h-38.552h-38.573l23.291,40.35h15.283h73.4 c11.142,0,20.173-9.031,20.173-20.177v-0.206v-0.206v-0.111L489.627,327.45z"
+                style="fill: rgb(59, 130, 246);" />
+            </svg>
+          </div>
+          <h1>PandaDash</h1>
+          <p>Control de Entregas</p>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginId">Identificación</label>
+            <div class="input-wrapper">
+              <i class="fas fa-id-card"></i>
+              <input type="text" id="loginId" placeholder="Ingrese su ID" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Contraseña</label>
+            <div class="input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="loginPassword" placeholder="Ingrese su contraseña" required
+                autocomplete="current-password">
+              <i class="fas fa-eye-slash toggle-password" id="togglePassword"></i>
+            </div>
+            <div style="text-align: right; margin-top: 6px;">
+              <a href="#" id="forgotPasswordLink"
+                style="color: var(--primary); font-size: 0.8rem; text-decoration: none; font-weight: 500;">¿Olvidaste tu
+                contraseña?</a>
+            </div>
+          </div>
+
+          <div id="loginError" class="login-error" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i> <span>Mensaje de error</span>
+          </div>
+
+          <button type="submit" class="btn-login" id="btnLogin">
+            <span class="btn-text">Iniciar Sesión</span>
+            <div class="btn-loader" style="display: none;"><i class="fas fa-circle-notch fa-spin"></i></div>
+          </button>
+        </form>
+
+        <div class="login-footer-compact">
+          <div class="footer-content">
+            <p class="credits">
+              Developed by <strong>Andrés Mendoza</strong><br>
+              © 2026 · Supported by GrupoTDM
+            </p>
+            <div class="social-icons">
+              <a href="https://www.facebook.com/templodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-facebook-f"></i>
+              </a>
+              <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" class="social-icon">
+                <i class="fab fa-instagram"></i>
+              </a>
+              <a href="https://wa.me/573168007979" target="_blank" class="social-icon">
+                <i class="fab fa-whatsapp"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vista de Historial (DataTables) - Mobile Optimized -->
+    <div id="historyView" style="display: none; padding: 16px; height: 100%; overflow-y: auto;">
+      <div class="history-header">
+        <div>
+          <h2>Historial de Entregas</h2>
+          <p style="color: var(--text-secondary); margin-top: 2px; font-size: 0.8rem;">Reporte combinado</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm btn-secondary" id="openFiltersBtn">
+            <i class="fas fa-filter"></i> Filtros
+          </button>
+          <button class="btn-sm btn-primary" id="refreshHistoryBtn" onclick="loadHistoryData()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="history-container">
+        <table id="deliveryTable" class="display responsive nowrap" style="width:100%">
+          <thead>
+            <tr>
+              <th>Factura</th>
+              <th>Lote</th>
+              <th>Referencia</th>
+              <th>Cantidad</th>
+              <th>Soporte</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Data loaded via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista de Carga SIESA - Mobile -->
+    <div id="uploadSiesaView" style="display: none;">
+      <div class="app-container">
+        <div class="app-header">
+          <h1 class="app-title">
+            <i class="fas fa-box-open me-2"></i> iLogistics Pro
+          </h1>
+          <p class="app-subtitle">
+            Cargador inteligente
+          </p>
+        </div>
+
+        <div class="app-content">
+          <div class="status-card" id="statusCardUpload">
+            <i class="fas fa-circle" id="statusIconUpload"></i>
+            <div>
+              <div class="fw-semibold" id="statusTitleUpload">Conectando al servidor...</div>
+              <small class="text-muted" id="statusMessageUpload">Verificando conexión</small>
+            </div>
+          </div>
+
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h4 class="fw-semibold mb-2">Arrastra o toca</h4>
+            <p class="text-muted mb-3">CSV, XLSX · máx 10MB</p>
+            <button class="btn-outline-primary" id="btnSelectFiles">
+              <i class="fas fa-folder-open me-2"></i> Seleccionar
+            </button>
+            <input type="file" id="fileInputUpload" multiple accept=".csv,.xlsx" style="display: none;">
+          </div>
+
+          <div class="files-container" id="filesContainerUpload">
+            <div class="files-header">
+              <div>
+                <h5 class="fw-semibold mb-0">Archivos</h5>
+                <small class="text-muted" id="filesCountUpload">0 archivos</small>
+              </div>
+              <button class="btn-outline-danger" id="btnClearAllUpload">
+                <i class="fas fa-trash me-1"></i> Limpiar
+              </button>
+            </div>
+            <div class="file-list" id="fileListUpload"></div>
+          </div>
+
+          <button class="btn-primary" id="btnProcessUpload" disabled>
+            <i class="fas fa-play-circle"></i>
+            <span>PROCESAR</span>
+            <span id="processingSpinnerUpload" style="display: none;">
+              <span class="spinner"></span>
+            </span>
+          </button>
+
+          <div class="results-section" id="resultsSectionUpload">
+            <div class="results-header">
+              <h5 class="fw-semibold mb-0">
+                <i class="fas fa-chart-line me-2"></i> Resultados
+              </h5>
+            </div>
+            <div class="results-content">
+              <div id="resultsContentUpload"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido principal - Scanner -->
+    <div id="scanner" style="display: none;">
+      <div id="offline-banner" class="offline-banner" style="display: none;">
+        <i class="fas fa-wifi-slash"></i> Sin conexión
+      </div>
+
+      <div class="app-header">
+        <div class="header-top">
+          <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between;">
+            <div id="status">Sistema Listo</div>
+            <div style="display: flex; gap: 12px;">
+              <button id="mobileQueueBtn" class="icon-btn" title="Cola de carga"
+                onclick="if(window.toggleQueue) window.toggleQueue();">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span class="mobile-queue-badge" style="display: none;">0</span>
+                <!-- Botón de Grid (reemplaza al de soportes anterior) -->
+                <button id="openSoportesGridBtn" class="icon-btn" title="Entregas">
+                  <i class="fas fa-images"></i>
+                  <span class="notification-badge" id="soportesNotification" style="display: none;">•</span>
+                </button>
+              </button>
+              <button id="refreshDataBtn" class="icon-btn" onclick="loadDataFromServer()" title="Actualizar">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <button id="openSettingsBtn" class="icon-btn">
+                <i class="fas fa-cog"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="barcode-input-container">
+          <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
+          <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric">
+        </div>
+        <div class="data-stats" id="data-stats">Esperando datos...</div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+
+    <!-- Modal QR Scanner -->
+    <div id="qrScannerModal" class="qr-scanner-modal" style="display: none;">
+      <div class="qr-scanner-header">
+        <h3><i class="fas fa-qrcode"></i> Escanear QR</h3>
+        <button class="qr-close-btn" id="closeQrScanner">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="qrReader"></div>
+      <div class="qr-scanner-actions">
+        <button class="btn btn-primary" id="toggleCameraBtn">
+          <i class="fas fa-camera-rotate"></i> Cambiar
+        </button>
+        <button class="btn btn-danger" id="cancelQrScan">
+          <i class="fas fa-stop"></i> Cancelar
+        </button>
+      </div>
+    </div>
+    <div id="qrScannerOverlay" class="qr-scanner-overlay" style="display: none;"></div>
+
+    <!-- Modal Cámara -->
+    <div id="cameraModal" class="camera-modal">
+      <video id="cameraFeed" class="camera-view" autoplay playsinline></video>
+      <canvas id="photoCanvas" style="display: none;"></canvas>
+      <img id="photoPreview" alt="Vista previa">
+      <div class="camera-actions">
+        <button id="takePhotoBtn" class="btn btn-primary">
+          <i class="fas fa-camera"></i>
+        </button>
+        <button id="cancelCaptureBtn" class="btn btn-danger">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="uploadStatus" class="uploading-status">
+        <i class="fas fa-spinner fa-pulse"></i> Subiendo...
+      </div>
+      <input type="text" id="dummyInput" style="position: absolute; opacity: 0; height: 0; width: 0;" readonly />
+    </div>
+
+    <!-- Botón flotante cola -->
+    <div id="queueCounter" class="queue-counter empty" title="Cola de carga">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <span class="queue-counter-badge">0</span>
+    </div>
+
+    <!-- Modal Cola -->
+    <div id="queueModal" class="queue-modal">
+      <div class="queue-modal-header">
+        <div>
+          <h3><i class="fas fa-tasks"></i> Cola de carga</h3>
+          <div class="queue-status-text">Sin actividad</div>
+        </div>
+        <button class="queue-close-btn" id="closeQueueModal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="queue-modal-body">
+        <div class="queue-stats">
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">Pendientes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">Procesando</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">0</span>
+            <span class="stat-label">Completados</span>
+          </div>
+        </div>
+        <div class="queue-items-container">
+          <div id="queueItemsList" class="queue-items-list">
+            <div class="queue-empty-state">
+              <i class="fas fa-check-circle"></i>
+              <p>Sin elementos</p>
+            </div>
+          </div>
+        </div>
+        <div class="queue-actions">
+          <button class="queue-action-btn secondary" id="retryFailedBtn">
+            <i class="fas fa-redo"></i>
+          </button>
+          <button class="queue-action-btn primary" id="processQueueBtn">
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="queueModalOverlay" class="queue-modal-overlay" style="display: none;"></div>
+
+    <!-- Modal Configuración -->
+    <div id="settingsModal" class="settings-modal" style="display: none;">
+      <div class="settings-header">
+        <h3><i class="fas fa-cog"></i> Configuración</h3>
+        <button class="close-btn" id="closeSettingsBtn"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="settings-body">
+        <div class="user-profile-section">
+          <div class="user-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="user-info-text">
+            <div class="user-name" id="settingsUserName">Usuario</div>
+            <div class="user-role-badge" id="settingsUserRole">Rol</div>
+          </div>
+          <button id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-title">Modo de Entrada</span>
+            <span class="setting-desc">Método de captura</span>
+          </div>
+          <div class="mode-selection-grid">
+            <button class="mode-option-card btn-camera" data-mode="camera">
+              <div class="mode-icon"><i class="fas fa-camera"></i></div>
+              <div class="mode-details">
+                <span class="mode-name">Cámara</span>
+                <span class="mode-desc">QR</span>
+              </div>
+              <div class="mode-check"><i class="fas fa-check-circle"></i></div>
+            </button>
+            <button class="mode-option-card btn-keyboard" data-mode="manual">
+              <div class="mode-icon"><i class="fas fa-keyboard"></i></div>
+              <div class="mode-details">
+                <span class="mode-name">Manual</span>
+                <span class="mode-desc">Teclado</span>
+              </div>
+              <div class="mode-check"><i class="fas fa-check-circle"></i></div>
+            </button>
+            <button class="mode-option-card btn-pda active" data-mode="pda">
+              <div class="mode-icon"><i class="fas fa-barcode"></i></div>
+              <div class="mode-details">
+                <span class="mode-name">PDA</span>
+                <span class="mode-desc">Laser</span>
+              </div>
+              <div class="mode-check"><i class="fas fa-check-circle"></i></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-title">Foco Persistente</span>
+            <span class="setting-desc">Mantiene teclado activo</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="persistentFocusToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-title">Filtrar por Cliente</span>
+            <span class="setting-desc">Validar entregas</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="clientFilterToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <!-- Notificaciones -->
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-title">Notificaciones Push</span>
+            <span class="setting-desc" id="notifDesc">Estado: Desactivado</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="notifToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+
+        <div class="setting-select-container" id="clientSelectContainer" style="display: none;">
+          <label for="clientSelect">Cliente</label>
+          <select id="clientSelect" class="form-select">
+            <option value="">-- Seleccionar --</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="settingsOverlay" class="modal-overlay" style="display: none;"></div>
+
+
+    <!-- MODAL DE GRID DE SOPORTES -->
+    <div id="soportesGridModal" class="soportes-grid-modal" style="display: none;">
+      <!-- Header -->
+      <div class="soportes-grid-header">
+        <h3>
+          <i class="fas fa-images"></i>
+          Entregas Confirmadas
+        </h3>
+        <button class="close-btn" id="closeSoportesGridBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="soportes-grid-toolbar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="search" id="soportesGridSearch" placeholder="Buscar factura, lote..." autocomplete="off">
+        </div>
+        <div class="filter-buttons">
+          <button class="filter-btn" id="refreshSoportesBtn">
+            <i class="fas fa-sync-alt"></i>
+            Actualizar
+          </button>
+          <button class="filter-btn" id="filterTodayBtn">
+            <i class="fas fa-calendar-day"></i>
+            Hoy
+          </button>
+          <button class="filter-btn" id="filterWeekBtn">
+            <i class="fas fa-calendar-week"></i>
+            Semana
+          </button>
+          <button class="filter-btn" id="resetFilterBtn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid Container -->
+      <div class="soportes-grid-container">
+        <div class="soportes-grid" id="soportesGridContainer"></div>
+
+        <!-- Loading -->
+        <div class="grid-loading" id="soportesGridLoading" style="display: none;">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Cargando entregas...</span>
+        </div>
+
+        <!-- Empty State -->
+        <div class="grid-empty" id="soportesGridEmpty" style="display: none;">
+          <i class="fas fa-check-circle"></i>
+          <h4>No hay entregas</h4>
+          <p>No se encontraron entregas confirmadas con los filtros actuales</p>
+        </div>
+
+        <!-- Infinite Scroll Sentinel -->
+        <div class="grid-sentinel" id="grid-sentinel">
+          <i class="fas fa-circle-notch fa-spin"></i>
+          Cargando más...
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="soportes-grid-stats">
+        <div class="stats-info">
+          <i class="fas fa-database"></i>
+          <span id="soportesGridCount">0 entregas</span>
+        </div>
+        <div class="stats-info">
+          <span class="stats-badge" id="soportesGridBadge">
+            <i class="fas fa-sync-alt"></i> Actualizado
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Imagen -->
+    <div id="soportesImageModal" class="soportes-image-modal" style="display: none;">
+      <img id="soportesModalImage" src="" alt="Soporte de entrega">
+      <div class="soportes-modal-footer">
+        <!-- <button class="btn-light" onclick="document.getElementById('soportesImageModal').style.display='none'">
+      <i class="fas fa-times"></i> Cerrar
+    </button>
+    <button class="btn-light" id="downloadImageBtn">
+      <i class="fas fa-download"></i> Descargar
+    </button> -->
+      </div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="soportesGridOverlay" class="modal-overlay" style="display: none;"></div>
+
+    <!-- Modal Entrada Manual -->
+    <div id="manualInputModal" class="manual-modal" style="display: none;">
+      <div class="manual-header">
+        <h3><i class="fas fa-keyboard"></i> Entrega Manual</h3>
+        <button class="close-btn" id="closeManualBtn"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="manual-body">
+        <div class="form-group">
+          <label>Cliente</label>
+          <div id="manualClientDisplay" class="client-display-box">
+            <span class="placeholder">Seleccione en Configuración</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="manualLotInput">Número de Lote</label>
+          <div class="input-wrapper">
+            <i class="fas fa-cube"></i>
+            <input type="number" id="manualLotInput" placeholder="Ej: 2645" class="form-input">
+          </div>
+        </div>
+        <button id="submitManualInput" class="btn-primary full-width">
+          <i class="fas fa-check"></i> Procesar
+        </button>
+      </div>
+    </div>
+    <div id="manualOverlay" class="modal-overlay" style="display: none;"></div>
+
+    <!-- Modal Filtros Historial -->
+    <div id="filterModal" class="filter-modal" style="display: none;">
+      <div class="filter-modal-header">
+        <h3><i class="fas fa-filter"></i> Filtros</h3>
+        <button class="close-btn" id="closeFilterModal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="filter-modal-body">
+        <div class="filter-group">
+          <label>Rango Fechas</label>
+          <div class="input-wrapper">
+            <i class="fas fa-calendar-alt"></i>
+            <input type="text" id="filterDateRange" class="form-input" placeholder="Seleccionar...">
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Tipo</label>
+          <div class="toggle-group">
+            <label class="toggle-option">
+              <input type="radio" name="filterType" value="all" checked>
+              <span>Todos</span>
+            </label>
+            <label class="toggle-option">
+              <input type="radio" name="filterType" value="factura">
+              <span>Facturas</span>
+            </label>
+            <label class="toggle-option">
+              <input type="radio" name="filterType" value="remision">
+              <span>Remisiones</span>
+            </label>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-group half">
+            <label>Estado</label>
+            <select id="filterStatus" class="form-select">
+              <option value="">Todos</option>
+              <option value="ENTREGADO">Entregado</option>
+              <option value="PENDIENTE">Pendiente</option>
+            </select>
+          </div>
+          <div class="filter-group half">
+            <label>Cliente</label>
+            <select id="filterClient" class="form-select">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Proveedor</label>
+          <select id="filterProvider" class="form-select">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para imagen completa -->
+    <div id="ih3Modal" class="ih3-modal" style="display: none;">
+      <span class="close-modal" onclick="cerrarImagenCompleta()">&times;</span>
+      <img class="ih3-modal-img" src="" alt="Comprobante">
+    </div>
+
+    <!-- Virtual Numeric Keypad Modal -->
+    <div id="virtualKeypadModal" class="virtual-keypad-modal" style="display: none;">
+      <div class="keypad-content">
+        <div class="keypad-header">
+          <span class="keypad-title">Ingresar Lote</span>
+          <button class="close-keypad-btn" id="closeKeypadBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="keypad-display" id="keypadDisplay"></div>
+        <div class="keypad-grid">
+          <button class="key-btn" data-key="1">1</button>
+          <button class="key-btn" data-key="2">2</button>
+          <button class="key-btn" data-key="3">3</button>
+          <button class="key-btn" data-key="4">4</button>
+          <button class="key-btn" data-key="5">5</button>
+          <button class="key-btn" data-key="6">6</button>
+          <button class="key-btn" data-key="7">7</button>
+          <button class="key-btn" data-key="8">8</button>
+          <button class="key-btn" data-key="9">9</button>
+          <button class="key-btn key-action key-clear" data-key="clear"><i class="fas fa-trash-alt"></i></button>
+          <button class="key-btn" data-key="0">0</button>
+          <button class="key-btn key-action key-backspace" data-key="backspace"><i
+              class="fas fa-backspace"></i></button>
+          <button class="key-btn key-submit" data-key="enter" style="grid-column: span 3;">CONFIRMAR <i
+              class="fas fa-check"></i></button>
+        </div>
+      </div>
+      <div class="keypad-overlay" id="keypadOverlay"></div>
+    </div>
+
+    <!-- Modal Admin Usuarios -->
+    <div id="userAdminModal" class="user-admin-modal">
+      <div class="user-admin-header">
+        <h3><i class="fas fa-users-cog"></i> Usuarios</h3>
+        <button class="close-btn" onclick="closeUserAdmin()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="user-admin-toolbar">
+        <button class="btn-add-user" onclick="openCreateUserModal()">
+          <i class="fas fa-user-plus"></i> Nuevo
+        </button>
+      </div>
+      <div class="user-list-container" id="userListContainer"></div>
+    </div>
+
+    <!-- Modal Formulario Usuario -->
+    <div id="userModalOverlay" class="user-form-modal-overlay">
+      <div class="user-form-modal">
+        <div class="user-form-header">
+          <h3 id="userFormTitle">Nuevo Usuario</h3>
+          <button class="close-btn" onclick="closeUserFormModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="userForm">
+          <div class="user-form-body">
+            <div class="form-group">
+              <label>ID</label>
+              <div class="form-input-wrapper">
+                <i class="fas fa-id-card"></i>
+                <input type="text" id="userId" class="form-input" required placeholder="Cédula">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Nombre</label>
+              <div class="form-input-wrapper">
+                <i class="fas fa-user"></i>
+                <input type="text" id="userName" class="form-input" required placeholder="Nombre">
+              </div>
+            </div>
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>Rol</label>
+                <select id="userRole" class="form-select" required>
+                  <option value="ADMIN">Admin</option>
+                  <option value="MODERATOR">Moderator</option>
+                  <option value="USER">User</option>
+                  <option value="GUEST">Guest</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Contraseña</label>
+                <div class="form-input-wrapper">
+                  <i class="fas fa-lock"></i>
+                  <input type="text" id="userPassword" class="form-input" required placeholder="Contraseña">
+                </div>
+              </div>
+            </div>
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>Email</label>
+                <div class="form-input-wrapper">
+                  <i class="fas fa-envelope"></i>
+                  <input type="email" id="userEmail" class="form-input" placeholder="correo@ejemplo.com">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Teléfono</label>
+                <div class="form-input-wrapper">
+                  <i class="fas fa-phone"></i>
+                  <input type="tel" id="userPhone" class="form-input" placeholder="Celular">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="user-form-footer">
+            <button type="button" class="btn-cancel" onclick="closeUserFormModal()">Cancelar</button>
+            <button type="submit" class="btn-save" id="saveUserBtn">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div> <!-- #app-frame -->
+
+  <!-- JS Modularizado -->
+  <script src="js/cola_carga.js"></script>
+  <script src="js/configuracion.js"></script>
+  <script src="js/sonidos.js"></script>
+  <script src="js/interfaz.js"></script>
+  <script src="js/renderizado.js"></script>
+  <script src="js/principal.js"></script>
+  <script src="notificaciones.js"></script>
+  <script src="js/datos.js"></script>
+  <script src="js/lector_qr.js"></script>
+  <script src="js/camara.js"></script>
+  <script src="js/qr_escaner.js"></script>
+  <script src="sw.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin_usuarios.js"></script>
+  <script src="js/historial.js"></script>
+  <script src="js/inicio.js"></script>
+  <script src="js/cola_carga_core.js"></script>
+  <script src="js/cola_carga_ui.js"></script>
+  <script src="js/soportes_datatable.js"></script>
+
+  <!-- Soportes Grid -->
+  <link rel="stylesheet" href="css/estilos_soportes_grid.css">
+  <script src="js/soportes_grid.js"></script>
+
+  <script>
+    // =========================================
+    // INICIALIZACIÓN CORREGIDA - SOPORTES GRID
+    // =========================================
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('🚀 Inicializando eventos del Grid');
+
+      // Elementos DOM
+      const openBtn = document.getElementById('openSoportesGridBtn');
+      const closeBtn = document.getElementById('closeSoportesGridBtn');
+      const modal = document.getElementById('soportesGridModal');
+      const overlay = document.getElementById('soportesGridOverlay');
+      const searchInput = document.getElementById('soportesGridSearch');
+      const filterToday = document.getElementById('filterTodayBtn');
+      const filterWeek = document.getElementById('filterWeekBtn');
+      const resetFilter = document.getElementById('resetFilterBtn');
+
+      // =========================================
+      // ABRIR MODAL
+      // =========================================
+      if (openBtn) {
+        openBtn.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Abriendo modal de entregas');
+
+          modal.style.display = 'flex';
+          overlay.style.display = 'block';
+
+          // Resetear búsqueda
+          if (searchInput) searchInput.value = '';
+
+          // Resetear filtros activos
+          if (filterToday) filterToday.classList.remove('active');
+          if (filterWeek) filterWeek.classList.remove('active');
+
+          // Cargar datos si no se han cargado
+          if (window.SoportesGrid) {
+            if (SoportesGrid.entregas.length === 0) {
+              SoportesGrid.cargarDatos();
+            } else {
+              // Resetear filtros y recargar
+              SoportesGrid.resetFiltros();
+            }
+          }
+        };
+      }
+
+      // =========================================
+      // CERRAR MODAL
+      // =========================================
+      const closeModal = function () {
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+      };
+
+      if (closeBtn) closeBtn.onclick = closeModal;
+      if (overlay) overlay.onclick = closeModal;
+
+      // =========================================
+      // BÚSQUEDA EN TIEMPO REAL
+      // =========================================
+      if (searchInput) {
+        let debounceTimer;
+        searchInput.oninput = function (e) {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (window.SoportesGrid) {
+              console.log('Buscando:', e.target.value);
+              SoportesGrid.aplicarFiltros({ busqueda: e.target.value });
+            }
+          }, 400); // Delay para mejor rendimiento
+        };
+      }
+
+      // =========================================
+      // FILTRO DE HOY - CORREGIDO
+      // =========================================
+      if (filterToday) {
+        filterToday.onclick = function (e) {
+          e.preventDefault();
+          console.log('Filtrar por HOY');
+
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          today.setHours(0, 0, 0, 0);
+          tomorrow.setHours(0, 0, 0, 0);
+
+          if (window.SoportesGrid) {
+            SoportesGrid.aplicarFiltros({
+              fechaInicio: today,
+              fechaFin: tomorrow
+            });
+          }
+
+          // UI feedback
+          filterToday.classList.add('active');
+          if (filterWeek) filterWeek.classList.remove('active');
+          if (resetFilter) resetFilter.classList.remove('active');
+
+          // Limpiar búsqueda
+          if (searchInput) searchInput.value = '';
+        };
+      }
+
+      // =========================================
+      // FILTRO DE SEMANA - CORREGIDO
+      // =========================================
+      if (filterWeek) {
+        filterWeek.onclick = function (e) {
+          e.preventDefault();
+          console.log('Filtrar por ÚLTIMA SEMANA');
+
+          const today = new Date();
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+
+          today.setHours(23, 59, 59, 999);
+          weekAgo.setHours(0, 0, 0, 0);
+
+          if (window.SoportesGrid) {
+            SoportesGrid.aplicarFiltros({
+              fechaInicio: weekAgo,
+              fechaFin: today
+            });
+          }
+
+          // UI feedback
+          filterWeek.classList.add('active');
+          if (filterToday) filterToday.classList.remove('active');
+          if (resetFilter) resetFilter.classList.remove('active');
+
+          // Limpiar búsqueda
+          if (searchInput) searchInput.value = '';
+        };
+      }
+
+      // =========================================
+      // RESET FILTROS
+      // =========================================
+      if (resetFilter) {
+        resetFilter.onclick = function (e) {
+          e.preventDefault();
+          console.log('Resetear filtros');
+
+          if (window.SoportesGrid) {
+            SoportesGrid.resetFiltros();
+          }
+
+          // UI feedback
+          filterToday.classList.remove('active');
+          filterWeek.classList.remove('active');
+          resetFilter.classList.remove('active');
+
+          // Limpiar búsqueda
+          if (searchInput) searchInput.value = '';
+        };
+      }
+
+      // =========================================
+      // MODAL DE IMAGEN
+      // =========================================
+      const downloadBtn = document.getElementById('downloadImageBtn');
+      if (downloadBtn) {
+        downloadBtn.onclick = function () {
+          const img = document.getElementById('soportesModalImage');
+          if (img && img.src) {
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = 'soporte_' + new Date().getTime() + '.jpg';
+            a.click();
+          }
+        };
+      }
+
+      // =========================================
+      // CERRAR MODAL DE IMAGEN CON ESC
+      // =========================================
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          const imageModal = document.getElementById('soportesImageModal');
+          if (imageModal) imageModal.style.display = 'none';
+        }
+      });
+
+      // =========================================
+      // CERRAR AL HACER CLICK FUERA DE LA IMAGEN
+      // =========================================
+      const imageModal = document.getElementById('soportesImageModal');
+      if (imageModal) {
+        imageModal.onclick = function (e) {
+          if (e.target === imageModal) {
+            imageModal.style.display = 'none';
+          }
+        };
+      }
+
+      // =========================================
+      // EXPORTAR EXCEL (opcional)
+      // =========================================
+      const exportBtn = document.getElementById('exportSoportesBtn');
+      if (exportBtn && window.SoportesGrid) {
+        exportBtn.onclick = function () {
+          SoportesGrid.exportarExcel();
+        };
+      }
+
+      console.log('✅ Eventos del Grid configurados');
+    });
+  </script>
+
+</body>
+
+</html>

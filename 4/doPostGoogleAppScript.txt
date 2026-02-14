@@ -1,0 +1,433 @@
+const SPREADSHEET_ID = '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw';
+const SHEET_NAME = 'SOPORTES';
+const FOLDER_ID = '1uaC605ZYOJKbdNJinVrvGAAo5tLAQRtO';
+
+// --- UTILIDADES ---
+function getFormattedDateTime(date = new Date()) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
+// --- MAIN GET HANDLER (Para Polling) ---
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    
+    if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput("PandaDash API Active").setMimeType(ContentService.MimeType.TEXT);
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.message).setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+// --- MAIN POST HANDLER ---
+function doPost(e) {
+  try {
+    // Soporte para JSON raw en el body si se envía así
+    let params = e.parameter;
+    if (e.postData && e.postData.contents) {
+        try {
+            const json = JSON.parse(e.postData.contents);
+            params = { ...params, ...json };
+        } catch(e) {}
+    }
+
+    if (!params || !params.action) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'No se recibió acción'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const action = params.action;
+
+    // --- ACCIONES DE USUARIO ---
+    if (action === 'login') {
+       return verificarCredenciales(params.id, params.password);
+    } 
+    else if (action === 'recover') {
+       return recuperarContrasena(params.id, params.method);
+    }
+    else if (action === 'getUsers') {
+       return listarUsuarios();
+    }
+    else if (action === 'saveUser') {
+       return guardarUsuario(params.userData);
+    }
+    else if (action === 'deleteUser') {
+       return eliminarUsuario(params.id);
+    }
+
+    // --- NUEVAS ACCIONES PARA NOTIFICACIONES PUSH ---
+    else if (action === 'save_push_subscription') {
+       return guardarSuscripcionPush(params.userId, params.subscription);
+    }
+    else if (action === 'send_push_notification') {
+       return procesarEnvioNotificacion(params.title, params.body);
+    }
+    else if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // --- ACCIONES DE DATOS ---
+    if (action === 'delete') {
+       return eliminarRegistro(params.factura);
+    }
+    
+    // Guardar datos (Acción por defecto si no es ninguna de las anteriores)
+    const datos = {
+        documento: params.documento || '',
+        lote: params.lote || '',
+        referencia: params.referencia || '',
+        cantidad: params.cantidad || 0,
+        factura: params.factura || '',
+        nit: params.nit || '',
+        usuario: params.usuario || 'Desconocido',
+        fotoUrl: ''
+    };
+    
+    if (params.fotoBase64 && params.fotoNombre && params.fotoTipo) {
+      try {
+        const fotoUrl = guardarImagenEnDrive(
+          params.fotoBase64,
+          params.fotoNombre,
+          params.fotoTipo
+        );
+        datos.fotoUrl = fotoUrl;
+      } catch (imgError) {
+        Logger.log('Error al procesar la imagen: ' + imgError.message);
+      }
+    }
+    
+    const resultado = guardarDatosAlInicio(datos);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: resultado
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error en doPost: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- GESTIÓN DE USUARIOS ---
+
+function getUsers() {
+  const usersJson = PropertiesService.getScriptProperties().getProperty('USERS');
+  if (!usersJson) return [];
+  return JSON.parse(usersJson);
+}
+
+function saveUsers(users) {
+  PropertiesService.getScriptProperties().setProperty('USERS', JSON.stringify(users));
+}
+
+function listarUsuarios() {
+  const users = getUsers();
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    users: users
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function guardarUsuario(userDataJson) {
+  try {
+    const newUser = JSON.parse(userDataJson);
+    if (!newUser.id || !newUser.nombre || !newUser.password) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Datos incompletos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    let users = getUsers();
+    const existingIndex = users.findIndex(u => u.id === newUser.id);
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = newUser;
+    } else {
+      users.push(newUser);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario guardado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al guardar usuario: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function eliminarUsuario(id) {
+  try {
+    let users = getUsers();
+    const initialLength = users.length;
+    users = users.filter(u => u.id !== id);
+
+    if (users.length === initialLength) {
+       return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Usuario no encontrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario eliminado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al eliminar: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function verificarCredenciales(id, password) {
+  if (!id || !password) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Credenciales incompletas'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const users = getUsers();
+    const userFound = users.find(u => u.id === String(id).trim() && u.password === String(password).trim());
+
+    if (userFound) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        user: {
+          id: userFound.id,
+          nombre: userFound.nombre,
+          rol: userFound.rol
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'ID o contraseña incorrectos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Error en el servidor: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function recuperarContrasena(id, method) {
+  if (!id) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Se requiere ID'})).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const users = getUsers();
+    const user = users.find(u => u.id === String(id).trim());
+    
+    if (!user) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Usuario no encontrado'})).setMimeType(ContentService.MimeType.JSON);
+
+    if (user.email) {
+        MailApp.sendEmail({
+          to: user.email,
+          subject: "Recuperación de Contraseña - PandaDash",
+          htmlBody: `
+            <h3>Hola ${user.nombre}</h3>
+            <p>Has solicitado recuperar tu contraseña para la aplicación <strong>PandaDash</strong>.</p>
+            <p>Tu contraseña es: <strong>${user.password}</strong></p>
+            <br>
+            <p><small>Este es un mensaje automático del sistema.</small></p>
+          `
+        });
+        return ContentService.createTextOutput(JSON.stringify({success: true, message: `Contraseña enviada a ${user.email}`})).setMimeType(ContentService.MimeType.JSON);
+    } else {
+       return ContentService.createTextOutput(JSON.stringify({success: false, message: 'El usuario no tiene email registrado'})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Error: ' + error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- NUEVAS FUNCIONES DE NOTIFICACIÓN ---
+
+function guardarSuscripcionPush(userId, subscriptionJson) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SUBSCRIPCIONES');
+    
+    if (!sheet) {
+      sheet = ss.insertSheet('SUBSCRIPCIONES');
+      sheet.appendRow(['UserID', 'SubscriptionJSON', 'Ultima Actualizacion']);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let rowToUpdate = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0].toString() === userId.toString()) {
+        rowToUpdate = i + 1;
+        break;
+      }
+    }
+
+    if (rowToUpdate !== -1) {
+      sheet.getRange(rowToUpdate, 2).setValue(subscriptionJson);
+      sheet.getRange(rowToUpdate, 3).setValue(new Date());
+    } else {
+      sheet.appendRow([userId, subscriptionJson, new Date()]);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: e.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function procesarEnvioNotificacion(titulo, cuerpo) {
+  try {
+    const notificacion = {
+      title: titulo,
+      body: cuerpo,
+      timestamp: Date.now()
+    };
+    
+    PropertiesService.getScriptProperties().setProperty('LAST_GLOBAL_NOTIF', JSON.stringify(notificacion));
+    
+    console.log("Notificación enviada: " + titulo);
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: e.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- LOGICA DE GOOGLE SHEETS Y DRIVE ---
+
+function eliminarRegistro(facturaEliminar) {
+  if (!facturaEliminar) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No hay factura'})).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    
+    if (!allDataResponse.values || allDataResponse.values.length === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Hoja vacía'})).setMimeType(ContentService.MimeType.JSON);
+    
+    let values = allDataResponse.values;
+    const headers = values[0];
+    let colFactura = -1, colIdImagen = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toString().toUpperCase().includes('FACTURA')) colFactura = i;
+        if (headers[i].toString().toUpperCase().includes('ID IMAGEN')) colIdImagen = i;
+    }
+    if (colFactura === -1) colFactura = 5;
+    if (colIdImagen === -1) colIdImagen = 7;
+    
+    const newValues = [headers];
+    let deletedCount = 0;
+    
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      if (row[colFactura].toString() !== facturaEliminar.toString()) {
+        newValues.push(row);
+      } else {
+        deletedCount++;
+        if (colIdImagen !== -1 && row[colIdImagen] && row[colIdImagen] !== 'Sin ID') {
+          try { DriveApp.getFileById(row[colIdImagen]).setTrashed(true); } catch(e) {}
+        }
+      }
+    }
+    
+    if (deletedCount === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No se encontró factura'})).setMimeType(ContentService.MimeType.JSON);
+    
+    Sheets.Spreadsheets.Values.clear({}, SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    Sheets.Spreadsheets.Values.update({ values: newValues }, SPREADSHEET_ID, `${SHEET_NAME}!A1`, { valueInputOption: 'USER_ENTERED' });
+    
+    return ContentService.createTextOutput(JSON.stringify({success: true, message: `Registro ${facturaEliminar} eliminado`})).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+     return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Error al eliminar: ' + error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function guardarImagenEnDrive(base64Data, fileName, mimeType) {
+  const decodedData = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(decodedData, mimeType, fileName);
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const file = folder.createFile(blob);
+  file.setName(fileName);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
+
+function guardarDatosAlInicio(datos) { 
+  try {
+    const fechaHora = getFormattedDateTime();
+    let fileId = null, imageLink = '';
+    if (datos.fotoUrl) {
+      const match = datos.fotoUrl.match(/\/d\/([^/]+)\//);
+      if (match && match[1]) {
+        fileId = match[1];
+        imageLink = `https://lh3.googleusercontent.com/d/${fileId}`;
+      }
+    }
+
+    const nuevaFila = [
+      fechaHora, datos.documento, datos.lote, datos.referencia, 
+      datos.cantidad, datos.factura, datos.nit, fileId || 'Sin ID', imageLink, datos.usuario
+    ];
+
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    let allData = [];
+    
+    if (allDataResponse.values && allDataResponse.values.length > 0) {
+      allData.push(allDataResponse.values[0]);
+      allData.push(nuevaFila);
+      for (let i = 1; i < allDataResponse.values.length; i++) {
+        allData.push(allDataResponse.values[i]);
+      }
+    } else {
+      allData.push(['Fecha y Hora', 'Documento', 'Lote', 'Referencia', 'Cantidad', 'Factura', 'NIT', 'ID Imagen', 'Link Imagen', 'Usuario']);
+      allData.push(nuevaFila);
+    }
+    
+    if (allData.length > 1001) allData = allData.slice(0, 1001);
+    
+    sheets.update({ values: allData }, SPREADSHEET_ID, `${SHEET_NAME}!A:J`, { valueInputOption: 'USER_ENTERED' });
+    return "¡Datos guardados correctamente!";
+
+  } catch (error) {
+    throw new Error('No se pudieron guardar los datos: ' + error.message);
+  }
+}
