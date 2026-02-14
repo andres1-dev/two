@@ -802,26 +802,28 @@
         </div>
 
         <!-- SECCIÓN PROFESIONAL DE NOTIFICACIONES -->
-        <div class="settings-divider">CENTRO DE CONTROL</div>
+        <div class="settings-divider">NOTIFICACIONES</div>
 
-        <div class="setting-item">
+        <div class="setting-item" style="border-bottom: none; margin-bottom: 0;">
           <div class="setting-info">
-            <span class="setting-title">Estado de Alertas</span>
-            <span class="setting-desc">Notificaciones del sistema</span>
+            <span class="setting-title">Recibir Alertas</span>
+            <span class="setting-desc">Activar notificaciones en este equipo</span>
           </div>
           <button class="btn-premium-toggle" id="btnActivateNotif">
             <i class="fas fa-bell"></i> Activar
           </button>
         </div>
 
-        <div id="adminSummarySection" class="admin-only" style="display: none;">
-          <div class="setting-item summary-item">
-            <div class="setting-info">
-              <span class="setting-title" style="color: #6366f1; font-weight: 700;">Broadcast Administrativo</span>
-              <span class="setting-desc">Enviar resumen técnico de hoy</span>
+        <div id="adminSummarySection" class="admin-only" style="display: none; padding-top: 10px;">
+          <div class="summary-item">
+            <div class="setting-info" style="margin-bottom: 12px; padding-right: 0;">
+              <span class="setting-title" style="color: #6366f1; font-weight: 700; font-size: 0.9rem;">Broadcast
+                Administrativo</span>
+              <span class="setting-desc">Reporte técnico para todos los dispositivos activos</span>
             </div>
-            <button class="btn-premium-summary" id="btnSendProfessionalSummary">
-              <i class="fas fa-paper-plane"></i> Enviar Resumen
+            <button class="btn-premium-summary" id="btnSendProfessionalSummary"
+              style="width: 100%; justify-content: center;">
+              <i class="fas fa-paper-plane"></i> Enviar Resumen del Día
             </button>
           </div>
         </div>

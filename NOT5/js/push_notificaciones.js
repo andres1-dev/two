@@ -69,6 +69,14 @@ const PushManager = {
 
     // Actualizar UI si existe algún indicador
     statusFeedback: function (text) {
+        // Actualizar botón premium de configuración
+        const btn = document.getElementById('btnActivateNotif');
+        if (btn && text.includes('✅')) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Activo';
+            btn.style.borderColor = '#10b981';
+            btn.style.color = '#059669';
+        }
+
         const indicator = document.getElementById('notif-status-badge');
         if (indicator) {
             indicator.textContent = text;

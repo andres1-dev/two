@@ -98,7 +98,6 @@ const SoportesGrid = {
 
   open: function () {
     if (this.modal) {
-      if (typeof PushManager !== 'undefined') PushManager.solicitarPermisos();
       this.modal.style.display = 'flex';
       // Cargar datos al abrir como pidió el usuario
       this.cargarDatos();
