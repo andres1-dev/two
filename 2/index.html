@@ -29,31 +29,6 @@
   <link rel="stylesheet" href="css/estilos_admin.css">
   <link rel="stylesheet" href="css/estilos_upload.css">
   <link rel="stylesheet" href="css/estilos_soportes.css">
-  <style>
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      margin-top: 5px;
-      transition: all 0.3s ease;
-    }
-
-    .status-badge.active {
-      background: #ecfdf5;
-      color: #059669;
-      border: 1px solid #10b981;
-    }
-
-    .status-badge.inactive {
-      background: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #ef4444;
-    }
-  </style>
   <!-- ELIMINADO: estilos_pc.css -->
 
   <!-- jQuery and DataTables -->
@@ -670,11 +645,33 @@
           <div class="user-info-text">
             <div class="user-name" id="settingsUserName">Usuario</div>
             <div class="user-role-badge" id="settingsUserRole">Rol</div>
-            <div id="notif-status-badge" class="status-badge inactive">⏳ Sin Permisos</div>
           </div>
           <button id="logoutBtn">
             <i class="fas fa-sign-out-alt"></i>
           </button>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-title">Notificaciones</span>
+            <span class="setting-desc">Permisos y Pruebas</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+            <button id="reqPermissionBtn" class="btn-sm btn-secondary"
+              style="border: 1px solid var(--border); width: 100%; justify-content: center;">
+              <i class="fas fa-shield-alt"></i> Activar Permisos
+            </button>
+            <div style="display:flex; gap:8px; width:100%;">
+              <button id="testNotificationBtn" class="btn-sm btn-secondary"
+                style="border: 1px solid var(--border); flex: 1; justify-content: center;">
+                <i class="fas fa-bell"></i> Probar
+              </button>
+              <button id="broadcastNotificationBtn" class="btn-sm btn-primary"
+                style="flex: 1; justify-content: center; display: none;">
+                <i class="fas fa-bullhorn"></i> Broadcast
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="setting-item">
@@ -738,28 +735,6 @@
             <option value="">-- Seleccionar --</option>
           </select>
         </div>
-
-        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;">
-          <div class="setting-info">
-            <span class="setting-title">Notificaciones</span>
-            <span class="setting-desc">Activar alertas nativas</span>
-          </div>
-          <button class="filter-btn" id="btnActivateNotif"
-            style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px;">
-            Activar
-          </button>
-        </div>
-
-        <div class="setting-item admin-only" style="display: none;" id="adminNotifTest">
-          <div class="setting-info">
-            <span class="setting-title">Broadcast Global</span>
-            <span class="setting-desc">Enviar aviso a todos</span>
-          </div>
-          <button class="filter-btn" id="btnTestGlobalNotif"
-            style="background: #000; color: white; border: none; padding: 10px 20px; border-radius: 8px;">
-            Probar
-          </button>
-        </div>
       </div>
     </div>
     <div id="settingsOverlay" class="modal-overlay" style="display: none;"></div>
@@ -796,11 +771,6 @@
           <button class="filter-btn" id="filterWeekBtn">
             <i class="fas fa-calendar-week"></i>
             Semana
-          </button>
-          <button class="filter-btn" id="btnNotifyToday"
-            style="background: #10b981; color: white; border-color: #10b981; display: none;">
-            <i class="fas fa-paper-plane"></i>
-            Resumen Hoy
           </button>
           <button class="filter-btn" id="resetFilterBtn">
             <i class="fas fa-times"></i>
@@ -1073,12 +1043,11 @@
   <script src="js/lector_qr.js"></script>
   <script src="js/camara.js"></script>
   <script src="js/qr_escaner.js"></script>
-  <script src="sw.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/admin_usuarios.js"></script>
   <script src="js/historial.js"></script>
   <script src="js/inicio.js"></script>
-  <script src="js/push_notificaciones.js"></script>
+  <script src="js/notificaciones.js"></script>
   <script src="js/cola_carga_core.js"></script>
   <script src="js/cola_carga_ui.js"></script>
   <script src="js/soportes_datatable.js"></script>

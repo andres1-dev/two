@@ -116,17 +116,6 @@
   border-color: #2563eb;
 }
 
-#btnNotifyToday {
-  background: #10b981 !important;
-  color: white !important;
-  border-color: #10b981 !important;
-}
-
-#btnNotifyToday:active {
-  background: #059669 !important;
-  transform: scale(0.95);
-}
-
 .filter-btn.active i {
   color: white;
 }

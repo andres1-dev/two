@@ -37,7 +37,6 @@ const SoportesGrid = {
     // Filtros
     this.filterTodayBtn = document.getElementById('filterTodayBtn');
     this.filterWeekBtn = document.getElementById('filterWeekBtn');
-    this.btnNotifyToday = document.getElementById('btnNotifyToday');
     this.resetFilterBtn = document.getElementById('resetFilterBtn');
     this.searchInput = document.getElementById('soportesGridSearch');
 
@@ -77,10 +76,6 @@ const SoportesGrid = {
       });
     }
 
-    if (this.btnNotifyToday) {
-      this.btnNotifyToday.addEventListener('click', () => this.enviarResumenHoy());
-    }
-
     if (this.resetFilterBtn) {
       this.resetFilterBtn.addEventListener('click', () => this.resetFiltros());
     }
@@ -98,7 +93,6 @@ const SoportesGrid = {
 
   open: function () {
     if (this.modal) {
-      if (typeof PushManager !== 'undefined') PushManager.solicitarPermisos();
       this.modal.style.display = 'flex';
       // Cargar datos al abrir como pidió el usuario
       this.cargarDatos();
@@ -724,127 +718,6 @@ const SoportesGrid = {
     } catch (e) {
       console.error('Error exportando Excel:', e);
       alert('Error al exportar');
-    }
-  },
-
-  // =========================================
-  // ENVIAR RESUMEN DE HOY - NUEVO
-  // =========================================
-  enviarResumenHoy: async function () {
-    console.log('Calculando resumen de hoy...');
-
-    // 1. Mostrar loading en el botón
-    const originalContent = this.btnNotifyToday.innerHTML;
-    this.btnNotifyToday.disabled = true;
-    this.btnNotifyToday.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-
-    try {
-      // 2. Obtener datos frescos con costos (desde principal.js)
-      if (typeof obtenerDatosFacturados !== 'function') {
-        throw new Error('Función de datos principales no disponible');
-      }
-
-      const snapshot = await obtenerDatosFacturados();
-      if (!snapshot.success) throw new Error(snapshot.error);
-
-      // 3. Filtrar entregas de HOY
-      const hoy = new Date();
-      const hoyStr = hoy.toLocaleDateString('es-CO');
-
-      // Encontrar facturas que tengan confirmación (entregadas) y sean de hoy
-      // Nota: SoportesGrid ya tiene las entregas cacheadas, pero necesitamos el valorBruto.
-      // Así que cruzamos snapshot.data con this.entregas filtradas por hoy.
-
-      const inicio = new Date();
-      inicio.setHours(0, 0, 0, 0);
-      const fin = new Date();
-      fin.setHours(23, 59, 59, 999);
-
-      const entregasHoy = this.entregas.filter(item => {
-        return item.fechaObj >= inicio && item.fechaObj <= fin;
-      });
-
-      if (entregasHoy.length === 0) {
-        alert('No se encontraron entregas hoy para enviar en el resumen.');
-        return;
-      }
-
-      // 4. Calcular estadísticas
-      const facturasUnicas = new Set();
-      let totalUnidades = 0;
-      const costosPorCliente = {};
-
-      // Crear mapa de facturas de hoy para búsqueda rápida
-      const facturasHoyIds = new Set(entregasHoy.map(e => e.factura));
-
-      // Recorrer datos principales para sumar valores
-      snapshot.data.forEach(doc => {
-        if (!doc.datosSiesa) return;
-
-        doc.datosSiesa.forEach(f => {
-          if (facturasHoyIds.has(f.factura)) {
-            facturasUnicas.add(f.factura);
-            totalUnidades += parseFloat(f.cantidad) || 0;
-
-            const cliente = f.cliente || 'Desconocido';
-            const valor = parseFloat(f.valorBruto) || 0;
-
-            if (!costosPorCliente[cliente]) {
-              costosPorCliente[cliente] = { unidades: 0, costo: 0 };
-            }
-            costosPorCliente[cliente].unidades += parseFloat(f.cantidad) || 0;
-            costosPorCliente[cliente].costo += valor;
-          }
-        });
-      });
-
-      // 5. Construir mensaje
-      const fechaCorta = hoy.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      let mensaje = `*📦 RESUMEN DE ENTREGAS - ${fechaCorta}*\n\n`;
-      mensaje += `✅ *Total Facturas:* ${facturasUnicas.size}\n`;
-      mensaje += `👕 *Total Unidades:* ${totalUnidades.toLocaleString('es-CO')}\n`;
-      mensaje += `💰 *Costo Total:* $${Object.values(costosPorCliente).reduce((s, c) => s + c.costo, 0).toLocaleString('es-CO')}\n\n`;
-
-      mensaje += `*DETALLE POR CLIENTE:*\n`;
-      Object.entries(costosPorCliente).forEach(([cliente, stats]) => {
-        mensaje += `\n🏢 *${cliente}*\n`;
-        mensaje += `   • Und: ${stats.unidades.toLocaleString('es-CO')}\n`;
-        mensaje += `   • Costo: $${stats.costo.toLocaleString('es-CO')}\n`;
-      });
-
-      mensaje += `\n_Enviado desde PandaDash PWA_`;
-
-      // 6. Enviar Notificaciones Internas (Web Push)
-      if (typeof PushManager !== 'undefined' && typeof PushManager.notificarATodos === 'function') {
-        const titulo = `📦 Resumen ${fechaCorta}`;
-        const miniCuerpo = `Facturas: ${facturasUnicas.size} | Und: ${totalUnidades.toLocaleString('es-CO')} | $${Object.values(costosPorCliente).reduce((s, c) => s + c.costo, 0).toLocaleString('es-CO')}`;
-
-        const success = await PushManager.notificarATodos(titulo, miniCuerpo);
-
-        if (success) {
-          alert('✅ Notificación enviada a todos los usuarios.');
-        } else {
-          // Fallback si falla el Push (ej. no hay suscritos o llaves no configuradas)
-          if (confirm('El sistema de Push no está configurado o falló. ¿Deseas compartir por WhatsApp?')) {
-            const encodedMsg = encodeURIComponent(mensaje);
-            window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
-          }
-        }
-      } else {
-        // Fallback original si no existe PushManager
-        if (navigator.share) {
-          await navigator.share({ title: 'Resumen Hoy', text: mensaje });
-        } else {
-          window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
-        }
-      }
-
-    } catch (error) {
-      console.error('Error al enviar resumen:', error);
-      alert('Error al calcular el resumen: ' + error.message);
-    } finally {
-      this.btnNotifyToday.disabled = false;
-      this.btnNotifyToday.innerHTML = originalContent;
     }
   }
 };

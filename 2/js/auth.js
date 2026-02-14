@@ -2,7 +2,8 @@
 const AUTH_KEY = 'pandaDashUser';
 
 // Estado de usuario
-let currentUser = null;
+window.currentUser = null;
+let currentUser = null; // Mantener local para compatibilidad con código existente en este archivo
 
 // Inicializar sistema de autenticación
 function initAuth() {
@@ -44,8 +45,8 @@ function checkSession() {
         // Cambiado de sessionStorage a localStorage para persistencia al cerrar app
         const storedUser = localStorage.getItem(AUTH_KEY);
         if (storedUser) {
-            currentUser = JSON.parse(storedUser);
-            console.log("Sesión restaurada para:", currentUser.nombre);
+            window.currentUser = JSON.parse(storedUser);
+            console.log("Sesión restaurada para:", window.currentUser.nombre);
 
             // Ocultar login, mostrar app
             showApp();
@@ -62,11 +63,6 @@ function checkSession() {
 // Manejar intento de login
 async function handleLogin(e) {
     e.preventDefault();
-
-    // INTENTO DE ACTIVAR NOTIFICACIONES (Gesto de usuario)
-    if (typeof PushManager !== 'undefined') {
-        PushManager.solicitarPermisos();
-    }
 
     const idInput = document.getElementById('loginId');
     const passInput = document.getElementById('loginPassword');
@@ -106,8 +102,8 @@ async function handleLogin(e) {
 
         if (result.success && result.user) {
             // Login exitoso
-            currentUser = result.user;
-            localStorage.setItem(AUTH_KEY, JSON.stringify(currentUser));
+            window.currentUser = result.user;
+            localStorage.setItem(AUTH_KEY, JSON.stringify(window.currentUser));
 
             // Inicializar tiempo de actividad
             updateActivityTime();
