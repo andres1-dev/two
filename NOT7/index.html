@@ -30,72 +30,28 @@
   <link rel="stylesheet" href="css/estilos_upload.css">
   <link rel="stylesheet" href="css/estilos_soportes.css">
   <style>
-    /* Notificaciones - Integración Mejorada */
-    .btn-notif-action {
-      background: var(--background);
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-      display: flex;
+    .status-badge {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 5px;
+      transition: all 0.3s ease;
     }
 
-    .btn-notif-action i {
-      color: var(--primary);
+    .status-badge.active {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #10b981;
     }
 
-    .btn-notif-action:active {
-      background: var(--border-light);
-    }
-
-    .btn-summary-premium {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 8px var(--primary-soft);
-    }
-
-    .btn-summary-premium:active {
-      transform: scale(0.96);
-    }
-
-    .settings-divider {
-      padding: 12px 20px;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--text-tertiary);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      background: var(--background);
-      border-top: 1px solid var(--border-light);
-      border-bottom: 1px solid var(--border-light);
-      margin: 10px 0;
-    }
-
-    #notif-status-info {
-      font-weight: 700;
-    }
-
-    #notif-status-info.active {
-      color: var(--success);
-    }
-
-    #notif-status-info.inactive {
-      color: var(--danger);
+    .status-badge.inactive {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #ef4444;
     }
   </style>
   <!-- ELIMINADO: estilos_pc.css -->
@@ -714,6 +670,7 @@
           <div class="user-info-text">
             <div class="user-name" id="settingsUserName">Usuario</div>
             <div class="user-role-badge" id="settingsUserRole">Rol</div>
+            <div id="notif-status-badge" class="status-badge inactive">⏳ Sin Permisos</div>
           </div>
           <button id="logoutBtn">
             <i class="fas fa-sign-out-alt"></i>
@@ -782,30 +739,26 @@
           </select>
         </div>
 
-        <!-- CENTRO DE CONTROL INTEGRADO -->
-        <div class="settings-divider">Centro de Control</div>
-
-        <div class="setting-item">
+        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;">
           <div class="setting-info">
-            <span class="setting-title">Alertas Push</span>
-            <span class="setting-desc" id="notif-status-text">Estado: <span id="notif-status-info"
-                class="inactive">Inactivo</span></span>
+            <span class="setting-title">Notificaciones</span>
+            <span class="setting-desc">Activar alertas nativas</span>
           </div>
-          <button class="btn-notif-action" id="btnActivateNotif">
-            <i class="fas fa-bell"></i> Activar
+          <button class="filter-btn" id="btnActivateNotif"
+            style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px;">
+            Activar
           </button>
         </div>
 
-        <div id="adminSummarySection" class="admin-only" style="display: none; padding-bottom: 20px;">
-          <div class="setting-item" style="border-bottom: none;">
-            <div class="setting-info">
-              <span class="setting-title" style="color: var(--primary);">Reporte Gerencial</span>
-              <span class="setting-desc">Resumen total de entregas hoy</span>
-            </div>
-            <button class="btn-summary-premium" id="btnSendProfessionalSummary">
-              <i class="fas fa-paper-plane"></i> Enviar
-            </button>
+        <div class="setting-item admin-only" style="display: none;" id="adminNotifTest">
+          <div class="setting-info">
+            <span class="setting-title">Broadcast Global</span>
+            <span class="setting-desc">Enviar aviso a todos</span>
           </div>
+          <button class="filter-btn" id="btnTestGlobalNotif"
+            style="background: #000; color: white; border: none; padding: 10px 20px; border-radius: 8px;">
+            Probar
+          </button>
         </div>
       </div>
     </div>
@@ -843,6 +796,11 @@
           <button class="filter-btn" id="filterWeekBtn">
             <i class="fas fa-calendar-week"></i>
             Semana
+          </button>
+          <button class="filter-btn" id="btnNotifyToday"
+            style="background: #10b981; color: white; border-color: #10b981; display: none;">
+            <i class="fas fa-paper-plane"></i>
+            Resumen Hoy
           </button>
           <button class="filter-btn" id="resetFilterBtn">
             <i class="fas fa-times"></i>

@@ -69,18 +69,10 @@ const PushManager = {
 
     // Actualizar UI si existe algún indicador
     statusFeedback: function (text) {
-        const indicator = document.getElementById('notif-status-info');
+        const indicator = document.getElementById('notif-status-badge');
         if (indicator) {
-            const isGranted = text.includes('✅') || text.includes('Activas');
-            indicator.textContent = isGranted ? 'Activo' : 'Bloqueado';
-            indicator.className = isGranted ? 'active' : 'inactive';
-
-            const btn = document.getElementById('btnActivateNotif');
-            if (btn && isGranted) {
-                btn.innerHTML = '<i class="fas fa-check"></i> Activo';
-                btn.style.opacity = '0.7';
-                btn.disabled = true;
-            }
+            indicator.textContent = text;
+            indicator.className = 'status-badge ' + (text.includes('✅') ? 'active' : 'inactive');
         }
     },
 

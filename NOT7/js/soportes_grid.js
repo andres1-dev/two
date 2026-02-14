@@ -728,29 +728,20 @@ const SoportesGrid = {
   },
 
   // =========================================
-  // ENVIAR RESUMEN DE HOY - PROFESIONAL
+  // ENVIAR RESUMEN DE HOY - NUEVO
   // =========================================
-  enviarResumenHoy: async function (externalBtn = null) {
-    console.log('Calculando resumen profesional de hoy...');
+  enviarResumenHoy: async function () {
+    console.log('Calculando resumen de hoy...');
 
-    // 1. Manejo de Loading
-    const btn = externalBtn || this.btnNotifyToday;
-    let originalContent = '';
-    if (btn) {
-      originalContent = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-    }
+    // 1. Mostrar loading en el botón
+    const originalContent = this.btnNotifyToday.innerHTML;
+    this.btnNotifyToday.disabled = true;
+    this.btnNotifyToday.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
     try {
-      // 2. Cargar datos si no están disponibles (ej: si se abre desde configuración sin abrir el grid antes)
-      if (this.entregas.length === 0) {
-        console.log('Cargando entregas para el resumen...');
-        await this.cargarDatos();
-      }
-
+      // 2. Obtener datos frescos con costos (desde principal.js)
       if (typeof obtenerDatosFacturados !== 'function') {
-        throw new Error('Módulo de datos principal no encontrado');
+        throw new Error('Función de datos principales no disponible');
       }
 
       const snapshot = await obtenerDatosFacturados();
@@ -758,6 +749,12 @@ const SoportesGrid = {
 
       // 3. Filtrar entregas de HOY
       const hoy = new Date();
+      const hoyStr = hoy.toLocaleDateString('es-CO');
+
+      // Encontrar facturas que tengan confirmación (entregadas) y sean de hoy
+      // Nota: SoportesGrid ya tiene las entregas cacheadas, pero necesitamos el valorBruto.
+      // Así que cruzamos snapshot.data con this.entregas filtradas por hoy.
+
       const inicio = new Date();
       inicio.setHours(0, 0, 0, 0);
       const fin = new Date();
@@ -768,83 +765,86 @@ const SoportesGrid = {
       });
 
       if (entregasHoy.length === 0) {
-        alert('No hay entregas confirmadas hoy para generar el resumen.');
+        alert('No se encontraron entregas hoy para enviar en el resumen.');
         return;
       }
 
-      // 4. Calcular estadísticas técnicas
+      // 4. Calcular estadísticas
       const facturasUnicas = new Set();
       let totalUnidades = 0;
       const costosPorCliente = {};
+
+      // Crear mapa de facturas de hoy para búsqueda rápida
       const facturasHoyIds = new Set(entregasHoy.map(e => e.factura));
 
+      // Recorrer datos principales para sumar valores
       snapshot.data.forEach(doc => {
         if (!doc.datosSiesa) return;
+
         doc.datosSiesa.forEach(f => {
           if (facturasHoyIds.has(f.factura)) {
             facturasUnicas.add(f.factura);
             totalUnidades += parseFloat(f.cantidad) || 0;
-            const cliente = f.cliente || 'Otros';
+
+            const cliente = f.cliente || 'Desconocido';
             const valor = parseFloat(f.valorBruto) || 0;
 
             if (!costosPorCliente[cliente]) {
-              costosPorCliente[cliente] = { unidades: 0, costo: 0, facturas: new Set() };
+              costosPorCliente[cliente] = { unidades: 0, costo: 0 };
             }
             costosPorCliente[cliente].unidades += parseFloat(f.cantidad) || 0;
             costosPorCliente[cliente].costo += valor;
-            costosPorCliente[cliente].facturas.add(f.factura);
           }
         });
       });
 
-      const totalCosto = Object.values(costosPorCliente).reduce((s, c) => s + c.costo, 0);
-
-      // 5. Construir mensaje corporativo
+      // 5. Construir mensaje
       const fechaCorta = hoy.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      let mensaje = `*🐼 PANDADASH - REPORTE GERENCIAL*\n`;
-      mensaje += `*Fecha:* ${fechaCorta}\n`;
-      mensaje += `────────────────────\n\n`;
-      mensaje += `📊 *MÉTRICAS GLOBALES*\n`;
-      mensaje += `• *Invoices:* ${facturasUnicas.size}\n`;
-      mensaje += `• *Unidades:* ${totalUnidades.toLocaleString('es-CO')}\n`;
-      mensaje += `• *Valoración:* $${totalCosto.toLocaleString('es-CO')}\n\n`;
+      let mensaje = `*📦 RESUMEN DE ENTREGAS - ${fechaCorta}*\n\n`;
+      mensaje += `✅ *Total Facturas:* ${facturasUnicas.size}\n`;
+      mensaje += `👕 *Total Unidades:* ${totalUnidades.toLocaleString('es-CO')}\n`;
+      mensaje += `💰 *Costo Total:* $${Object.values(costosPorCliente).reduce((s, c) => s + c.costo, 0).toLocaleString('es-CO')}\n\n`;
 
-      mensaje += `🏢 *DETALLE POR CLIENTE*\n`;
+      mensaje += `*DETALLE POR CLIENTE:*\n`;
       Object.entries(costosPorCliente).forEach(([cliente, stats]) => {
-        mensaje += `\n*${cliente.toUpperCase()}*\n`;
-        mensaje += `├ Facturas: ${stats.facturas.size}\n`;
-        mensaje += `├ Und: ${stats.unidades.toLocaleString('es-CO')}\n`;
-        mensaje += `└ Total: $${stats.costo.toLocaleString('es-CO')}\n`;
+        mensaje += `\n🏢 *${cliente}*\n`;
+        mensaje += `   • Und: ${stats.unidades.toLocaleString('es-CO')}\n`;
+        mensaje += `   • Costo: $${stats.costo.toLocaleString('es-CO')}\n`;
       });
 
-      mensaje += `\n────────────────────\n`;
-      mensaje += `_Generado automáticamente por PandaDash System_`;
+      mensaje += `\n_Enviado desde PandaDash PWA_`;
 
       // 6. Enviar Notificaciones Internas (Web Push)
       if (typeof PushManager !== 'undefined' && typeof PushManager.notificarATodos === 'function') {
         const titulo = `📦 Resumen ${fechaCorta}`;
-        const miniCuerpo = `Entregas Hoy: ${facturasUnicas.size} facturas | ${totalUnidades.toLocaleString('es-CO')} unidades.\nValor: $${totalCosto.toLocaleString('es-CO')}`;
+        const miniCuerpo = `Facturas: ${facturasUnicas.size} | Und: ${totalUnidades.toLocaleString('es-CO')} | $${Object.values(costosPorCliente).reduce((s, c) => s + c.costo, 0).toLocaleString('es-CO')}`;
 
         const success = await PushManager.notificarATodos(titulo, miniCuerpo);
 
         if (success) {
-          alert('✅ Resumen Gerencial enviado a todos los dispositivos.');
+          alert('✅ Notificación enviada a todos los usuarios.');
         } else {
-          // Fallback WhatsApp
-          if (confirm('La señal de Push falló. ¿Deseas compartir por WhatsApp?')) {
-            window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+          // Fallback si falla el Push (ej. no hay suscritos o llaves no configuradas)
+          if (confirm('El sistema de Push no está configurado o falló. ¿Deseas compartir por WhatsApp?')) {
+            const encodedMsg = encodeURIComponent(mensaje);
+            window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
           }
+        }
+      } else {
+        // Fallback original si no existe PushManager
+        if (navigator.share) {
+          await navigator.share({ title: 'Resumen Hoy', text: mensaje });
+        } else {
+          window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
       }
 
     } catch (error) {
       console.error('Error al enviar resumen:', error);
-      alert('Error técnico: ' + error.message);
+      alert('Error al calcular el resumen: ' + error.message);
     } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = originalContent;
-      }
+      this.btnNotifyToday.disabled = false;
+      this.btnNotifyToday.innerHTML = originalContent;
     }
   }
 };
