@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Notificaciones</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 i {
+            margin-right: 15px;
+        }
+        
+        .status-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .status-card i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .time-inputs input {
+            text-align: center;
+        }
+        
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #0d966c;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .quick-btn {
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .scheduled-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .scheduled-item {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .scheduled-info {
+            flex: 1;
+        }
+        
+        .scheduled-time {
+            font-weight: bold;
+            color: #10b981;
+        }
+        
+        .cancel-btn {
+            background: #ef4444;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .logs {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #2563eb;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .time-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-bell"></i> Notificaciones en Tiempo Real</h1>
+            <p>Sistema confiable - Funciona con la app cerrada</p>
+        </div>
+
+        <!-- Barra de Estado -->
+        <div class="status-bar">
+            <div class="status-card">
+                <i class="fas fa-satellite-dish"></i>
+                <h3>Service Worker</h3>
+                <p id="sw-status">Conectando...</p>
+            </div>
+            <div class="status-card">
+                <i class="fas fa-bell"></i>
+                <h3>Notificaciones</h3>
+                <p id="notification-status">Sin permisos</p>
+            </div>
+        </div>
+
+        <!-- Panel de Control -->
+        <div class="card">
+            <h2><i class="fas fa-cog"></i> Configurar Notificación</h2>
+            
+            <div class="form-group">
+                <label for="notification-title"><i class="fas fa-heading"></i> Título</label>
+                <input type="text" id="notification-title" value="¡Notificación Importante!">
+            </div>
+            
+            <div class="form-group">
+                <label for="notification-message"><i class="fas fa-comment"></i> Mensaje</label>
+                <textarea id="notification-message" rows="3">Esta es una notificación de prueba del sistema.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-clock"></i> Tiempo</label>
+                <div class="time-inputs">
+                    <div>
+                        <label>Minutos</label>
+                        <input type="number" id="schedule-minutes" min="0" value="0">
+                    </div>
+                    <div>
+                        <label>Segundos</label>
+                        <input type="number" id="schedule-seconds" min="0" value="5">
+                    </div>
+                    <div>
+                        <label>Tipo</label>
+                        <select id="notification-type">
+                            <option value="info">ℹ️ Información</option>
+                            <option value="alert">🚨 Alerta</option>
+                            <option value="success">✅ Éxito</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTÓN DE PERMISOS VISIBLE -->
+            <button class="btn btn-success" id="request-permission">
+                <i class="fas fa-shield-alt"></i> Solicitar Permisos de Notificación
+            </button>
+            
+            <div class="quick-actions">
+                <button class="btn btn-warning quick-btn" id="test-now">
+                    <i class="fas fa-bolt"></i> Enviar Ahora
+                </button>
+                <button class="btn quick-btn" id="test-5s">
+                    <i class="fas fa-play"></i> Probar 5s
+                </button>
+                <button class="btn quick-btn" id="test-30s">
+                    <i class="fas fa-clock"></i> Probar 30s
+                </button>
+            </div>
+
+            <button class="btn" id="schedule-notification">
+                <i class="fas fa-plus-circle"></i> Programar Notificación
+            </button>
+        </div>
+
+        <!-- Panel de Notificaciones Programadas -->
+        <div class="card">
+            <h2><i class="fas fa-list"></i> Notificaciones Programadas</h2>
+            <div class="scheduled-list" id="scheduled-list">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">
+                    <i class="fas fa-clock"></i><br>
+                    No hay notificaciones programadas
+                </p>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <h2><i class="fas fa-terminal"></i> Logs del Sistema</h2>
+            <div class="logs" id="system-logs">
+                <div class="log-entry">Sistema iniciado - Listo para usar</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NotificationManager {
+            constructor() {
+                this.swRegistration = null;
+                this.scheduledNotifications = [];
+                this.localTimers = new Map();
+                this.init();
+            }
+
+            async init() {
+                this.addLog('🔧 Iniciando sistema...');
+                await this.registerServiceWorker();
+                this.checkNotificationPermission();
+                this.setupEventListeners();
+                this.startAutoRefresh();
+            }
+
+            async registerServiceWorker() {
+                try {
+                    if (!('serviceWorker' in navigator)) {
+                        this.addLog('❌ Service Worker no soportado', 'error');
+                        return;
+                    }
+
+                    this.swRegistration = await navigator.serviceWorker.register('./sw.js');
+                    this.updateStatus('sw-status', '✅ Activo');
+                    this.addLog('✅ Service Worker registrado');
+                    
+                    // Escuchar mensajes del SW
+                    navigator.serviceWorker.addEventListener('message', (event) => {
+                        this.handleSWMessage(event);
+                    });
+                    
+                } catch (error) {
+                    this.updateStatus('sw-status', '❌ Error');
+                    this.addLog('❌ Error registrando Service Worker: ' + error.message, 'error');
+                }
+            }
+
+            checkNotificationPermission() {
+                if (Notification.permission === 'granted') {
+                    this.updateStatus('notification-status', '✅ Permisos concedidos');
+                } else if (Notification.permission === 'denied') {
+                    this.updateStatus('notification-status', '❌ Permisos denegados');
+                } else {
+                    this.updateStatus('notification-status', '⏳ Esperando permisos');
+                }
+            }
+
+            async requestNotificationPermission() {
+                try {
+                    this.addLog('🔔 Solicitando permisos...');
+                    const permission = await Notification.requestPermission();
+                    
+                    if (permission === 'granted') {
+                        this.updateStatus('notification-status', '✅ Permisos concedidos');
+                        this.addLog('✅ Permisos de notificación concedidos');
+                        // Enviar notificación de prueba
+                        this.sendTestNotification();
+                    } else {
+                        this.updateStatus('notification-status', '❌ Permisos denegados');
+                        this.addLog('❌ Permisos de notificación denegados', 'error');
+                    }
+                } catch (error) {
+                    this.addLog('❌ Error solicitando permisos: ' + error.message, 'error');
+                }
+            }
+
+            sendTestNotification() {
+                if (Notification.permission === 'granted') {
+                    const notification = new Notification('✅ Permisos Concedidos', {
+                        body: 'El sistema de notificaciones está listo para usar.',
+                        icon: './icon-192.png',
+                        badge: './icon-192.png'
+                    });
+                    
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                }
+            }
+
+            sendImmediateNotification() {
+                if (Notification.permission !== 'granted') {
+                    this.addLog('❌ Primero solicita los permisos de notificación', 'error');
+                    return false;
+                }
+
+                const title = document.getElementById('notification-title').value || 'Notificación';
+                const body = document.getElementById('notification-message').value || 'Mensaje de prueba';
+
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: './icon-192.png',
+                    badge: './icon-192.png'
+                });
+
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+
+                this.addLog('📨 Notificación enviada inmediatamente: ' + title);
+                return true;
+            }
+
+            scheduleNotification() {
+                if (Notification.permission !== 'granted') {
+                    this.addLog('❌ Primero solicita los permisos de notificación', 'error');
+                    return;
+                }
+
+                const minutes = parseInt(document.getElementById('schedule-minutes').value) || 0;
+                const seconds = parseInt(document.getElementById('schedule-seconds').value) || 0;
+                const totalMs = (minutes * 60 + seconds) * 1000;
+
+                if (totalMs <= 0) {
+                    this.addLog('❌ El tiempo debe ser mayor a 0', 'error');
+                    return;
+                }
+
+                const title = document.getElementById('notification-title').value || 'Notificación Programada';
+                const body = document.getElementById('notification-message').value || 'Mensaje programado';
+                const type = document.getElementById('notification-type').value;
+                const id = 'ntf-' + Date.now();
+
+                // Timer local para máxima precisión
+                const timer = setTimeout(() => {
+                    if (Notification.permission === 'granted') {
+                        this.showLocalNotification(title, body);
+                    }
+                    this.removeScheduledNotification(id);
+                }, totalMs);
+
+                this.localTimers.set(id, timer);
+
+                // Almacenar en Service Worker para persistencia
+                const notificationData = {
+                    id: id,
+                    title: this.getTitleWithEmoji(title, type),
+                    body: body,
+                    scheduledTime: Date.now() + totalMs
+                };
+
+                this.saveToServiceWorker(notificationData);
+                this.scheduledNotifications.push(notificationData);
+                this.updateScheduledList();
+
+                const timeStr = this.formatTime(totalMs);
+                this.addLog(`✅ Programada para ${timeStr}: ${title}`);
+            }
+
+            getTitleWithEmoji(title, type) {
+                const emojis = {
+                    info: 'ℹ️',
+                    alert: '🚨',
+                    success: '✅'
+                };
+                return `${emojis[type] || '📢'} ${title}`;
+            }
+
+            saveToServiceWorker(notification) {
+                if (this.swRegistration?.active) {
+                    this.swRegistration.active.postMessage({
+                        type: 'ADD_SCHEDULED_NOTIFICATION',
+                        data: notification
+                    });
+                }
+            }
+
+            showLocalNotification(title, body) {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: './icon-192.png',
+                    badge: './icon-192.png'
+                });
+                
+                this.addLog(`📨 Notificación local enviada: ${title}`);
+            }
+
+            removeScheduledNotification(id) {
+                // Cancelar timer local
+                const timer = this.localTimers.get(id);
+                if (timer) {
+                    clearTimeout(timer);
+                    this.localTimers.delete(id);
+                }
+
+                // Eliminar del Service Worker
+                if (this.swRegistration?.active) {
+                    this.swRegistration.active.postMessage({
+                        type: 'REMOVE_SCHEDULED_NOTIFICATION',
+                        data: { id: id }
+                    });
+                }
+
+                // Eliminar localmente
+                this.scheduledNotifications = this.scheduledNotifications.filter(n => n.id !== id);
+                this.updateScheduledList();
+                
+                this.addLog('🗑️ Notificación cancelada: ' + id);
+            }
+
+            updateScheduledList() {
+                const container = document.getElementById('scheduled-list');
+                const now = Date.now();
+
+                // Filtrar expiradas
+                this.scheduledNotifications = this.scheduledNotifications.filter(n => n.scheduledTime > now);
+
+                if (this.scheduledNotifications.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;"><i class="fas fa-clock"></i><br>No hay notificaciones programadas</p>';
+                    return;
+                }
+
+                container.innerHTML = this.scheduledNotifications.map(notification => {
+                    const timeLeft = notification.scheduledTime - now;
+                    const timeStr = this.formatTime(timeLeft);
+                    
+                    return `
+                        <div class="scheduled-item">
+                            <div class="scheduled-info">
+                                <div><strong>${notification.title}</strong></div>
+                                <div style="opacity: 0.8; font-size: 0.9em;">${notification.body}</div>
+                                <div style="margin-top: 5px;">
+                                    <i class="fas fa-clock"></i>
+                                    <span class="scheduled-time">${timeStr}</span>
+                                </div>
+                            </div>
+                            <button class="cancel-btn" onclick="notificationManager.removeScheduledNotification('${notification.id}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            setupEventListeners() {
+                // Botón de permisos - CORREGIDO
+                document.getElementById('request-permission').addEventListener('click', () => {
+                    this.requestNotificationPermission();
+                });
+                
+                // Botón enviar ahora
+                document.getElementById('test-now').addEventListener('click', () => {
+                    this.sendImmediateNotification();
+                });
+                
+                // Botones rápidos
+                document.getElementById('test-5s').addEventListener('click', () => {
+                    document.getElementById('schedule-seconds').value = 5;
+                    this.scheduleNotification();
+                });
+                
+                document.getElementById('test-30s').addEventListener('click', () => {
+                    document.getElementById('schedule-seconds').value = 30;
+                    this.scheduleNotification();
+                });
+                
+                // Botón programar
+                document.getElementById('schedule-notification').addEventListener('click', () => {
+                    this.scheduleNotification();
+                });
+            }
+
+            handleSWMessage(event) {
+                const { type, data } = event.data;
+                if (type === 'NOTIFICATIONS_SENT') {
+                    this.addLog(`🚀 Service Worker envió ${data.count} notificaciones`);
+                }
+            }
+
+            startAutoRefresh() {
+                setInterval(() => {
+                    this.updateScheduledList();
+                }, 1000);
+            }
+
+            updateStatus(elementId, status) {
+                document.getElementById(elementId).textContent = status;
+            }
+
+            addLog(message, type = 'info') {
+                const logsContainer = document.getElementById('system-logs');
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+                
+                logsContainer.appendChild(logEntry);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+
+            formatTime(ms) {
+                const seconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                
+                if (minutes > 0) {
+                    return `${minutes}m ${remainingSeconds}s`;
+                } else {
+                    return `${remainingSeconds}s`;
+                }
+            }
+        }
+
+        // Inicializar el sistema cuando la página cargue
+        let notificationManager;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            notificationManager = new NotificationManager();
+            window.notificationManager = notificationManager;
+        });
+    </script>
+</body>
+</html>

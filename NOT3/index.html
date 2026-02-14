@@ -29,6 +29,31 @@
   <link rel="stylesheet" href="css/estilos_admin.css">
   <link rel="stylesheet" href="css/estilos_upload.css">
   <link rel="stylesheet" href="css/estilos_soportes.css">
+  <style>
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .status-badge.active {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #10b981;
+    }
+
+    .status-badge.inactive {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #ef4444;
+    }
+  </style>
   <!-- ELIMINADO: estilos_pc.css -->
 
   <!-- jQuery and DataTables -->
@@ -645,6 +670,7 @@
           <div class="user-info-text">
             <div class="user-name" id="settingsUserName">Usuario</div>
             <div class="user-role-badge" id="settingsUserRole">Rol</div>
+            <div id="notif-status-badge" class="status-badge inactive">⏳ Sin Permisos</div>
           </div>
           <button id="logoutBtn">
             <i class="fas fa-sign-out-alt"></i>

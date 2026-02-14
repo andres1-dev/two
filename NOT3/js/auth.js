@@ -63,6 +63,11 @@ function checkSession() {
 async function handleLogin(e) {
     e.preventDefault();
 
+    // INTENTO DE ACTIVAR NOTIFICACIONES (Gesto de usuario)
+    if (typeof PushManager !== 'undefined') {
+        PushManager.solicitarPermisos();
+    }
+
     const idInput = document.getElementById('loginId');
     const passInput = document.getElementById('loginPassword');
     const btnLogin = document.getElementById('btnLogin');

@@ -234,23 +234,55 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Manejar click en la notificación
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Intentar enfocar una ventana existente
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no hay ventana abierta, abrir una nueva
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
+});
+
 // --- POLLING DE NOTIFICACIONES (SOLUCIÓN INTERNA) ---
 let lastCheckedNotif = 0;
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOwBp1er4nu9Uth2nS5rY2tYfvY-NMdWJkA3dIjmuaVUTLvnUyKtJIG62ACK22RpNWRQ/exec';
 
 async function checkBackgroundNotifications() {
   try {
-    const response = await fetch(`${GAS_URL}?action=check_notification&t=${Date.now()}`);
+    console.log('[SW] 🔍 Revisando servidor para notificaciones...');
+
+    // Añadimos cache: 'no-store' para evitar respuestas viejas del navegador
+    const response = await fetch(`${GAS_URL}?action=check_notification&t=${Date.now()}`, {
+      cache: 'no-store'
+    });
     const data = await response.json();
 
     if (data.success && data.notification) {
       const ts = data.notification.timestamp;
 
-      // Solo notificar si es una marca de tiempo nueva
+      // Si es la primera vez que arranca el SW, ignoramos las viejas para no molestar
+      if (lastCheckedNotif === 0) {
+        lastCheckedNotif = ts;
+        console.log('[SW] Marcador inicial establecido:', ts);
+        return;
+      }
+
       if (ts > lastCheckedNotif) {
         lastCheckedNotif = ts;
 
-        // Guardar en cache del SW para evitar repeticiones si se reinicia
+        console.log('[SW] 🔔 Notificación nueva detectada:', data.notification.title);
+
         const options = {
           body: data.notification.body,
           icon: 'icons/icon-192.png',
@@ -258,20 +290,26 @@ async function checkBackgroundNotifications() {
           vibrate: [200, 100, 200, 100, 200],
           tag: 'panda-global-push',
           renotify: true,
+          requireInteraction: true,
           data: {
             url: self.location.origin
           }
         };
 
-        self.registration.showNotification(data.notification.title, options);
+        if (self.registration && self.registration.showNotification) {
+          await self.registration.showNotification(data.notification.title, options);
+        }
       }
     }
   } catch (e) {
-    // Silencio en errores de polling para no llenar consola
+    console.error('[SW] Error en polling:', e);
   }
 }
 
-// Iniciar polling solo si es el navegador quien controla
+// Iniciar polling
 setInterval(checkBackgroundNotifications, 30000); // Cada 30 segundos
+
+// Iniciar una revisión inmediata al cargar
+checkBackgroundNotifications();
 
 console.log('[SW] 📱 Service Worker cargado - Versión:', CACHE_NAME);

@@ -7,11 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
             navigator.serviceWorker.register('./sw.js')
                 .then(registration => {
                     console.log('SW registrado con éxito:', registration.scope);
-
-                    // Solicitar permiso para notificaciones
-                    if ('Notification' in window && Notification.permission === 'default') {
-                        Notification.requestPermission();
-                    }
                 })
                 .catch(err => {
                     console.log('Fallo registro SW:', err);
