@@ -262,26 +262,31 @@ async function checkBackgroundNotifications() {
   try {
     console.log('[SW] 🔍 Revisando servidor para notificaciones...');
 
-    // Añadimos cache: 'no-store' para evitar respuestas viejas del navegador
     const response = await fetch(`${GAS_URL}?action=check_notification&t=${Date.now()}`, {
-      cache: 'no-store'
+      cache: 'no-store',
+      mode: 'cors',
+      redirect: 'follow'
     });
     const data = await response.json();
 
     if (data.success && data.notification) {
       const ts = data.notification.timestamp;
+      const now = Date.now();
 
-      // Si es la primera vez que arranca el SW, ignoramos las viejas para no molestar
-      if (lastCheckedNotif === 0) {
+      // REGLA: Mostrar si es más nueva que la última que vimos,
+      // O si es la primera vez que revisamos y la notificación tiene menos de 5 minutos.
+      const isNew = ts > lastCheckedNotif;
+      const isRecent = (lastCheckedNotif === 0 && (now - ts) < 300000);
+
+      if (isNew || isRecent) {
+        // Marcamos como vista
+        if (lastCheckedNotif === 0 && !isNew && !isRecent) {
+          lastCheckedNotif = ts;
+          return;
+        }
+
         lastCheckedNotif = ts;
-        console.log('[SW] Marcador inicial establecido:', ts);
-        return;
-      }
-
-      if (ts > lastCheckedNotif) {
-        lastCheckedNotif = ts;
-
-        console.log('[SW] 🔔 Notificación nueva detectada:', data.notification.title);
+        console.log('[SW] 🔔 Notificación válida detectada:', data.notification.title);
 
         const options = {
           body: data.notification.body,
@@ -306,10 +311,10 @@ async function checkBackgroundNotifications() {
   }
 }
 
-// Iniciar polling
-setInterval(checkBackgroundNotifications, 30000); // Cada 30 segundos
+// Iniciar polling fuerte (cada 10 segundos)
+setInterval(checkBackgroundNotifications, 10000);
 
-// Iniciar una revisión inmediata al cargar
+// Verificación inmediata al despertar
 checkBackgroundNotifications();
 
 console.log('[SW] 📱 Service Worker cargado - Versión:', CACHE_NAME);

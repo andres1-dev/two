@@ -738,6 +738,28 @@
             <option value="">-- Seleccionar --</option>
           </select>
         </div>
+
+        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;">
+          <div class="setting-info">
+            <span class="setting-title">Notificaciones</span>
+            <span class="setting-desc">Activar alertas nativas</span>
+          </div>
+          <button class="filter-btn" id="btnActivateNotif"
+            style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px;">
+            Activar
+          </button>
+        </div>
+
+        <div class="setting-item admin-only" style="display: none;" id="adminNotifTest">
+          <div class="setting-info">
+            <span class="setting-title">Broadcast Global</span>
+            <span class="setting-desc">Enviar aviso a todos</span>
+          </div>
+          <button class="filter-btn" id="btnTestGlobalNotif"
+            style="background: #000; color: white; border: none; padding: 10px 20px; border-radius: 8px;">
+            Probar
+          </button>
+        </div>
       </div>
     </div>
     <div id="settingsOverlay" class="modal-overlay" style="display: none;"></div>

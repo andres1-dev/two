@@ -96,8 +96,10 @@ const PushManager = {
             });
 
             const result = await response.json();
+            console.log('Respuesta de GAS:', result);
+
             if (result.success) {
-                console.log('Notificación procesada en el servidor.');
+                console.log('Notificación procesada en el servidor. Conteo de suscritos registrados:', result.sentCount);
                 return true;
             }
             return false;

@@ -287,7 +287,31 @@ function initUIListeners() {
             if (btnNotify) {
                 btnNotify.style.display = (currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none';
             }
+
+            // Show/Hide Admin Notif Test in Settings
+            const adminTestSection = document.getElementById('adminNotifTest');
+            if (adminTestSection) {
+                adminTestSection.style.display = (currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none';
+            }
         };
+
+        // Listeners para botones de notificación
+        document.getElementById('btnActivateNotif')?.addEventListener('click', async () => {
+            if (typeof PushManager !== 'undefined') {
+                const granted = await PushManager.solicitarPermisos();
+                if (granted) alert('Permisos concedidos. Recibirás avisos globales.');
+            }
+        });
+
+        document.getElementById('btnTestGlobalNotif')?.addEventListener('click', async () => {
+            if (typeof PushManager !== 'undefined') {
+                const success = await PushManager.notificarATodos(
+                    "🚀 Prueba de Broadcast",
+                    "Sincronización confirmada entre dispositivos."
+                );
+                if (success) alert('Señal enviada al servidor.');
+            }
+        });
 
         // Initial Update
         window.updateUserUI();
