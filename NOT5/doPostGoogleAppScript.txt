@@ -14,41 +14,69 @@ function getFormattedDateTime(date = new Date()) {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
+// --- MAIN GET HANDLER (Para Polling) ---
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    
+    if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput("PandaDash API Active").setMimeType(ContentService.MimeType.TEXT);
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.message).setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
 // --- MAIN POST HANDLER ---
 function doPost(e) {
   try {
-    if (!e || !e.parameter) {
+    // Soporte para JSON raw en el body si se envía así
+    let params = e.parameter;
+    if (e.postData && e.postData.contents) {
+        try {
+            const json = JSON.parse(e.postData.contents);
+            params = { ...params, ...json };
+        } catch(e) {}
+    }
+
+    if (!params || !params.action) {
       return ContentService.createTextOutput(JSON.stringify({
         success: false,
-        message: 'No se recibieron datos'
+        message: 'No se recibió acción'
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    const action = e.parameter.action;
+    const action = params.action;
 
     // --- ACCIONES DE USUARIO ---
     if (action === 'login') {
-       return verificarCredenciales(e.parameter.id, e.parameter.password);
+       return verificarCredenciales(params.id, params.password);
     } 
     else if (action === 'recover') {
-       return recuperarContrasena(e.parameter.id, e.parameter.method);
+       return recuperarContrasena(params.id, params.method);
     }
     else if (action === 'getUsers') {
        return listarUsuarios();
     }
     else if (action === 'saveUser') {
-       return guardarUsuario(e.parameter.userData);
+       return guardarUsuario(params.userData);
     }
     else if (action === 'deleteUser') {
-       return eliminarUsuario(e.parameter.id);
+       return eliminarUsuario(params.id);
     }
 
     // --- NUEVAS ACCIONES PARA NOTIFICACIONES PUSH ---
     else if (action === 'save_push_subscription') {
-       return guardarSuscripcionPush(e.parameter.userId, e.parameter.subscription);
+       return guardarSuscripcionPush(params.userId, params.subscription);
     }
     else if (action === 'send_push_notification') {
-       return procesarEnvioNotificacion(e.parameter.title, e.parameter.body);
+       return procesarEnvioNotificacion(params.title, params.body);
     }
     else if (action === 'check_notification') {
        const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
@@ -60,27 +88,27 @@ function doPost(e) {
     
     // --- ACCIONES DE DATOS ---
     if (action === 'delete') {
-       return eliminarRegistro(e.parameter.factura);
+       return eliminarRegistro(params.factura);
     }
     
     // Guardar datos (Acción por defecto si no es ninguna de las anteriores)
     const datos = {
-        documento: e.parameter.documento || '',
-        lote: e.parameter.lote || '',
-        referencia: e.parameter.referencia || '',
-        cantidad: e.parameter.cantidad || 0,
-        factura: e.parameter.factura || '',
-        nit: e.parameter.nit || '',
-        usuario: e.parameter.usuario || 'Desconocido',
+        documento: params.documento || '',
+        lote: params.lote || '',
+        referencia: params.referencia || '',
+        cantidad: params.cantidad || 0,
+        factura: params.factura || '',
+        nit: params.nit || '',
+        usuario: params.usuario || 'Desconocido',
         fotoUrl: ''
     };
     
-    if (e.parameter.fotoBase64 && e.parameter.fotoNombre && e.parameter.fotoTipo) {
+    if (params.fotoBase64 && params.fotoNombre && params.fotoTipo) {
       try {
         const fotoUrl = guardarImagenEnDrive(
-          e.parameter.fotoBase64,
-          e.parameter.fotoNombre,
-          e.parameter.fotoTipo
+          params.fotoBase64,
+          params.fotoNombre,
+          params.fotoTipo
         );
         datos.fotoUrl = fotoUrl;
       } catch (imgError) {

@@ -67,12 +67,20 @@ const PushManager = {
         });
     },
 
-    // Actualizar UI si existe algún indicador
+    // Actualizar UI en Configuración
     statusFeedback: function (text) {
-        const indicator = document.getElementById('notif-status-badge');
-        if (indicator) {
-            indicator.textContent = text;
-            indicator.className = 'status-badge ' + (text.includes('✅') ? 'active' : 'inactive');
+        const textElement = document.getElementById('notif-status-text');
+        if (textElement) {
+            textElement.textContent = text;
+            textElement.style.color = text.includes('✅') ? '#059669' : '#dc2626';
+        }
+
+        const btn = document.getElementById('btnActivateNotif');
+        if (btn && text.includes('✅')) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Activo';
+            btn.style.borderColor = '#10b981';
+            btn.style.color = '#059669';
+            btn.disabled = true;
         }
     },
 

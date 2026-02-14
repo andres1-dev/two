@@ -76,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Cargar datos
     loadDataFromServer();
 
+    // 5. Wake up Service Worker on Visibility (Crucial for iOS background-to-foreground)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ action: 'check_now' });
+        }
+    });
 
 });
 

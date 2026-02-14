@@ -282,34 +282,41 @@ function initUIListeners() {
                 }
             }
 
-            // Show/Hide Notification Button for Admin only (Soportes Grid)
-            const btnNotify = document.getElementById('btnNotifyToday');
-            if (btnNotify) {
-                btnNotify.style.display = (currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none';
-            }
-
-            // Show/Hide Admin Notif Test in Settings
-            const adminTestSection = document.getElementById('adminNotifTest');
-            if (adminTestSection) {
-                adminTestSection.style.display = (currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none';
+            // Show/Hide Admin Summary Broadcast Section
+            const adminSummarySection = document.getElementById('adminSummarySection');
+            if (adminSummarySection) {
+                adminSummarySection.style.display = (currentUser && currentUser.rol === 'ADMIN') ? 'block' : 'none';
             }
         };
 
-        // Listeners para botones de notificación
+        // Listeners para botones de notificación Premium
         document.getElementById('btnActivateNotif')?.addEventListener('click', async () => {
             if (typeof PushManager !== 'undefined') {
-                const granted = await PushManager.solicitarPermisos();
-                if (granted) alert('Permisos concedidos. Recibirás avisos globales.');
+                await PushManager.solicitarPermisos();
             }
         });
 
-        document.getElementById('btnTestGlobalNotif')?.addEventListener('click', async () => {
-            if (typeof PushManager !== 'undefined') {
-                const success = await PushManager.notificarATodos(
-                    "🚀 Prueba de Broadcast",
-                    "Sincronización confirmada entre dispositivos."
-                );
-                if (success) alert('Señal enviada al servidor.');
+        // ENVIAR RESUMEN PROFESIONAL (Desde Configuración)
+        document.getElementById('btnSendProfessionalSummary')?.addEventListener('click', async () => {
+            if (typeof SoportesGrid !== 'undefined') {
+                // Usamos la lógica existente en SoportesGrid
+                // Pero le pasamos una referencia al botón para el loading
+                const originalBtn = document.getElementById('btnSendProfessionalSummary');
+                const originalHTML = originalBtn.innerHTML;
+
+                originalBtn.disabled = true;
+                originalBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+                try {
+                    // Nota: SoportesGrid.btnNotifyToday ya no existe en el DOM, 
+                    // así que ajustamos SoportesGrid.enviarResumenHoy para que sea flexible
+                    await SoportesGrid.enviarResumenHoy(originalBtn);
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    originalBtn.disabled = false;
+                    originalBtn.innerHTML = originalHTML;
+                }
             }
         });
 

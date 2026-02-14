@@ -53,6 +53,69 @@
       color: #dc2626;
       border: 1px solid #ef4444;
     }
+
+    /* Premium Settings Elements */
+    .settings-divider {
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: #f8fafc;
+      border-bottom: 1px solid #f1f5f9;
+      border-top: 1px solid #f1f5f9;
+      margin: 10px 0;
+    }
+
+    .btn-premium-toggle {
+      background: white;
+      border: 1.5px solid #e2e8f0;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-premium-toggle:active {
+      transform: scale(0.95);
+      background: #f1f5f9;
+    }
+
+    .btn-premium-summary {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-premium-summary:active {
+      transform: scale(0.95);
+      opacity: 0.9;
+    }
+
+    .summary-item {
+      background: #f5f3ff;
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin: 5px 16px 15px 16px !important;
+      border: 1px solid #ddd6fe;
+    }
   </style>
   <!-- ELIMINADO: estilos_pc.css -->
 
@@ -670,7 +733,6 @@
           <div class="user-info-text">
             <div class="user-name" id="settingsUserName">Usuario</div>
             <div class="user-role-badge" id="settingsUserRole">Rol</div>
-            <div id="notif-status-badge" class="status-badge inactive">⏳ Sin Permisos</div>
           </div>
           <button id="logoutBtn">
             <i class="fas fa-sign-out-alt"></i>
@@ -739,26 +801,28 @@
           </select>
         </div>
 
-        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;">
+        <div class="setting-item" style="border-top: 1px solid #eee; margin-top: 10px; padding-top: 15px;">
           <div class="setting-info">
-            <span class="setting-title">Notificaciones</span>
-            <span class="setting-desc">Activar alertas nativas</span>
+            <span class="setting-title">Notificaciones PWA</span>
+            <span class="setting-desc" id="notif-status-text">Estado: Desactivas</span>
           </div>
-          <button class="filter-btn" id="btnActivateNotif"
-            style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px;">
-            Activar
+          <button class="btn-premium-toggle" id="btnActivateNotif"
+            style="border: 1px solid var(--primary); color: var(--primary); background: transparent;">
+            <i class="fas fa-bell"></i> Activar
           </button>
         </div>
 
-        <div class="setting-item admin-only" style="display: none;" id="adminNotifTest">
-          <div class="setting-info">
-            <span class="setting-title">Broadcast Global</span>
-            <span class="setting-desc">Enviar aviso a todos</span>
+        <div id="adminSummarySection" class="admin-only" style="display: none;">
+          <div class="setting-item" style="background: #fdf2f8; border-radius: 12px; margin: 10px 0; padding: 12px;">
+            <div class="setting-info">
+              <span class="setting-title" style="color: #be185d;">Resumen Gerencial</span>
+              <span class="setting-desc">Enviar reporte de hoy</span>
+            </div>
+            <button class="btn-premium-summary" id="btnSendProfessionalSummary"
+              style="background: #be185d; box-shadow: 0 4px 10px rgba(190, 24, 93, 0.2);">
+              <i class="fas fa-paper-plane"></i> Enviar
+            </button>
           </div>
-          <button class="filter-btn" id="btnTestGlobalNotif"
-            style="background: #000; color: white; border: none; padding: 10px 20px; border-radius: 8px;">
-            Probar
-          </button>
         </div>
       </div>
     </div>
@@ -796,11 +860,6 @@
           <button class="filter-btn" id="filterWeekBtn">
             <i class="fas fa-calendar-week"></i>
             Semana
-          </button>
-          <button class="filter-btn" id="btnNotifyToday"
-            style="background: #10b981; color: white; border-color: #10b981; display: none;">
-            <i class="fas fa-paper-plane"></i>
-            Resumen Hoy
           </button>
           <button class="filter-btn" id="resetFilterBtn">
             <i class="fas fa-times"></i>
