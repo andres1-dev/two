@@ -624,46 +624,18 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .panel-header {
-    padding: 12px 20px;
+    padding: 16px 20px;
     background-color: var(--sidebar);
     border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .panel-header h4 {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
-    margin: 0;
-}
-
-.panel-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.panel-badge {
-    background: var(--primary);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.strategy-select {
-    width: auto !important;
-    min-width: 220px;
-    height: 30px !important;
-    padding: 2px 30px 2px 10px !important;
-    font-size: 12px !important;
-    background-color: var(--sidebar) !important;
 }
 
 .panel-content {
@@ -2689,7 +2661,9 @@ label[for^="imp"]:hover {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
+
+
+
+
