@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador CSV - IDE</title>
+
+    <!-- VS Code Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- Excel Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body class="vscode-light">
+    <!-- Activity Bar -->
+    <div class="activity-bar">
+        <div class="activity-icons">
+            <button class="activity-icon active" data-tab="file-explorer" title="Explorador de Archivos">
+                <i class="codicon codicon-files"></i>
+            </button>
+            <button class="activity-icon" data-tab="csv-processor" title="Procesador CSV">
+                <i class="codicon codicon-symbol-array"></i>
+            </button>
+            <button class="activity-icon" data-tab="pending-ops" title="OPs Pendientes">
+                <i class="codicon codicon-symbol-enum"></i>
+            </button>
+
+            <button class="activity-icon" data-tab="op-editor" title="Editor OP">
+                <i class="codicon codicon-edit"></i>
+            </button>
+            <button class="activity-icon" data-tab="distribution" title="Distribución">
+                <i class="codicon codicon-package"></i>
+            </button>
+            <button class="activity-icon" data-tab="printing-module" title="Impresión">
+                <i class="codicon codicon-file-pdf"></i>
+            </button>
+        </div>
+        <div class="activity-bottom">
+            <button class="activity-icon" id="themeToggle" title="Cambiar Tema">
+                <i class="codicon codicon-color-mode"></i>
+            </button>
+            <button class="activity-icon" id="settingsBtn" title="Configuración">
+                <i class="codicon codicon-settings-gear"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="file-explorer">
+        <div class="sidebar-header">
+            <h3>EXPLORADOR</h3>
+            <div class="sidebar-actions">
+                <button class="btn-icon" title="Nuevo Archivo">
+                    <i class="codicon codicon-new-file"></i>
+                </button>
+                <button class="btn-icon" title="Refrescar">
+                    <i class="codicon codicon-refresh"></i>
+                </button>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <div class="file-tree">
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Procesos Activos</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Órdenes de Producción</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Archivos CSV</span>
+                </div>
+                <div class="tree-item">
+                    <i class="codicon codicon-folder"></i>
+                    <span>Distribuciones</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Editor Area -->
+    <div class="editor-container">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <div class="tabs">
+                <button class="tab active" data-tab="csv-processor">
+                    <i class="codicon codicon-symbol-array"></i>
+                    Procesador CSV
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="pending-ops">
+                    <i class="codicon codicon-symbol-enum"></i>
+                    OPs Pendientes
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+
+                <button class="tab" data-tab="op-editor">
+                    <i class="codicon codicon-edit"></i>
+                    Editor OP
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="distribution">
+                    <i class="codicon codicon-package"></i>
+                    Distribución
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="printing-module">
+                    <i class="codicon codicon-file-pdf"></i>
+                    Impresión
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+            </div>
+            <div class="tab-actions">
+                <button class="btn-icon" id="splitEditor" title="Dividir Editor">
+                    <i class="codicon codicon-split-horizontal"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content active" id="csv-processor-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-file-code"></i> Procesamiento de Archivos CSV</h3>
+                </div>
+                <div class="section-content">
+                    <div class="file-upload-area">
+                        <div class="upload-box" id="uploadBox">
+                            <i class="codicon codicon-cloud-upload"></i>
+                            <h4>Arrastra tu archivo CSV aquí</h4>
+                            <p>o haz clic para seleccionar</p>
+                            <input type="file" id="csvFile" accept=".csv" hidden>
+                            <button class="btn-primary" onclick="document.getElementById('csvFile').click()">
+                                <i class="codicon codicon-folder-opened"></i>
+                                Seleccionar Archivo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" id="processBtn" onclick="processCSV()">
+                            <i class="codicon codicon-play"></i>
+                            Procesar CSV
+                        </button>
+                        <button class="btn-secondary" id="exportBtn" onclick="exportToCSV()" style="display:none;">
+                            <i class="codicon codicon-desktop-download"></i>
+                            Exportar CSV
+                        </button>
+                    </div>
+
+                    <div class="status-bar" id="statusBar">
+                        <div class="status-item">
+                            <i class="codicon codicon-info"></i>
+                            <span id="statusMessage">Listo para procesar</span>
+                        </div>
+                        <div class="status-item">
+                            <i class="codicon codicon-database"></i>
+                            <span id="dataStats">Cargando datos...</span>
+                        </div>
+                    </div>
+
+                    <div class="results-panel" id="resultsPanel" style="display:none;">
+                        <div class="panel-header">
+                            <h4><i class="codicon codicon-graph"></i> Resultados del Procesamiento</h4>
+                        </div>
+                        <div class="panel-content" id="resultsContent">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="pending-ops-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-symbol-enum"></i> Órdenes de Producción Pendientes</h3>
+                    <div class="header-actions">
+                        <button class="btn-icon" onclick="refreshDynamicOptions()" title="Recargar configuración">
+                            <i class="codicon codicon-refresh"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="ops-container" id="pendientesSection" style="display:none;">
+                        <div class="form-group">
+                            <label for="selectOP">
+                                <i class="codicon codicon-list-selection"></i>
+                                Seleccionar OP para procesar
+                            </label>
+                            <select id="selectOP" class="form-control" onchange="loadOPData()">
+                                <option value="">Seleccione una OP...</option>
+                            </select>
+                        </div>
+
+                        <div class="op-preview" id="opPreview">
+                            <div class="preview-placeholder">
+                                <i class="codicon codicon-info"></i>
+                                Selecciona una OP para ver los detalles
+                            </div>
+                        </div>
+
+                        <div class="op-form" id="opForm" style="display:none;">
+                            <div class="form-actions">
+                                <button class="btn-primary" onclick="generateJSONForOP()" id="generateJSONBtn">
+                                    <i class="codicon codicon-code"></i>
+                                    Generar JSON
+                                </button>
+                                <button class="btn-success" onclick="saveToSheets()" id="saveBtn" style="display:none;">
+                                    <i class="codicon codicon-save"></i>
+                                    Guardar en Sheets
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="tab-content" id="op-editor-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-edit"></i> Editor de OP</h3>
+                    <div class="header-actions">
+                        <button class="btn-primary" onclick="generateJSONFromEditor()" title="Generar JSON con cambios">
+                            <i class="codicon codicon-code"></i> Generar JSON
+                        </button>
+                        <button class="btn-icon" onclick="refreshDynamicOptions()" title="Recargar configuración">
+                            <i class="codicon codicon-refresh"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div id="opEditorEmptyState" class="empty-state">
+                        <i class="codicon codicon-info"></i>
+                        <p>Seleccione una OP en la pestaña "OPs Pendientes" para comenzar a editar.</p>
+                    </div>
+
+                    <div id="opEditorContainer" style="display:none;">
+                        <div class="op-info-card" id="opEditorInfo">
+                            <!-- Info general de la OP -->
+                        </div>
+
+                        <div class="form-section"
+                            style="margin-top: 20px; background-color: var(--sidebar-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                            <h5
+                                style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; color: var(--text); font-size: 15px;">
+                                <i class="codicon codicon-edit"></i>
+                                Información de Cabecera
+                            </h5>
+                            <div class="form-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                                <div class="form-group">
+                                    <label for="proveedor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-organization"></i>
+                                        Proveedor
+                                    </label>
+                                    <select id="proveedor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+                                        <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="auditor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-account"></i>
+                                        Auditor
+                                    </label>
+                                    <select id="auditor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+                                        <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="gestor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-person"></i>
+                                        Gestor
+                                    </label>
+                                    <select id="gestor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+                                        <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
+                                    </select>
+                                </div>
+
+                                <!-- CAMBIO: De INPUT a SELECT para Usuario/Escaner -->
+                                <div class="form-group">
+                                    <label for="escanerEdit"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-person"></i>
+                                        Usuario / Escaner
+                                    </label>
+                                    <select id="escanerEdit" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+                                        <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde la hoja USUARIOS -->
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="bolsas"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-package"></i>
+                                        Bolsas
+                                    </label>
+                                    <div class="input-group" style="display: flex; align-items: center; gap: 4px;">
+
+                                        <input type="number" id="bolsas" class="form-control" min="0" value="0" required
+                                            style="flex: 1; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+
+                                        <button type="button" class="btn-icon" onclick="adjustBolsas(1)"
+                                            title="Aumentar +1"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
+                                            <i class="codicon codicon-add"></i>
+                                        </button>
+
+                                        <button type="button" class="btn-icon" onclick="adjustBolsas(-1)"
+                                            title="Disminuir -1"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
+                                            <i class="codicon codicon-remove"></i>
+                                        </button>
+
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pvpEdit"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
+                                        <i class="codicon codicon-symbol-numeric"></i>
+                                        PVP
+                                    </label>
+                                    <div class="input-group" style="display: flex; align-items: center; gap: 4px;">
+                                        <input type="text" id="pvpEdit" class="form-control" required
+                                            style="flex: 1; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+                                        <button type="button" class="btn-icon" onclick="adjustPVP(1000)"
+                                            title="Aumentar +1000"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
+                                            <i class="codicon codicon-add"></i>
+                                        </button>
+                                        <button type="button" class="btn-icon" onclick="adjustPVP(-1000)"
+                                            title="Disminuir -1000"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
+                                            <i class="codicon codicon-remove"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RESUMEN DE TOTALES EN LA PARTE SUPERIOR -->
+                        <div class="editor-summary"
+                            style="margin-top: 20px; padding: 16px 20px; background-color: var(--sidebar-bg); border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 32px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div
+                                        style="background-color: var(--primary-dim); padding: 10px; border-radius: 8px;">
+                                        <i class="codicon codicon-symbol-numeric"
+                                            style="font-size: 20px; color: var(--primary);"></i>
+                                    </div>
+                                    <div>
+                                        <div
+                                            style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Total Unidades</div>
+                                        <div
+                                            style="font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--text);">
+                                            <span id="editorTotalUnits">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="padding: 10px; border-radius: 8px;">
+                                        <i class="codicon codicon-credit-card"
+                                            style="font-size: 20px; color: var(--info);"></i>
+                                    </div>
+                                    <div>
+                                        <div
+                                            style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Costo Total</div>
+                                        <div
+                                            style="font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--text);">
+                                            $ <span id="editorTotalCost">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-icon" onclick="expandirTodo()" title="Expandir todo"
+                                    style="border: 1px solid var(--border); padding: 8px;">
+                                    <i class="codicon codicon-unfold"></i>
+                                </button>
+                                <button class="btn-icon" onclick="colapsarTodo()" title="Colapsar todo"
+                                    style="border: 1px solid var(--border); padding: 8px;">
+                                    <i class="codicon codicon-fold"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- TABLA DE RESUMEN POR BODEGA (CON DETALLE EDITABLE AL EXPANDIR) -->
+                        <div class="table-container" style="margin-top: 20px;">
+                            <table class="data-table" id="opEditorTable"
+                                style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr
+                                        style="background-color: var(--sidebar); border-bottom: 2px solid var(--border);">
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Bodega</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Cantidad</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Costo Total</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="opEditorTableBody">
+                                    <!-- Se renderiza dinámicamente con JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- JSON Viewer integrado (colapsable) -->
+                        <div id="jsonViewerSection" style="margin-top: 20px; display: none;">
+                            <div
+                                style="background-color: var(--sidebar-bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden;">
+                                <div id="jsonViewerHeader"
+                                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color 0.2s;"
+                                    onmouseover="this.style.backgroundColor='var(--hover)'"
+                                    onmouseout="this.style.backgroundColor='transparent'" onclick="toggleJsonViewer()">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <i class="codicon codicon-chevron-right" id="jsonViewerToggleIcon"
+                                            style="font-size: 16px; transition: transform 0.2s;"></i>
+                                        <i class="codicon codicon-json"
+                                            style="color: var(--warning); font-size: 16px;"></i>
+                                        <span style="font-weight: 600; font-size: 14px;">JSON Generado</span>
+                                        <span id="jsonViewerBadge"
+                                            style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; display: none;">Listo</span>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;" onclick="event.stopPropagation()">
+                                        <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-symbol-method"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-copy"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="clearJSON()" title="Limpiar"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-clear-all"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar"
+                                            style="display:none; padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--success); color: white;"
+                                            title="Guardar en Google Sheets">
+                                            <i class="codicon codicon-cloud-upload"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="jsonViewerBody" style="display: none; max-height: 400px; overflow-y: auto;">
+                                    <div class="json-editor" style="margin: 0;">
+                                        <pre id="jsonContent" class="json-content"
+                                            style="margin: 0; padding: 16px; font-size: 12px; line-height: 1.5; background: var(--editor); border-radius: 0;">{
+  "mensaje": "Genera un JSON desde el Editor OP"
+}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Distribución -->
+        <div class="tab-content" id="distribution-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3>
+                        <i class="codicon codicon-package"></i>
+                        Distribución
+                        <span class="header-badge">BETA</span>
+                    </h3>
+                    <div class="header-actions">
+                        <button class="btn-icon" id="moduleConfigBtn" title="Configuración">
+                            <i class="codicon codicon-settings-gear"></i>
+                        </button>
+                        <button class="btn-icon" id="reloadDataBtn" title="Actualizar">
+                            <i class="codicon codicon-refresh"></i>
+                        </button>
+                        <button class="btn-icon" id="saveDistributionsBtn" title="Guardar">
+                            <i class="codicon codicon-save"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <!-- Estado de Carga -->
+                    <div id="distribution-loading" class="distribution-loading">
+                        <div class="loading-content">
+                            <div class="loading-spinner-large"></div>
+                            <div class="loading-text">
+                                <div class="loading-title">Cargando módulo de distribución</div>
+                                <div class="loading-subtitle">Inicializando datos y configuraciones...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor Principal -->
+                    <div id="distribution-main" class="distribution-main" style="display:none">
+                        <!-- Panel de Búsqueda -->
+                        <div class="distribution-panel search-panel">
+                            <div class="form-group">
+                                <label for="recInput">
+                                    <i class="codicon codicon-search"></i>
+                                    Buscar documento
+                                </label>
+                                <div class="search-container">
+                                    <input type="number" id="recInput" class="form-control"
+                                        placeholder="Buscar por número de REC..." oninput="searchDistributionRec()">
+                                    <button class="btn-icon"
+                                        onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();"
+                                        title="Limpiar búsqueda">
+                                        <i class="codicon codicon-clear-all"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Grid de Distribución -->
+                        <div class="distribution-grid">
+                            <!-- Panel de Empresas -->
+                            <div class="distribution-panel">
+                                <div class="panel-header">
+                                    <i class="codicon codicon-organization"></i>
+                                    <h4>Distribución por Empresas</h4>
+                                    <div class="panel-badge" id="empresas-count">0</div>
+                                </div>
+                                <div class="panel-content">
+                                    <div class="distribution-controls">
+                                        <div class="control-group">
+                                            <label class="control-label">Asignación Automática</label>
+                                            <div class="control-actions">
+                                                <button class="btn-icon distribute-btn"
+                                                    onclick="distributeEmpresasEqually()"
+                                                    title="Distribuir equitativamente">
+                                                    <i class="codicon codicon-symbol-array"></i>
+                                                </button>
+                                                <button class="btn-icon clear-btn" onclick="clearEmpresasValues()"
+                                                    title="Restablecer valores">
+                                                    <i class="codicon codicon-clear-all"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="empresasContainer" class="empresas-grid">
+                                        <!-- Las empresas se cargarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel de Mayoristas -->
+                            <div class="distribution-panel">
+                                <div class="panel-header">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <i class="codicon codicon-account"></i>
+                                        <h4>Mayoristas Disponibles</h4>
+                                        <div class="panel-badge" id="mayoristas-count">0</div>
+                                    </div>
+                                    <div class="panel-actions">
+                                        <select id="distributionStrategy" class="form-control strategy-select">
+                                            <option value="EQUAL">Distribución Equilibrada (Lineal)</option>
+                                            <option value="WEIGHTED">Distribución Ponderada (Proporcional)</option>
+                                            <option value="SECTORIZED" selected>Estrategia Sectorizada (Curva Core)
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="panel-content">
+                                    <div class="distribution-controls">
+                                        <div class="control-group">
+                                            <label class="control-label">Selección Múltiple</label>
+                                            <div class="control-actions">
+                                                <button class="btn-icon" onclick="selectAllMayoristas()"
+                                                    title="Seleccionar todos">
+                                                    <i class="codicon codicon-check-all"></i>
+                                                </button>
+                                                <button class="btn-icon" onclick="deselectAllMayoristas()"
+                                                    title="Deseleccionar todos">
+                                                    <i class="codicon codicon-clear-all"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="mayoristasContainer" class="mayoristas-grid">
+                                        <!-- Los mayoristas se cargarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Resultados -->
+                        <div class="distribution-panel results-panel">
+                            <div class="panel-header">
+                                <i class="codicon codicon-table"></i>
+                                <h4>Resultados de Distribución</h4>
+                                <div class="panel-actions">
+                                    <button class="btn-icon" title="Exportar a CSV">
+                                        <i class="codicon codicon-export"></i>
+                                    </button>
+                                    <button class="btn-icon" title="Imprimir">
+                                        <i class="codicon codicon-print"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="panel-content-table">
+                                <div id="distribution-result" class="results-container">
+                                    <div class="empty-state">
+                                        <i class="codicon codicon-dashboard"></i>
+                                        <h5>Sin datos para mostrar</h5>
+                                        <p>Ingrese un número de REC y configure la distribución para ver los resultados.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña de Impresión -->
+        <div class="tab-content" id="printing-module-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-file-pdf"></i>Impresión</h3>
+                    <div class="header-actions">
+                        <button class="btn-icon" onclick="print_cargarDatos()" title="Recargar datos">
+                            <i class="codicon codicon-refresh"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label for="printRecInput"><i class="codicon codicon-search"></i> Buscar documento</label>
+                        <div class="search-container" style="max-width: 600px; display: flex; gap: 10px;">
+                            <input type="text" id="printRecInput" class="form-control"
+                                placeholder="Ingrese REC (ej: 1234, 5678)..."
+                                onkeydown="if(event.key === 'Enter') print_buscarPorREC()">
+                            <button class="btn-primary" onclick="print_buscarPorREC()">
+                                <i class="codicon codicon-search"></i> Buscar
+                            </button>
+                        </div>
+                        <div class="info-text" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                            Para búsqueda múltiple, separar con comas.
+                        </div>
+                    </div>
+
+                    <div class="action-buttons" style="margin-bottom: 20px;">
+                        <button onclick="print_buscarMultiplesRECs()" class="btn-secondary">
+                            <i class="codicon codicon-copy"></i> Múltiples (Solo Principal)
+                        </button>
+                        <button onclick="print_imprimirSoloClientes()" class="btn-secondary">
+                            <i class="codicon codicon-organization"></i> Solo Clientes
+                        </button>
+                        <button onclick="print_mostrarOpcionesImpresion()" class="btn-secondary">
+                            <i class="codicon codicon-list-selection"></i> Seleccionar
+                        </button>
+                    </div>
+
+                    <div id="printLoader" class="loader" style="display:none; text-align: center; margin: 20px 0;">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando...</p>
+                    </div>
+
+                    <div id="printResultContainer" class="results-panel"
+                        style="margin-top: 20px; min-height: 200px; padding: 20px;">
+                        <div class="empty-state"
+                            style="text-align: center; color: var(--text-secondary); margin-top: 40px;">
+                            <i class="codicon codicon-info"
+                                style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                            <p>Ingrese un documento para buscar información.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modalContainer"></div>
+
+    <!-- Scripts -->
+    <!-- 1. Config - Constantes y configuración primero -->
+    <script src="js/config/constants.js"></script>
+    <script src="js/config/css.js"></script>
+
+    <!-- 2. Utils - Funciones auxiliares -->
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/validators.js"></script>
+    <script src="js/utils/performance.js"></script>
+
+    <!-- 3. Services - Servicios de datos -->
+    <script src="js/services/csv-parser.js"></script>
+    <script src="js/services/gas-service.js"></script>
+    <script src="js/services/google-sheets.js"></script>
+
+    <!-- 4. UI - Componentes de interfaz -->
+    <script src="js/ui/notifications.js"></script>
+    <script src="js/ui/status-bar.js"></script>
+    <script src="js/ui/modals.js"></script>
+    <script src="js/ui/quick-confirm.js"></script>
+    <script src="js/ui/json-editor.js"></script>
+    <script src="js/ui/results-display.js"></script>
+    <script src="js/ui/tabs.js"></script>
+    <script src="js/ui/missing-data-modal.js"></script>
+    <script src="js/ui/utils.js"></script>
+
+    <!-- 5. Core - Funcionalidad central -->
+    <script src="js/core/theme.js"></script>
+    <script src="js/core/event-listeners.js"></script>
+    <script src="js/core/state-manager.js"></script>
+    <script src="js/core/app-init.js"></script>
+
+    <!-- 6. Modules - Módulos de funcionalidad -->
+    <script src="js/modules/data-processing.js"></script>
+    <script src="js/modules/op-editor.js"></script>
+    <script src="js/modules/transfers.js"></script>
+    <script src="js/modules/distribution.js"></script>
+    <script src="js/modules/printing.js"></script>
+
+    <!-- 7. Printing Module (legacy) -->
+    <script src="js/printing-templates.js"></script>
+    <script src="js/printing-search.js"></script>
+    <script src="js/printing-main.js"></script>
+
+    <!-- 8. Main App - Inicialización final -->
+    <script src="js/main.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const printTabBtn = document.querySelector('.activity-icon[data-tab="printing-module"]');
+            const printTabTab = document.querySelector('.tab[data-tab="printing-module"]');
+
+            if (printTabBtn) printTabBtn.addEventListener('click', initPrintingModule);
+            if (printTabTab) printTabTab.addEventListener('click', initPrintingModule);
+
+            // Cargar opciones dinámicas después de la inicialización
+            setTimeout(() => {
+                if (typeof loadAllDynamicOptions === 'function') {
+                    loadAllDynamicOptions();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>
