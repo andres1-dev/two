@@ -224,22 +224,22 @@ function updateEditorHeader() {
     const infoDiv = document.getElementById('opEditorInfo');
     if (infoDiv) {
         infoDiv.innerHTML = `
-            <div class="op-info-card">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <div class="info-group">
-                    <label>OP</label>
-                    <div class="value" style="font-size: 18px; color: var(--primary);">${primerItem.OP}</div>
+                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">OP</label>
+                    <div style="font-weight: 600; font-size: 16px;">${primerItem.OP}</div>
                 </div>
                 <div class="info-group">
-                    <label>Referencia</label>
-                    <div class="value">${primerItem.REFERENCIA}</div>
+                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Referencia</label>
+                    <div style="font-weight: 600;">${primerItem.REFERENCIA}</div>
                 </div>
                 <div class="info-group">
-                    <label>Prenda</label>
-                    <div class="value">${primerItem.PRENDA}</div>
+                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Prenda</label>
+                    <div>${primerItem.PRENDA}</div>
                 </div>
                 <div class="info-group">
-                    <label>Total OP</label>
-                    <div class="value" style="color: var(--success);">${primerItem.TOTAL || '0'} unds</div>
+                    <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Total OP</label>
+                    <div style="font-weight: 600;">${primerItem.TOTAL || '0'} unds</div>
                 </div>
             </div>
         `;
@@ -283,30 +283,23 @@ function renderResumenBodegas() {
     });
 
     tbody.innerHTML = resumenArray.map((grupo, index) => {
-        // Color variables según bodega para los badges
-        const badgeColor = grupo.bodega === 'PRIMERAS' ? 'var(--success)' :
-            grupo.bodega === 'PROMOCIONES' ? 'var(--warning)' :
-                grupo.bodega === 'COBROS' ? 'var(--error)' :
-                    grupo.bodega === 'SIN CONFECCIONAR' ? 'var(--info)' : 'var(--text-secondary)';
-
-        const bgDim = grupo.bodega === 'PRIMERAS' ? 'var(--success-dim)' :
-            grupo.bodega === 'PROMOCIONES' ? 'var(--warning-dim)' :
-                grupo.bodega === 'COBROS' ? 'var(--error-dim)' :
-                    grupo.bodega === 'SIN CONFECCIONAR' ? 'var(--info-dim)' : 'transparent';
+        // Color de fondo según bodega
+        const bgColor = grupo.bodega === 'PRIMERAS' ? 'rgba(55, 162, 85, 0.08)' :
+            grupo.bodega === 'PROMOCIONES' ? 'rgba(255, 193, 7, 0.08)' :
+                grupo.bodega === 'COBROS' ? 'rgba(244, 71, 71, 0.08)' :
+                    grupo.bodega === 'SIN CONFECCIONAR' ? 'rgba(0, 120, 212, 0.08)' : 'transparent';
 
         return `
             <tr class="resumen-row" data-bodega="${grupo.bodega}" data-index="${index}" 
-                style="cursor: pointer; background-color: ${bgDim};">
-                <td colspan="2" style="font-weight: 700; padding: 16px 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <i class="codicon codicon-chevron-right toggle-icon" id="toggle-icon-${index}" style="font-size: 18px; transition: transform 0.2s;"></i>
-                        <span style="text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; color: ${badgeColor === 'var(--text-secondary)' ? 'inherit' : badgeColor};">
-                            ${grupo.bodega}
-                        </span>
-                        <span class="panel-badge" style="background: var(--sidebar); color: var(--text-secondary); border: 1px solid var(--border);">
-                            ${grupo.items.length} ${grupo.items.length === 1 ? 'registro' : 'registros'}
-                        </span>
-                    </div>
+                style="cursor: pointer; background-color: ${bgColor}; border-bottom: 2px solid var(--border); transition: background-color 0.2s;"
+                onmouseover="this.style.backgroundColor='${bgColor.replace('0.08', '0.15')}'"
+                onmouseout="this.style.backgroundColor='${bgColor}'">
+                <td colspan="2" style="font-weight: 700; padding: 16px 12px;">
+                    <i class="codicon codicon-chevron-right toggle-icon" id="toggle-icon-${index}" style="margin-right: 10px; font-size: 18px; transition: transform 0.2s;"></i>
+                    <span style="text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px;">${grupo.bodega}</span>
+                    <span style="margin-left: 12px; font-size: 12px; color: var(--text-secondary); background: var(--sidebar); padding: 4px 10px; border-radius: 20px;">
+                        ${grupo.items.length} ${grupo.items.length === 1 ? 'registro' : 'registros'}
+                    </span>
                 </td>
                 <td></td>
                 <td style="font-weight: 700; padding: 16px 12px; text-align: right; font-size: 15px;">
@@ -319,13 +312,13 @@ function renderResumenBodegas() {
             </tr>
             <tr id="detalle-${index}" class="detalle-row" style="display: none;">
                 <td colspan="6" style="padding: 0;">
-                    <div class="detalle-container">
+                    <div style="background-color: var(--editor); padding: 24px; border: 1px solid var(--border); border-radius: 8px; margin: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h5 style="margin: 0; font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 10px;">
-                                <span style="background: ${badgeColor}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                                <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">
                                     <i class="codicon codicon-edit" style="margin-right: 4px;"></i> EDITANDO
                                 </span>
-                                <span style="font-weight: 600; text-transform: uppercase;">${grupo.bodega}</span>
+                                <span style="font-weight: 600;">${grupo.bodega}</span>
                             </h5>
                             <button class="btn-icon" onclick="window.colapsarDetalle('${index}')" 
                                     style="border: 1px solid var(--border); padding: 8px; border-radius: 6px; background: var(--sidebar);"
@@ -354,16 +347,16 @@ function renderResumenBodegas() {
  */
 function renderDetalleEditable(items) {
     return `
-        <div class="detalle-table-wrapper">
-            <table class="detalle-table">
+        <div style="overflow-x: auto; border-radius: 6px; border: 1px solid var(--border);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
-                    <tr>
-                        <th style="width: 80px;">Talla</th>
-                        <th>Color</th>
-                        <th>Bodega</th>
-                        <th style="text-align: right; width: 120px;">Cantidad</th>
-                        <th>Traslado</th>
-                        <th style="text-align: center; width: 80px;">Acciones</th>
+                    <tr style="border-bottom: 2px solid var(--border); background-color: var(--sidebar);">
+                        <th style="text-align: left; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Talla</th>
+                        <th style="text-align: left; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Color</th>
+                        <th style="text-align: left; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Bodega</th>
+                        <th style="text-align: right; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Cantidad</th>
+                        <th style="text-align: left; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Traslado</th>
+                        <th style="text-align: center; padding: 14px 12px; font-weight: 600; color: var(--text-secondary);">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -376,30 +369,29 @@ function renderDetalleEditable(items) {
         }).join('');
 
         return `
-                            <tr>
-                                <td style="font-weight: 700; color: var(--primary);">${item.TALLA}</td>
-                                <td style="color: var(--text-secondary);">${item.COLORES || item.COD_COLOR}</td>
-                                <td>
-                                    <select class="editor-select" 
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px; font-weight: 500;">${item.TALLA}</td>
+                                <td style="padding: 12px;">${item.COLORES || item.COD_COLOR}</td>
+                                <td style="padding: 12px;">
+                                    <select class="form-control" 
+                                            style="padding: 8px; height: 38px; font-size: 13px; width: 170px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg);" 
                                             onchange="window.handleEditorChange(${globalIndex}, 'BODEGA', this.value)">
                                         ${bodegaOptions}
                                     </select>
                                 </td>
-                                <td>
+                                <td style="padding: 12px;">
                                     <input type="number" 
-                                           class="editor-input" 
-                                           style="text-align: right;" 
+                                           class="form-control" 
+                                           style="padding: 8px; height: 38px; width: 100px; text-align: right; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg);" 
                                            value="${item.CANTIDAD}" 
                                            min="0" 
                                            step="1"
                                            onchange="window.handleEditorChange(${globalIndex}, 'CANTIDAD', this.value)">
                                 </td>
-                                <td style="font-family: 'Cascadia Code', monospace; font-size: 11px; color: var(--text-secondary); opacity: 0.7;">
-                                    ${item.TRASLADO}
-                                </td>
-                                <td style="text-align: center;">
+                                <td style="padding: 12px; font-family: monospace; font-size: 12px;">${item.TRASLADO}</td>
+                                <td style="padding: 12px; text-align: center;">
                                     <button class="btn-icon" 
-                                            style="color: var(--error); border: 1px solid var(--error-dim); background: var(--error-dim);" 
+                                            style="color: #f44747; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--sidebar);" 
                                             onclick="window.deleteEditorRow(${globalIndex})" 
                                             title="Eliminar fila">
                                         <i class="codicon codicon-trash" style="font-size: 16px;"></i>
@@ -768,53 +760,13 @@ function generateJSONForOP() {
         }
     };
 
-    const jsonStr = JSON.stringify(jsonData, null, 2);
-    const jsonContentEl = document.getElementById('jsonContent');
-    if (jsonContentEl) {
-        jsonContentEl.innerHTML = syntaxHighlightJSON(jsonStr);
-    }
-
+    document.getElementById('jsonContent').textContent = JSON.stringify(jsonData, null, 2);
     document.getElementById('saveBtn').style.display = 'inline-flex';
     document.getElementById('saveBtnToolbar').style.display = 'flex';
 
     // Mostrar y expandir el visor JSON integrado
     showJsonViewer();
     showMessage(`JSON generado exitosamente para OP: ${primerItem.OP}`, 'success', 2000);
-}
-
-/**
- * Aplica resaltado de sintaxis HTML a una cadena JSON
- */
-function syntaxHighlightJSON(json) {
-    if (typeof json !== 'string') {
-        json = JSON.stringify(json, undefined, 2);
-    }
-
-    // Escapar caracteres HTML básicos
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // Expresión regular para encontrar tokens JSON
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'json-number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'json-key';
-            } else {
-                cls = 'json-string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'json-boolean';
-        } else if (/null/.test(match)) {
-            cls = 'json-null';
-        }
-
-        // Si es una clave, no queremos el colon dentro del span si queremos que sea estético
-        if (cls === 'json-key') {
-            return '<span class="' + cls + '">' + match.slice(0, -1) + '</span>:';
-        }
-
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
 }
 
 function generateJSONFromEditor() {

@@ -2,9 +2,8 @@
     const jsonContent = document.getElementById('jsonContent');
     try {
         const jsonData = JSON.parse(jsonContent.textContent);
-        const jsonStr = JSON.stringify(jsonData, null, 2);
-        jsonContent.innerHTML = syntaxHighlightJSON(jsonStr);
-        showMessage('JSON formateado y resaltado', 'success', 1500);
+        jsonContent.textContent = JSON.stringify(jsonData, null, 2);
+        showMessage('JSON formateado correctamente', 'success', 1500);
     } catch (e) {
         showMessage('Error al formatear JSON: ' + e.message, 'error', 2000);
     }
@@ -12,7 +11,6 @@
 
 function copyJSON() {
     const jsonContent = document.getElementById('jsonContent');
-    // Usar textContent para obtener el JSON puro sin etiquetas HTML de resaltado
     navigator.clipboard.writeText(jsonContent.textContent).then(() => {
         showMessage('JSON copiado al portapapeles', 'success', 1500);
     }).catch(() => {
@@ -22,7 +20,7 @@ function copyJSON() {
 
 function clearJSON() {
     const jsonContent = document.getElementById('jsonContent');
-    jsonContent.innerHTML = syntaxHighlightJSON({ "mensaje": "Genera un JSON desde el Editor OP" });
+    jsonContent.textContent = '{\n  "mensaje": "Genera un JSON desde el Editor OP"\n}';
 
     // Ocultar botón de guardar
     const saveBtnToolbar = document.getElementById('saveBtnToolbar');
@@ -36,40 +34,6 @@ function clearJSON() {
     if (badge) badge.style.display = 'none';
 
     showMessage('Editor limpiado', 'info', 1500);
-}
-
-/**
- * Aplica resaltado de sintaxis HTML a una cadena JSON
- */
-function syntaxHighlightJSON(json) {
-    if (typeof json !== 'string') {
-        json = JSON.stringify(json, undefined, 2);
-    }
-
-    // Escapar caracteres HTML básicos
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // Expresión regular para encontrar tokens JSON
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'json-number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'json-key';
-            } else {
-                cls = 'json-string';
-            }
-        } else if (/true|false/.test(match)) {
-            cls = 'json-boolean';
-        } else if (/null/.test(match)) {
-            cls = 'json-null';
-        }
-
-        if (cls === 'json-key') {
-            return '<span class="' + cls + '">' + match.slice(0, -1) + '</span>:';
-        }
-
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
 }
 
 // ============================================
