@@ -91,64 +91,126 @@ function urlBase64ToUint8Array(base64String) {
     }
 }
 
+// Función simplificada para llamar a GAS
 async function callGAS(action, method = 'GET', data = null) {
     const url = new URL(CONFIG.GAS_URL);
-
-    // Para GET, usar parámetros en URL
-    if (method === 'GET') {
-        url.searchParams.append('action', action);
-    }
-
-    log(`🌐 Llamando a: ${url.toString()}`);
+    url.searchParams.append('action', action);
 
     const options = {
         method: method,
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded', // Cambiado para compatibilidad
-        }
+        mode: 'cors'
     };
 
-    // Para POST, enviar como form data (como tu GAS funcional)
     if (method === 'POST' && data) {
         const formData = new URLSearchParams();
         formData.append('action', action);
         formData.append('data', JSON.stringify(data));
-
-        // Añadir cada propiedad del data como parámetro individual
         if (data.endpoint) formData.append('endpoint', data.endpoint);
-        if (data.subscription) formData.append('subscription', JSON.stringify(data.subscription));
         if (data.title) formData.append('title', data.title);
         if (data.body) formData.append('body', data.body);
 
         options.body = formData;
+        options.headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        };
     }
 
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        options.signal = controller.signal;
-
         const response = await fetch(url.toString(), options);
-        clearTimeout(timeoutId);
-
-        log(`📥 Status: ${response.status}`);
-
         const text = await response.text();
-        log(`📄 Respuesta: ${text.substring(0, 100)}...`);
 
         // Intentar parsear JSON
         try {
             return JSON.parse(text);
         } catch {
-            // Si no es JSON, devolver el texto (puede ser la clave VAPID)
-            return text;
+            return text; // Es texto plano (como la clave VAPID)
         }
     } catch (error) {
-        log('❌ Error:', error);
+        console.error('Error:', error);
         throw error;
     }
 }
+
+// Obtener clave VAPID
+async function getVapidKey() {
+    try {
+        elements.status.innerHTML = '🔄 Obteniendo clave VAPID...';
+
+        // Usar fetch directo para mejor control
+        const response = await fetch(`${CONFIG.GAS_URL}?action=vapid-public-key`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+
+        const text = await response.text();
+        console.log('Respuesta VAPID:', text.substring(0, 50));
+
+        // Verificar si es un error JSON
+        if (text.startsWith('{')) {
+            try {
+                const error = JSON.parse(text);
+                if (error.error) {
+                    throw new Error(error.error);
+                }
+            } catch (e) { }
+        }
+
+        // Verificar que es una clave válida
+        if (text && text.length > 20 && text.startsWith('B')) {
+            vapidPublicKey = text.trim();
+            elements.status.innerHTML = '✅ Clave VAPID obtenida';
+            return true;
+        } else {
+            throw new Error('Respuesta inválida: ' + text.substring(0, 30));
+        }
+
+    } catch (error) {
+        console.error('Error VAPID:', error);
+        elements.status.innerHTML = '❌ Error clave VAPID: ' + error.message;
+        return false;
+    }
+}
+
+// Función de suscripción corregida
+async function subscribeToNotifications() {
+    try {
+        elements.status.innerHTML = '🔄 Solicitando permiso...';
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            elements.status.innerHTML = '❌ Permiso denegado';
+            return;
+        }
+
+        if (!vapidPublicKey) {
+            const ok = await getVapidKey();
+            if (!ok) return;
+        }
+
+        elements.status.innerHTML = '🔄 Creando suscripción...';
+
+        const subscription = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        });
+
+        elements.status.innerHTML = '🔄 Guardando en servidor...';
+
+        const result = await callGAS('subscribe', 'POST', subscription);
+
+        if (result && result.success) {
+            updateUI(true);
+            elements.status.innerHTML = '✅ ¡Notificaciones activadas!';
+        } else {
+            throw new Error(result?.error || 'Error al guardar');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        elements.status.innerHTML = '❌ Error: ' + error.message;
+    }
+}
+
 
 // ============================================
 // FUNCIONES PRINCIPALES
@@ -202,45 +264,6 @@ async function checkPermission() {
         return true;
     } catch (error) {
         log('Error checking permission:', error);
-        return false;
-    }
-}
-
-async function getVapidKey() {
-    try {
-        elements.status.innerHTML = '🔄 Obteniendo clave VAPID...';
-
-        // Usar GET con action
-        const response = await fetch(`${CONFIG.GAS_URL}?action=vapid-public-key`, {
-            method: 'GET',
-            mode: 'cors'
-        });
-
-        const text = await response.text();
-        log('Respuesta VAPID:', text);
-
-        // Intentar parsear como JSON para ver si es error
-        try {
-            const json = JSON.parse(text);
-            if (json.error) {
-                throw new Error(json.error);
-            }
-        } catch {
-            // Si no es JSON, es la clave
-        }
-
-        // Verificar que parece una clave VAPID
-        if (text && text.length > 20) {
-            vapidPublicKey = text;
-            elements.status.innerHTML = '✅ Clave VAPID obtenida';
-            return true;
-        } else {
-            throw new Error('Respuesta inválida');
-        }
-
-    } catch (error) {
-        log('Error obteniendo VAPID:', error);
-        elements.status.innerHTML = '❌ Error clave VAPID';
         return false;
     }
 }
