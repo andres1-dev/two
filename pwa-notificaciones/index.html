@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Notificaciones Multiplataforma</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0070f3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #0070f3;
+        }
+
+        .status {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .device-info {
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .badge {
+            background: #0070f3;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 200px;
+        }
+
+        button i {
+            font-size: 1.2em;
+        }
+
+        .btn-primary {
+            background: #0070f3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0051a2;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 2px dashed #0070f3;
+        }
+
+        .admin-panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #0070f3;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn-send {
+            background: #28a745;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-send:hover {
+            background: #218838;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #0070f3;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .ios-install {
+            background: #ffd700;
+            color: #333;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .ios-install.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: white;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 25px 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            button {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📱 Notificaciones PWA</h1>
+            <p class="subtitle">Recibe notificaciones en cualquier dispositivo</p>
+
+            <div class="status-card">
+                <div class="status" id="status">
+                    🔄 Verificando soporte...
+                </div>
+                <div class="device-info">
+                    <span id="platform">📱 Detectando...</span>
+                    <span id="browser">🌐 Detectando...</span>
+                    <span class="badge" id="pwaStatus">🌐 Navegador</span>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="subscribeButton" class="btn-primary" style="display: none;">
+                    <span>🔔</span> Activar Notificaciones
+                </button>
+                <button id="unsubscribeButton" class="btn-secondary" style="display: none;">
+                    <span>🔕</span> Desactivar Notificaciones
+                </button>
+            </div>
+
+            <div id="iosInstallMessage" class="ios-install">
+                📱 Para recibir notificaciones en iOS, 
+                <strong>añade esta app a tu pantalla de inicio</strong>
+                (Compartir > Añadir a Pantalla de Inicio)
+            </div>
+
+            <div class="admin-panel">
+                <h2>📨 Panel de Administración</h2>
+                
+                <div class="stats" id="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="subscribersCount">0</div>
+                        <div class="stat-label">Suscriptores</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="lastSent">-</div>
+                        <div class="stat-label">Último envío</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notificationTitle">Título de la notificación</label>
+                    <input type="text" id="notificationTitle" placeholder="Ej: ¡Nueva oferta!" value="🎉 Notificación de prueba">
+                </div>
+
+                <div class="form-group">
+                    <label for="notificationBody">Mensaje</label>
+                    <textarea id="notificationBody" placeholder="Escribe tu mensaje aquí..." rows="3">Este es un mensaje de prueba desde la PWA</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="notificationUrl">URL al hacer clic (opcional)</label>
+                    <input type="url" id="notificationUrl" placeholder="https://tusitio.com" value="/">
+                </div>
+
+                <button id="sendNotificationButton" class="btn-send">
+                    <span>📨</span> Enviar Notificación a Todos
+                </button>
+
+                <p style="margin-top: 15px; font-size: 0.8em; color: #666;">
+                    ⚡ Las notificaciones se enviarán a todos los dispositivos suscritos
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>PWA Notificaciones Multiplataforma • Funciona en iOS y Android</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
