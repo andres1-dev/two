@@ -184,18 +184,84 @@ async function checkPermission() {
 async function getVapidKey() {
     try {
         elements.status.innerHTML = '🔄 Obteniendo clave VAPID...';
-        const key = await callGAS('vapid-public-key', 'GET');
 
-        if (typeof key === 'string' && key.length > 0) {
-            vapidPublicKey = key;
-            log('VAPID key obtenida');
-            return true;
-        } else {
-            throw new Error('Clave VAPID inválida');
+        // Construir URL correctamente
+        const url = new URL(CONFIG.GAS_URL);
+        url.searchParams.append('path', 'vapid-public-key');
+
+        log('Llamando a GAS:', url.toString());
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
+
+        const text = await response.text();
+        log('Respuesta GAS (texto):', text);
+
+        // Intentar parsear como JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            // Si no es JSON, podría ser la clave directamente
+            data = text;
+        }
+
+        log('Respuesta parseada:', data);
+
+        // Si es un objeto con error
+        if (data && data.error) {
+            throw new Error(data.error);
+        }
+
+        // Si es un string, es la clave
+        if (typeof data === 'string' && data.length > 20) {
+            vapidPublicKey = data;
+            elements.status.innerHTML = '✅ Clave VAPID obtenida';
+            log('✅ VAPID key:', vapidPublicKey.substring(0, 20) + '...');
+            return true;
+        }
+
+        // Si es un objeto con la clave
+        if (data && data.publicKey) {
+            vapidPublicKey = data.publicKey;
+            elements.status.innerHTML = '✅ Clave VAPID obtenida';
+            return true;
+        }
+
+        throw new Error('Formato de respuesta inválido');
+
     } catch (error) {
-        log('Error getting VAPID key:', error);
-        showError('Error obteniendo clave VAPID', error.message);
+        log('❌ Error obteniendo VAPID:', error);
+        elements.status.innerHTML = '❌ Error clave VAPID: ' + error.message;
+
+        // Mostrar detalles del error
+        if (elements.errorDetails) {
+            elements.errorDetails.innerHTML = `
+                <strong>Error:</strong> ${error.message}<br>
+                <strong>URL:</strong> ${CONFIG.GAS_URL}<br>
+                <strong>Verifica:</strong> 
+                <ul>
+                    <li>¿El GAS está desplegado como "Aplicación web"?</li>
+                    <li>¿El acceso es "Cualquier persona"?</li>
+                    <li>¿La hoja "vapid_keys" tiene las claves?</li>
+                </ul>
+            `;
+            elements.errorDetails.classList.add('show');
+        }
+
+        if (elements.retryBtn) {
+            elements.retryBtn.style.display = 'flex';
+        }
+
         return false;
     }
 }
