@@ -1,30 +1,39 @@
 // ============================================
-// SERVICE WORKER PARA NOTIFICACIONES PUSH
+// SERVICE WORKER CON RUTAS RELATIVAS
 // ============================================
 
+// Base URL relativa al lugar donde está este archivo sw.js
+const BASE = (new URL('.', self.location)).href;
 const CACHE_NAME = 'pwa-notifications-v1';
+
+// URLs para cachear (con rutas relativas al BASE)
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/script.js',
-    '/icon-192.png',
-    '/icon-512.png'
+    './',
+    './index.html',
+    './manifest.json',
+    './script.js',
+    './sw.js',
+    './icon-192.png',
+    './icon-512.png'
 ];
 
 // Instalación del Service Worker
 self.addEventListener('install', event => {
     console.log('🔧 Service Worker instalado');
-    
+    console.log('📍 BASE URL:', BASE);
+
     // Forzar activación inmediata
     self.skipWaiting();
-    
+
     // Cachear archivos
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('✅ Cache abierto');
-                return cache.addAll(urlsToCache);
+                console.log('✅ Cacheando archivos desde:', BASE);
+                return cache.addAll(urlsToCache.map(url => new URL(url, BASE).href));
+            })
+            .catch(error => {
+                console.error('❌ Error cacheando:', error);
             })
     );
 });
@@ -32,7 +41,8 @@ self.addEventListener('install', event => {
 // Activación del Service Worker
 self.addEventListener('activate', event => {
     console.log('⚡ Service Worker activado');
-    
+    console.log('📍 Scope:', self.registration.scope);
+
     // Limpiar caches antiguos
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -45,28 +55,27 @@ self.addEventListener('activate', event => {
                 })
             );
         }).then(() => {
-            // Tomar control inmediato
-            return self.clients.claim();
+            // Tomar control inmediato de todos los clientes
+            return clients.claim();
         })
     );
 });
 
 // Manejar notificaciones push
 self.addEventListener('push', event => {
-    console.log('📨 Notificación push recibida:', event);
-    
+    console.log('📨 Notificación push recibida');
+
     let data = {
         title: 'Nueva notificación',
         body: 'Tienes un mensaje nuevo',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        icon: new URL('./icon-192.png', BASE).href,
+        badge: new URL('./icon-192.png', BASE).href,
         vibrate: [200, 100, 200],
         data: {
-            url: '/',
+            url: BASE, // URL base de la app
             timestamp: Date.now()
         },
         requireInteraction: true,
-        silent: false,
         actions: [
             {
                 action: 'open',
@@ -84,11 +93,16 @@ self.addEventListener('push', event => {
         try {
             const receivedData = event.data.json();
             data = { ...data, ...receivedData };
-            console.log('📦 Datos de la notificación:', receivedData);
+            // Asegurar que las URLs sean absolutas
+            if (data.icon) {
+                data.icon = new URL(data.icon, BASE).href;
+            }
+            if (data.badge) {
+                data.badge = new URL(data.badge, BASE).href;
+            }
         } catch (e) {
             // Si no es JSON, usar como texto
             data.body = event.data.text();
-            console.log('📝 Texto de la notificación:', data.body);
         }
     }
 
@@ -102,8 +116,7 @@ self.addEventListener('push', event => {
             data: data.data,
             actions: data.actions,
             requireInteraction: data.requireInteraction,
-            silent: data.silent,
-            tag: 'notification-' + Date.now(), // Evita duplicados
+            tag: 'notification-' + Date.now(),
             renotify: false
         })
     );
@@ -111,12 +124,12 @@ self.addEventListener('push', event => {
 
 // Manejar clic en notificación
 self.addEventListener('notificationclick', event => {
-    console.log('👆 Notificación clickeada:', event);
-    
+    console.log('👆 Notificación clickeada');
+
     const notification = event.notification;
     const action = event.action;
-    const urlToOpen = notification.data?.url || '/';
-    
+    const urlToOpen = notification.data?.url || BASE;
+
     notification.close();
 
     // Manejar acciones
@@ -150,13 +163,13 @@ self.addEventListener('notificationclick', event => {
 
 // Manejar cierre de notificación
 self.addEventListener('notificationclose', event => {
-    console.log('❌ Notificación cerrada:', event);
+    console.log('❌ Notificación cerrada');
 });
 
 // Manejar mensajes desde la página
 self.addEventListener('message', event => {
     console.log('📩 Mensaje recibido:', event.data);
-    
+
     if (event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
@@ -164,17 +177,22 @@ self.addEventListener('message', event => {
 
 // Estrategia de cache: Network First, fallback a cache
 self.addEventListener('fetch', event => {
+    // Ignorar peticiones a Google Analytics u otros dominios externos
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
     event.respondWith(
         fetch(event.request)
             .then(response => {
                 // Clonar la respuesta
                 const responseClone = response.clone();
-                
+
                 // Actualizar cache
                 caches.open(CACHE_NAME).then(cache => {
                     cache.put(event.request, responseClone);
                 });
-                
+
                 return response;
             })
             .catch(() => {

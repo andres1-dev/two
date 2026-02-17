@@ -1,10 +1,19 @@
 // ============================================
+// SCRIPT PRINCIPAL CON RUTAS RELATIVAS
+// ============================================
+
+// Base URL relativa al lugar donde está este archivo
+const BASE = (new URL('.', import.meta.url)).href;
+console.log('📍 BASE URL:', BASE);
+
+// ============================================
 // CONFIGURACIÓN
 // ============================================
 const CONFIG = {
     // IMPORTANTE: Reemplaza con tu URL de Google Apps Script
     GAS_URL: 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec',
-    DEBUG: true // Poner en false en producción
+    DEBUG: true, // Cambiar a false en producción
+    BASE_URL: BASE
 };
 
 // ============================================
@@ -63,6 +72,7 @@ async function callGAS(path, method = 'GET', data = null) {
     url.searchParams.append('platform', getPlatform());
     url.searchParams.append('browser', getBrowser());
     url.searchParams.append('isPWA', isRunningAsPWA());
+    url.searchParams.append('base_url', CONFIG.BASE_URL);
 
     const options = {
         method: method,
@@ -75,6 +85,7 @@ async function callGAS(path, method = 'GET', data = null) {
     if (data) {
         // Añadir el path también en el body para POST
         data._path = path;
+        data._base_url = CONFIG.BASE_URL;
         options.body = JSON.stringify(data);
     }
 
@@ -148,6 +159,38 @@ async function checkNotificationSupport() {
     return true;
 }
 
+// Función de diagnóstico
+async function diagnosticarServiceWorker() {
+    console.log('🔍 DIAGNÓSTICO SERVICE WORKER');
+    console.log('📍 BASE URL:', CONFIG.BASE_URL);
+    console.log('📍 URL actual:', window.location.href);
+    console.log('📍 Pathname:', window.location.pathname);
+    console.log('📍 Origen:', window.location.origin);
+
+    // Verificar soporte
+    console.log('✅ Soporte SW:', 'serviceWorker' in navigator);
+
+    // Verificar registros existentes
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    console.log('📊 Registros encontrados:', registrations.length);
+
+    for (const reg of registrations) {
+        console.log('  - Scope:', reg.scope);
+        console.log('  - Activo:', reg.active ? 'sí' : 'no');
+        console.log('  - Esperando:', reg.waiting ? 'sí' : 'no');
+        console.log('  - Instalando:', reg.installing ? 'sí' : 'no');
+    }
+
+    // Verificar archivo sw.js
+    try {
+        const swUrl = new URL('sw.js', CONFIG.BASE_URL).href;
+        const response = await fetch(swUrl);
+        console.log(`✅ sw.js accesible en ${swUrl}:`, response.status);
+    } catch (e) {
+        console.error('❌ sw.js NO accesible:', e);
+    }
+}
+
 // ============================================
 // FUNCIONES PRINCIPALES
 // ============================================
@@ -156,6 +199,9 @@ async function checkNotificationSupport() {
 async function initialize() {
     try {
         elements.status.innerHTML = '🔄 Inicializando...';
+
+        // Diagnóstico inicial
+        await diagnosticarServiceWorker();
 
         // Mostrar información del dispositivo
         elements.platform.innerHTML = `📱 ${getPlatform()}`;
@@ -180,16 +226,34 @@ async function initialize() {
             return;
         }
 
-        // Registrar Service Worker
+        // Limpiar registros antiguos del Service Worker
+        elements.status.innerHTML = '🔄 Limpiando registros antiguos...';
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.unregister();
+            console.log('🗑️ Service Worker anterior desregistrado:', registration.scope);
+        }
+
+        // Registrar Service Worker con el scope correcto (relativo)
         elements.status.innerHTML = '🔄 Registrando Service Worker...';
+
+        // Calcular el scope basado en la ubicación actual
+        const swPath = new URL('sw.js', window.location.href).href;
+        const scope = new URL('./', window.location.href).href;
+
+        console.log('📍 Registrando SW desde:', swPath);
+        console.log('📍 Con scope:', scope);
+
         swRegistration = await navigator.serviceWorker.register('sw.js', {
-            scope: '/'
+            scope: './'  // Scope relativo
         });
 
         console.log('✅ Service Worker registrado:', swRegistration);
+        console.log('📍 Scope final:', swRegistration.scope);
 
         // Esperar a que el SW esté activo
         await navigator.serviceWorker.ready;
+        console.log('✅ Service Worker listo');
 
         // Obtener clave VAPID
         elements.status.innerHTML = '🔄 Obteniendo clave de seguridad...';
@@ -206,9 +270,10 @@ async function initialize() {
 
         // Escuchar mensajes del Service Worker
         navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data.type === 'SUBSCRIBED') {
+            console.log('📩 Mensaje del SW:', event.data);
+            if (event.data && event.data.type === 'SUBSCRIBED') {
                 updateUI(true);
-            } else if (event.data.type === 'UNSUBSCRIBED') {
+            } else if (event.data && event.data.type === 'UNSUBSCRIBED') {
                 updateUI(false);
             }
         });
@@ -219,7 +284,7 @@ async function initialize() {
         elements.status.innerHTML = '✅ Listo para recibir notificaciones';
 
     } catch (error) {
-        console.error('Error en inicialización:', error);
+        console.error('❌ Error en inicialización:', error);
         elements.status.innerHTML = '❌ Error al inicializar: ' + error.message;
     }
 }
@@ -269,6 +334,11 @@ async function subscribeToNotifications() {
 
         elements.status.innerHTML = '🔄 Creando suscripción...';
 
+        // Verificar que tenemos el SW activo
+        if (!swRegistration || !swRegistration.active) {
+            swRegistration = await navigator.serviceWorker.ready;
+        }
+
         // Crear suscripción
         const subscription = await swRegistration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -298,7 +368,7 @@ async function subscribeToNotifications() {
         }
 
     } catch (error) {
-        console.error('Error al suscribir:', error);
+        console.error('❌ Error al suscribir:', error);
         elements.status.innerHTML = '❌ Error al activar notificaciones: ' + error.message;
     }
 }
@@ -329,7 +399,7 @@ async function unsubscribeFromNotifications() {
             elements.status.innerHTML = '✅ Notificaciones desactivadas';
         }
     } catch (error) {
-        console.error('Error al desuscribir:', error);
+        console.error('❌ Error al desuscribir:', error);
         elements.status.innerHTML = '❌ Error al desactivar: ' + error.message;
     }
 }
@@ -338,7 +408,7 @@ async function unsubscribeFromNotifications() {
 async function sendNotification() {
     const title = elements.notificationTitle.value.trim();
     const body = elements.notificationBody.value.trim();
-    const url = elements.notificationUrl.value.trim();
+    const url = elements.notificationUrl.value.trim() || './';
 
     if (!title || !body) {
         alert('❌ Título y mensaje son requeridos');
@@ -357,7 +427,7 @@ async function sendNotification() {
         const result = await callGAS('send-notification', 'POST', {
             title: title,
             body: body,
-            icon: '/icon-192.png',
+            icon: new URL('./icon-192.png', CONFIG.BASE_URL).href,
             url: url
         });
 
@@ -374,7 +444,7 @@ async function sendNotification() {
         }
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         alert('❌ Error al enviar: ' + error.message);
     } finally {
         elements.sendBtn.disabled = false;
@@ -401,7 +471,7 @@ elements.unsubscribeBtn.addEventListener('click', unsubscribeFromNotifications);
 elements.sendBtn.addEventListener('click', sendNotification);
 
 // Detectar cambios en el modo de visualización (instalación PWA)
-window.matchMedia('(display-mode: standalone)').addListener((media) => {
+window.matchMedia('(display-mode: standalone)').addEventListener('change', (media) => {
     if (media.matches) {
         elements.pwaStatus.innerHTML = '📲 Modo PWA';
         elements.pwaStatus.style.backgroundColor = '#28a745';

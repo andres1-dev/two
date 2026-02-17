@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PWA Notificaciones Multiplataforma</title>
-    <link rel="manifest" href="manifest.json">
+
+    <!-- Manifest con ruta relativa -->
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- Meta tags generales -->
     <meta name="theme-color" content="#0070f3">
+
+    <!-- Meta tags específicos para iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PWA Notif">
+
+    <!-- Iconos para iOS -->
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="apple-touch-startup-image" href="./icon-512.png">
+
     <style>
         * {
             margin: 0;
@@ -34,7 +47,7 @@
             background: white;
             border-radius: 20px;
             padding: 40px 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
             transition: transform 0.3s ease;
         }
@@ -72,7 +85,7 @@
             padding: 10px;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .device-info {
@@ -108,7 +121,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -174,7 +187,8 @@
             font-weight: 500;
         }
 
-        input, textarea {
+        input,
+        textarea {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
@@ -184,7 +198,8 @@
             font-family: inherit;
         }
 
-        input:focus, textarea:focus {
+        input:focus,
+        textarea:focus {
             outline: none;
             border-color: #0070f3;
         }
@@ -216,7 +231,7 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .stat-value {
@@ -252,6 +267,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -269,17 +285,18 @@
             .card {
                 padding: 25px 20px;
             }
-            
+
             h1 {
                 font-size: 1.8em;
             }
-            
+
             button {
                 min-width: 100%;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="card">
@@ -307,14 +324,14 @@
             </div>
 
             <div id="iosInstallMessage" class="ios-install">
-                📱 Para recibir notificaciones en iOS, 
+                📱 Para recibir notificaciones en iOS,
                 <strong>añade esta app a tu pantalla de inicio</strong>
                 (Compartir > Añadir a Pantalla de Inicio)
             </div>
 
             <div class="admin-panel">
                 <h2>📨 Panel de Administración</h2>
-                
+
                 <div class="stats" id="stats">
                     <div class="stat-item">
                         <div class="stat-value" id="subscribersCount">0</div>
@@ -328,17 +345,19 @@
 
                 <div class="form-group">
                     <label for="notificationTitle">Título de la notificación</label>
-                    <input type="text" id="notificationTitle" placeholder="Ej: ¡Nueva oferta!" value="🎉 Notificación de prueba">
+                    <input type="text" id="notificationTitle" placeholder="Ej: ¡Nueva oferta!"
+                        value="🎉 Notificación de prueba">
                 </div>
 
                 <div class="form-group">
                     <label for="notificationBody">Mensaje</label>
-                    <textarea id="notificationBody" placeholder="Escribe tu mensaje aquí..." rows="3">Este es un mensaje de prueba desde la PWA</textarea>
+                    <textarea id="notificationBody" placeholder="Escribe tu mensaje aquí..."
+                        rows="3">Este es un mensaje de prueba desde la PWA</textarea>
                 </div>
 
                 <div class="form-group">
                     <label for="notificationUrl">URL al hacer clic (opcional)</label>
-                    <input type="url" id="notificationUrl" placeholder="https://tusitio.com" value="/">
+                    <input type="url" id="notificationUrl" placeholder="https://tusitio.com" value="./">
                 </div>
 
                 <button id="sendNotificationButton" class="btn-send">
@@ -356,6 +375,8 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Script con ruta relativa -->
+    <script src="./script.js"></script>
 </body>
+
 </html>
