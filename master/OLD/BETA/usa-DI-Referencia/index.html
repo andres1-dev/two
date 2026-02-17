@@ -11,8 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link href="css/styles.css" rel="stylesheet">
-    <!-- Excel Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body class="vscode-light">
@@ -28,9 +26,11 @@
             <button class="activity-icon" data-tab="pending-ops" title="OPs Pendientes">
                 <i class="codicon codicon-symbol-enum"></i>
             </button>
-
-            <button class="activity-icon" data-tab="op-editor" title="Editor OP">
-                <i class="codicon codicon-edit"></i>
+            <button class="activity-icon" data-tab="json-editor" title="Editor JSON">
+                <i class="codicon codicon-json"></i>
+            </button>
+            <button class="activity-icon" data-tab="cancel-transfers" title="Anular Traslados">
+                <i class="codicon codicon-circle-slash"></i>
             </button>
             <button class="activity-icon" data-tab="distribution" title="Distribución">
                 <i class="codicon codicon-package"></i>
@@ -103,10 +103,16 @@
                         <i class="codicon codicon-close"></i>
                     </button>
                 </button>
-
-                <button class="tab" data-tab="op-editor">
-                    <i class="codicon codicon-edit"></i>
-                    Editor OP
+                <button class="tab" data-tab="json-editor">
+                    <i class="codicon codicon-json"></i>
+                    Editor JSON
+                    <button class="tab-close">
+                        <i class="codicon codicon-close"></i>
+                    </button>
+                </button>
+                <button class="tab" data-tab="cancel-transfers">
+                    <i class="codicon codicon-circle-slash"></i>
+                    Anular Traslados
                     <button class="tab-close">
                         <i class="codicon codicon-close"></i>
                     </button>
@@ -191,11 +197,6 @@
             <div class="editor-section">
                 <div class="section-header">
                     <h3><i class="codicon codicon-symbol-enum"></i> Órdenes de Producción Pendientes</h3>
-                    <div class="header-actions">
-                        <button class="btn-icon" onclick="refreshDynamicOptions()" title="Recargar configuración">
-                            <i class="codicon codicon-refresh"></i>
-                        </button>
-                    </div>
                 </div>
                 <div class="section-content">
                     <div class="ops-container" id="pendientesSection" style="display:none;">
@@ -217,6 +218,115 @@
                         </div>
 
                         <div class="op-form" id="opForm" style="display:none;">
+                            <div class="form-section">
+                                <h5><i class="codicon codicon-edit"></i> Información de la OP</h5>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="proveedor">
+                                            <i class="codicon codicon-organization"></i>
+                                            Proveedor
+                                        </label>
+                                        <select id="proveedor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="TEXTILES Y CREACIONES EL UNIVERSO SAS" selected>TEXTILES Y
+                                                CREACIONES EL UNIVERSO SAS</option>
+                                            <option value="TEXTILES Y CREACIONES LOS ANGELES SAS">TEXTILES Y CREACIONES
+                                                LOS ANGELES SAS</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="auditor">
+                                            <i class="codicon codicon-account"></i>
+                                            Auditor
+                                        </label>
+                                        <select id="auditor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="GLORICED QUIÑONEZ BOJORJE">GLORICED QUIÑONEZ BOJORJE</option>
+                                            <option value="MAYRA ALEJANDRA GOMEZ OSORIO">MAYRA ALEJANDRA GOMEZ OSORIO
+                                            </option>
+                                            <option value="MARYURI GARCIA RENTERIA">MARYURI GARCIA RENTERIA</option>
+                                            <option value="GREIZY JULIETH ESCOBAR SABOGAL">GREIZY JULIETH ESCOBAR
+                                                SABOGAL</option>
+                                            <option value="ANA GABRIELA GUZMAN BETANCOURT">ANA GABRIELA GUZMAN
+                                                BETANCOURT</option>
+                                            <option value="YULI ANGELY MUÑOZ MANCGABAJOY">YULI ANGELY MUÑOZ MANCGABAJOY
+                                            </option>
+                                            <option value="ROSA ALICIA VIERA BERNAL">ROSA ALICIA VIERA BERNAL</option>
+                                            <option value="BRESLEE DANIELA USMA CEPEDA">BRESLEE DANIELA USMA CEPEDA
+                                            </option>
+                                            <option value="MAYERLY DEL MAR MORALES QUIROGA">MAYERLY DEL MAR MORALES
+                                                QUIROGA</option>
+                                            <option value="MORALES RUALES DIANA LUCERO">MORALES RUALES DIANA LUCERO
+                                            </option>
+                                            <option value="GALINDEZ MUÑOZ JHOAN MANUEL">GALINDEZ MUÑOZ JHOAN MANUEL
+                                            </option>
+                                            <option value="DIANA PAOLA HENAO HERRERA">DIANA PAOLA HENAO HERRERA</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gestor">
+                                            <i class="codicon codicon-person"></i>
+                                            Gestor
+                                        </label>
+                                        <select id="gestor" class="form-control" required>
+                                            <option value="">Seleccione...</option>
+                                            <option value="FABIAN MARIN FLOREZ">FABIAN MARIN FLOREZ</option>
+                                            <option value="CESAR AUGUSTO LOPEZ GIRALDO">CESAR AUGUSTO LOPEZ GIRALDO
+                                            </option>
+                                            <option value="KELLY GIOVANA ZULUAGA HOYOS">KELLY GIOVANA ZULUAGA HOYOS
+                                            </option>
+                                            <option value="MARYI ANDREA GONZALEZ SILVA">MARYI ANDREA GONZALEZ SILVA
+                                            </option>
+                                            <option value="JOHAN STEPHANIE ESPÍNOSA RAMIREZ">JOHAN STEPHANIE ESPÍNOSA
+                                                RAMIREZ</option>
+                                            <option value="JUAN ESTEBAN ZULUAGA HOYOS">JUAN ESTEBAN ZULUAGA HOYOS
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="bolsas">
+                                            <i class="codicon codicon-package"></i>
+                                            Bolsas
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" id="bolsas" class="form-control" min="0" value="0"
+                                                required>
+                                            <div class="number-controls">
+                                                <button type="button" class="number-btn" onclick="adjustBolsas(1)"
+                                                    title="Aumentar">
+                                                    <i class="codicon codicon-chevron-up"></i>
+                                                </button>
+                                                <button type="button" class="number-btn" onclick="adjustBolsas(-1)"
+                                                    title="Disminuir">
+                                                    <i class="codicon codicon-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="pvpEdit">
+                                            <i class="codicon codicon-symbol-numeric"></i>
+                                            PVP
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" id="pvpEdit" class="form-control" required>
+                                            <button type="button" class="btn-icon" onclick="adjustPVP(1000)"
+                                                title="Aumentar +1000">
+                                                <i class="codicon codicon-add"></i>
+                                            </button>
+                                            <button type="button" class="btn-icon" onclick="adjustPVP(-1000)"
+                                                title="Disminuir -1000">
+                                                <i class="codicon codicon-remove"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-actions">
                                 <button class="btn-primary" onclick="generateJSONForOP()" id="generateJSONBtn">
                                     <i class="codicon codicon-code"></i>
@@ -233,205 +343,99 @@
             </div>
         </div>
 
-
-
-        <div class="tab-content" id="op-editor-content">
+        <div class="tab-content" id="json-editor-content">
             <div class="editor-section">
                 <div class="section-header">
-                    <h3><i class="codicon codicon-edit"></i> Editor de OP</h3>
+                    <h3><i class="codicon codicon-json"></i> Editor JSON</h3>
+                </div>
+                <div class="section-content">
+                    <div class="json-editor-container">
+                        <div class="editor-toolbar">
+                            <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON">
+                                <i class="codicon codicon-symbol-method"></i>
+                            </button>
+                            <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON">
+                                <i class="codicon codicon-copy"></i>
+                            </button>
+                            <button class="btn-icon" onclick="clearJSON()" title="Limpiar Editor">
+                                <i class="codicon codicon-clear-all"></i>
+                            </button>
+                            <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar" style="display:none;"
+                                title="Guardar en Google Sheets">
+                                <i class="codicon codicon-cloud-upload"></i>
+                            </button>
+                        </div>
+                        <div class="json-editor">
+                            <pre id="jsonContent" class="json-content">{
+                                "mensaje": "Genera un JSON desde la pestaña de OPs Pendientes"
+                                }</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="cancel-transfers-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h3><i class="codicon codicon-circle-slash"></i> Anulación de Traslados</h3>
                     <div class="header-actions">
-                        <button class="btn-icon" onclick="refreshDynamicOptions()" title="Recargar configuración">
-                            <i class="codicon codicon-refresh"></i>
+                        <button class="btn-icon" id="importCancelledBtn"
+                            title="Importar traslados anulados desde archivo">
+                            <i class="codicon codicon-folder-opened"></i>
+                        </button>
+                        <button class="btn-icon" id="exportCancelledBtn" title="Exportar traslados anulados a archivo">
+                            <i class="codicon codicon-save-as"></i>
                         </button>
                     </div>
                 </div>
                 <div class="section-content">
-                    <div id="opEditorEmptyState" class="empty-state">
-                        <i class="codicon codicon-info"></i>
-                        <p>Seleccione una OP en la pestaña "OPs Pendientes" para comenzar a editar.</p>
+                    <!-- Campo de búsqueda -->
+                    <div class="form-group">
+                        <label>
+                            <i class="codicon codicon-search"></i>
+                            Buscar traslados
+                        </label>
+                        <div class="search-container">
+                            <input type="text" id="transferSearch" class="form-control"
+                                placeholder="Buscar por número de traslado, OP, referencia o usuario..."
+                                oninput="filterTransfers()">
+                            <button class="btn-icon" onclick="clearSearch()" title="Limpiar búsqueda">
+                                <i class="codicon codicon-clear-all"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="opEditorContainer" style="display:none;">
-                        <div class="op-info-card" id="opEditorInfo">
-                            <!-- Info general de la OP -->
+                    <div class="form-group">
+                        <label>
+                            <i class="codicon codicon-list-selection"></i>
+                            Seleccionar traslados para anular
+                        </label>
+                        <div class="transfer-list" id="transferList">
+                            <!-- Los traslados se cargarán aquí dinámicamente -->
                         </div>
+                    </div>
 
-                        <div class="editor-form-section">
-                            <h5 class="editor-form-title">
-                                <i class="codicon codicon-edit"></i>
-                                Información de Cabecera
-                            </h5>
-                            <div class="editor-form-grid">
-                                <div class="form-group">
-                                    <label for="proveedor">
-                                        <i class="codicon codicon-organization"></i>
-                                        Proveedor
-                                    </label>
-                                    <select id="proveedor" class="form-control" required>
-                                        <option value="">Seleccione...</option>
-                                    </select>
-                                </div>
+                    <div class="form-actions">
+                        <button class="btn-warning" onclick="cancelSelectedTransfers()" id="cancelBtn">
+                            <i class="codicon codicon-circle-slash"></i>
+                            Anular Traslados Seleccionados
+                        </button>
+                        <button class="btn-primary" onclick="applyCancellationsToCSV()" id="applyBtn">
+                            <i class="codicon codicon-play"></i>
+                            Aplicar Cambios al CSV
+                        </button>
+                        <button class="btn-secondary" onclick="restoreAllCancelledTransfers()" id="restoreAllBtn"
+                            style="display:none;">
+                            <i class="codicon codicon-discard"></i>
+                            Restaurar Todos
+                        </button>
+                    </div>
 
-                                <div class="form-group">
-                                    <label for="auditor">
-                                        <i class="codicon codicon-account"></i>
-                                        Auditor
-                                    </label>
-                                    <select id="auditor" class="form-control" required>
-                                        <option value="">Seleccione...</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="gestor">
-                                        <i class="codicon codicon-person"></i>
-                                        Gestor
-                                    </label>
-                                    <select id="gestor" class="form-control" required>
-                                        <option value="">Seleccione...</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="escanerEdit">
-                                        <i class="codicon codicon-person"></i>
-                                        Usuario / Escaner
-                                    </label>
-                                    <select id="escanerEdit" class="form-control" required>
-                                        <option value="">Seleccione...</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="bolsas">
-                                        <i class="codicon codicon-package"></i>
-                                        Bolsas
-                                    </label>
-                                    <div class="input-group">
-                                        <input type="number" id="bolsas" class="form-control" min="0" value="0"
-                                            required>
-                                        <button type="button" class="btn-icon" onclick="adjustBolsas(1)"
-                                            title="Aumentar +1">
-                                            <i class="codicon codicon-add"></i>
-                                        </button>
-                                        <button type="button" class="btn-icon" onclick="adjustBolsas(-1)"
-                                            title="Disminuir -1">
-                                            <i class="codicon codicon-remove"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="pvpEdit">
-                                        <i class="codicon codicon-symbol-numeric"></i>
-                                        PVP
-                                    </label>
-                                    <div class="input-group">
-                                        <input type="text" id="pvpEdit" class="form-control" required>
-                                        <button type="button" class="btn-icon" onclick="adjustPVP(1000)"
-                                            title="Aumentar +1000">
-                                            <i class="codicon codicon-add"></i>
-                                        </button>
-                                        <button type="button" class="btn-icon" onclick="adjustPVP(-1000)"
-                                            title="Disminuir -1000">
-                                            <i class="codicon codicon-remove"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RESUMEN DE TOTALES EN LA PARTE SUPERIOR -->
-                        <div class="editor-summary-bar">
-                            <div style="display: flex; align-items: center; gap: 32px;">
-                                <div class="stat-item">
-                                    <div class="stat-icon primary">
-                                        <i class="codicon codicon-symbol-numeric"></i>
-                                    </div>
-                                    <div class="stat-details">
-                                        <div class="stat-label">Total Unidades</div>
-                                        <div class="stat-value"><span id="editorTotalUnits">0</span></div>
-                                    </div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-icon info">
-                                        <i class="codicon codicon-credit-card"></i>
-                                    </div>
-                                    <div class="stat-details">
-                                        <div class="stat-label">Costo Total</div>
-                                        <div class="stat-value">$ <span id="editorTotalCost">0</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <button class="btn-primary" onclick="generateJSONFromEditor()"
-                                    title="Generar JSON con todos los cambios aplicados"
-                                    style="height: 40px; padding: 0 24px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px var(--primary-dim);">
-                                    <i class="codicon codicon-play-circle" style="margin-right: 8px;"></i> Procesar y
-                                    Generar JSON
-                                </button>
-                                <div
-                                    style="display: flex; gap: 4px; padding-left: 16px; border-left: 1px solid var(--border);">
-                                    <button class="btn-icon" onclick="expandirTodo()"
-                                        title="Expandir todas las bodegas">
-                                        <i class="codicon codicon-unfold"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="colapsarTodo()"
-                                        title="Colapsar todas las bodegas">
-                                        <i class="codicon codicon-fold"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- TABLA DE RESUMEN POR BODEGA -->
-                        <div class="op-editor-table-container">
-                            <table class="data-table" id="opEditorTable">
-                                <thead>
-                                    <tr>
-                                        <th>Bodega</th>
-                                        <th></th>
-                                        <th></th>
-                                        <th style="text-align: right;">Cantidad</th>
-                                        <th style="text-align: right;">Costo Total</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="opEditorTableBody">
-                                    <!-- Se renderiza dinámicamente con JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- JSON Viewer integrado -->
-                        <div id="jsonViewerSection" class="json-viewer-pro" style="display: none;">
-                            <div class="json-header" onclick="toggleJsonViewer()">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="codicon codicon-chevron-right" id="jsonViewerToggleIcon"></i>
-                                    <i class="codicon codicon-json" style="color: var(--warning);"></i>
-                                    <span style="font-weight: 600;">JSON Generado</span>
-                                    <span id="jsonViewerBadge" class="panel-badge" style="display: none;">Listo</span>
-                                </div>
-                                <div class="panel-actions" onclick="event.stopPropagation()">
-                                    <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON">
-                                        <i class="codicon codicon-symbol-method"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON">
-                                        <i class="codicon codicon-copy"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="clearJSON()" title="Limpiar">
-                                        <i class="codicon codicon-clear-all"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar"
-                                        style="display:none; background: var(--success); color: white;"
-                                        title="Guardar en Google Sheets">
-                                        <i class="codicon codicon-cloud-upload"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="jsonViewerBody" class="json-body" style="display: none;">
-                                <pre id="jsonContent" class="json-content-pre">{}</pre>
-                            </div>
+                    <div class="cancelled-transfers" id="cancelledTransfers">
+                        <h5><i class="codicon codicon-history"></i> Traslados Anulados</h5>
+                        <div class="transfer-table" id="cancelledTransferTable">
+                            <!-- Tabla de traslados anulados -->
                         </div>
                     </div>
                 </div>
@@ -475,14 +479,32 @@
                     <div id="distribution-main" class="distribution-main" style="display:none">
                         <!-- Panel de Búsqueda -->
                         <div class="distribution-panel search-panel">
+
+
                             <div class="form-group">
                                 <label for="recInput">
                                     <i class="codicon codicon-search"></i>
                                     Buscar documento
                                 </label>
+                                <!-- En la pestaña de Distribución, busca este div con id="recInput" -->
                                 <div class="search-container">
                                     <input type="number" id="recInput" class="form-control"
                                         placeholder="Buscar por número de REC..." oninput="searchDistributionRec()">
+
+                                    <!-- 
+                                    <div class="number-controls">
+                                        <button type="button" class="number-btn" 
+                                                onclick="adjustRecInput(1)" 
+                                                title="Aumentar">
+                                            <i class="codicon codicon-chevron-up"></i>
+                                        </button>
+                                        <button type="button" class="number-btn" 
+                                                onclick="adjustRecInput(-1)" 
+                                                title="Disminuir">
+                                            <i class="codicon codicon-chevron-down"></i>
+                                        </button>
+                                    </div> -->
+
                                     <button class="btn-icon"
                                         onclick="document.getElementById('recInput').value=''; searchDistributionRec(); document.getElementById('recInput').focus();"
                                         title="Limpiar búsqueda">
@@ -490,6 +512,7 @@
                                     </button>
                                 </div>
                             </div>
+
                         </div>
 
                         <!-- Grid de Distribución -->
@@ -527,19 +550,9 @@
                             <!-- Panel de Mayoristas -->
                             <div class="distribution-panel">
                                 <div class="panel-header">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <i class="codicon codicon-account"></i>
-                                        <h4>Mayoristas Disponibles</h4>
-                                        <div class="panel-badge" id="mayoristas-count">0</div>
-                                    </div>
-                                    <div class="panel-actions">
-                                        <select id="distributionStrategy" class="form-control strategy-select">
-                                            <option value="EQUAL">Distribución Equilibrada (Lineal)</option>
-                                            <option value="WEIGHTED">Distribución Ponderada (Proporcional)</option>
-                                            <option value="SECTORIZED" selected>Estrategia Sectorizada (Curva Core)
-                                            </option>
-                                        </select>
-                                    </div>
+                                    <i class="codicon codicon-account"></i>
+                                    <h4>Mayoristas Disponibles</h4>
+                                    <div class="panel-badge" id="mayoristas-count">0</div>
                                 </div>
                                 <div class="panel-content">
                                     <div class="distribution-controls">
@@ -593,6 +606,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- Pestaña de Impresión -->
         <div class="tab-content" id="printing-module-content">
@@ -650,59 +664,23 @@
                 </div>
             </div>
         </div>
+
+
+    </div>
+
+
+
+
     </div>
 
     <!-- Modal Container -->
     <div id="modalContainer"></div>
 
     <!-- Scripts -->
-    <!-- 1. Config - Constantes y configuración primero -->
-    <script src="js/config/constants.js"></script>
-    <script src="js/config/css.js"></script>
-
-    <!-- 2. Utils - Funciones auxiliares -->
-    <script src="js/utils/formatters.js"></script>
-    <script src="js/utils/helpers.js"></script>
-    <script src="js/utils/validators.js"></script>
-    <script src="js/utils/performance.js"></script>
-
-    <!-- 3. Services - Servicios de datos -->
-    <script src="js/services/csv-parser.js"></script>
-    <script src="js/services/gas-service.js"></script>
-    <script src="js/services/google-sheets.js"></script>
-
-    <!-- 4. UI - Componentes de interfaz -->
-    <script src="js/ui/notifications.js"></script>
-    <script src="js/ui/status-bar.js"></script>
-    <script src="js/ui/modals.js"></script>
-    <script src="js/ui/quick-confirm.js"></script>
-    <script src="js/ui/json-editor.js"></script>
-    <script src="js/ui/results-display.js"></script>
-    <script src="js/ui/tabs.js"></script>
-    <script src="js/ui/missing-data-modal.js"></script>
-    <script src="js/ui/utils.js"></script>
-
-    <!-- 5. Core - Funcionalidad central -->
-    <script src="js/core/theme.js"></script>
-    <script src="js/core/event-listeners.js"></script>
-    <script src="js/core/state-manager.js"></script>
-    <script src="js/core/app-init.js"></script>
-
-    <!-- 6. Modules - Módulos de funcionalidad -->
-    <script src="js/modules/data-processing.js"></script>
-    <script src="js/modules/op-editor.js"></script>
-    <script src="js/modules/transfers.js"></script>
-    <script src="js/modules/distribution.js"></script>
-    <script src="js/modules/printing.js"></script>
-
-    <!-- 7. Printing Module (legacy) -->
     <script src="js/printing-templates.js"></script>
     <script src="js/printing-search.js"></script>
     <script src="js/printing-main.js"></script>
-
-    <!-- 8. Main App - Inicialización final -->
-    <script src="js/main.js"></script>
-
+    <script src="js/app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const printTabBtn = document.querySelector('.activity-icon[data-tab="printing-module"]');
@@ -710,13 +688,6 @@
 
             if (printTabBtn) printTabBtn.addEventListener('click', initPrintingModule);
             if (printTabTab) printTabTab.addEventListener('click', initPrintingModule);
-
-            // Cargar opciones dinámicas después de la inicialización
-            setTimeout(() => {
-                if (typeof loadAllDynamicOptions === 'function') {
-                    loadAllDynamicOptions();
-                }
-            }, 1000);
         });
     </script>
 </body>

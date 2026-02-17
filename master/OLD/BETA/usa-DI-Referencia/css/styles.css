@@ -25,28 +25,10 @@
 
     /* Common Colors */
     --primary: #0078d4;
-    --primary-dim: rgba(0, 120, 212, 0.1);
     --success: #0dbc79;
-    --success-dim: rgba(13, 188, 121, 0.1);
     --warning: #ff8c00;
-    --warning-dim: rgba(255, 140, 0, 0.1);
     --error: #f44747;
-    --error-dim: rgba(244, 71, 71, 0.1);
     --info: #3794ff;
-    --info-dim: rgba(55, 148, 255, 0.1);
-
-    /* UI Specific */
-    --input-bg: var(--bg);
-    --button-bg: var(--sidebar);
-    --sidebar-bg: var(--sidebar);
-    --card-bg: var(--editor);
-    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.vscode-dark {
-    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 * {
@@ -642,46 +624,18 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .panel-header {
-    padding: 12px 20px;
+    padding: 16px 20px;
     background-color: var(--sidebar);
     border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .panel-header h4 {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
-    margin: 0;
-}
-
-.panel-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.panel-badge {
-    background: var(--primary);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.strategy-select {
-    width: auto !important;
-    min-width: 220px;
-    height: 30px !important;
-    padding: 2px 30px 2px 10px !important;
-    font-size: 12px !important;
-    background-color: var(--sidebar) !important;
 }
 
 .panel-content {
@@ -738,7 +692,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     border-radius: 8px;
     padding: 24px;
     margin-bottom: 24px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -1019,7 +973,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
 }
 
 .notification {
-    background-color: var(--editor) !important;
+    background: var(--editor);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 12px 16px;
@@ -1662,7 +1616,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     align-items: center;
     gap: 8px;
     padding: 12px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: all 0.2s ease;
@@ -1717,7 +1671,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: all 0.2s ease;
@@ -1736,7 +1690,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     height: 18px;
     border: 2px solid var(--border);
     border-radius: 3px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     cursor: pointer;
     position: relative;
     transition: all 0.2s ease;
@@ -1852,7 +1806,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     width: 100%;
     margin: 0;
     font-size: 13px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     min-width: 800px;
 }
 
@@ -2132,7 +2086,7 @@ input.form-control[type="number"]::-webkit-inner-spin-button {
     height: 16px;
     border: 2px solid var(--border);
     border-radius: 3px;
-    background-color: var(--editor) !important;
+    background: var(--editor);
     cursor: pointer;
     position: relative;
     transition: all 0.2s ease;
@@ -2707,291 +2661,9 @@ label[for^="imp"]:hover {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
-/* ============================================
-   OP EDITOR MODULE STYLES
-   ============================================ */
 
-.op-editor-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    padding: 16px 24px;
-    background: var(--sidebar-bg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
 
-.op-info-card {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 20px;
-    padding: 24px;
-    background: var(--card-bg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: var(--card-shadow);
-    margin-bottom: 24px;
-    transition: var(--transition-smooth);
-}
 
-.op-info-card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-}
-
-.info-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.info-group label {
-    font-size: 10px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
-}
-
-.info-group .value {
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--text);
-}
-
-.editor-form-section {
-    margin-top: 24px;
-    background-color: var(--sidebar-bg);
-    padding: 24px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: var(--card-shadow);
-}
-
-.editor-form-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-    color: var(--text);
-    font-size: 16px;
-    font-weight: 600;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-
-.editor-form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-}
-
-.editor-summary-bar {
-    margin-top: 24px;
-    padding: 20px 24px;
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: var(--card-shadow);
-}
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
-
-.stat-icon.primary {
-    background-color: var(--primary-dim);
-    color: var(--primary);
-}
-
-.stat-icon.info {
-    background-color: var(--info-dim);
-    color: var(--info);
-}
-
-.stat-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.stat-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-}
-
-.stat-value {
-    font-weight: 700;
-    font-size: 22px;
-    color: var(--text);
-    line-height: 1.2;
-}
-
-.op-editor-table-container {
-    margin-top: 24px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    box-shadow: var(--card-shadow);
-}
-
-.resumen-row {
-    transition: background-color var(--transition-fast);
-}
-
-.resumen-row td {
-    border-bottom: 1px solid var(--border);
-}
-
-.detalle-container {
-    background-color: var(--editor);
-    padding: 24px;
-    border-radius: 12px;
-    margin: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    animation: fadeInSlideDown 0.3s ease-out;
-    border: 1px solid var(--border);
-}
-
-@keyframes fadeInSlideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.detalle-table-wrapper {
-    overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.detalle-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.detalle-table th {
-    text-align: left;
-    padding: 14px 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background-color: var(--sidebar);
-    border-bottom: 2px solid var(--border);
-}
-
-.detalle-table td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-}
-
-.editor-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--input-bg);
-    color: var(--text);
-    transition: var(--transition-fast);
-}
-
-.editor-input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-dim);
-    outline: none;
-}
-
-.editor-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--input-bg);
-    color: var(--text);
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.editor-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-dim);
-    outline: none;
-}
-
-.json-viewer-pro {
-    margin-top: 24px;
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-}
-
-.json-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 20px;
-    cursor: pointer;
-    background: var(--sidebar-bg);
-    transition: var(--transition-fast);
-}
-
-.json-header:hover {
-    background: var(--hover);
-}
-
-.json-body {
-    background-color: var(--editor) !important;
-    color: var(--text);
-    padding: 24px;
-    overflow-y: auto;
-}
-
-.json-content-pre {
-    margin: 0;
-    font-family: 'Cascadia Code', 'Consolas', monospace;
-    font-size: 12px;
-    line-height: 1.6;
-}
-
-/* Syntax Highlighting based on theme */
-.vscode-light .json-key     { color: #0451a5; font-weight: 600; }
-.vscode-light .json-string  { color: #a31515; }
-.vscode-light .json-number  { color: #098658; }
-.vscode-light .json-boolean { color: #0000ff; }
-.vscode-light .json-null    { color: #0000ff; font-style: italic; }
-
-.vscode-dark .json-key     { color: #9cdcfe; font-weight: 600; }
-.vscode-dark .json-string  { color: #ce9178; }
-.vscode-dark .json-number  { color: #b5cea8; }
-.vscode-dark .json-boolean { color: #569cd6; }
-.vscode-dark .json-null    { color: #569cd6; font-style: italic; }

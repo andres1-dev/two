@@ -240,6 +240,9 @@
                 <div class="section-header">
                     <h3><i class="codicon codicon-edit"></i> Editor de OP</h3>
                     <div class="header-actions">
+                        <button class="btn-primary" onclick="generateJSONFromEditor()" title="Generar JSON con cambios">
+                            <i class="codicon codicon-code"></i> Generar JSON
+                        </button>
                         <button class="btn-icon" onclick="refreshDynamicOptions()" title="Recargar configuración">
                             <i class="codicon codicon-refresh"></i>
                         </button>
@@ -256,84 +259,111 @@
                             <!-- Info general de la OP -->
                         </div>
 
-                        <div class="editor-form-section">
-                            <h5 class="editor-form-title">
+                        <div class="form-section"
+                            style="margin-top: 20px; background-color: var(--sidebar-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                            <h5
+                                style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; color: var(--text); font-size: 15px;">
                                 <i class="codicon codicon-edit"></i>
                                 Información de Cabecera
                             </h5>
-                            <div class="editor-form-grid">
+                            <div class="form-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                                 <div class="form-group">
-                                    <label for="proveedor">
+                                    <label for="proveedor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-organization"></i>
                                         Proveedor
                                     </label>
-                                    <select id="proveedor" class="form-control" required>
+                                    <select id="proveedor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
                                         <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="auditor">
+                                    <label for="auditor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-account"></i>
                                         Auditor
                                     </label>
-                                    <select id="auditor" class="form-control" required>
+                                    <select id="auditor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
                                         <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="gestor">
+                                    <label for="gestor"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-person"></i>
                                         Gestor
                                     </label>
-                                    <select id="gestor" class="form-control" required>
+                                    <select id="gestor" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
                                         <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde Google Sheets -->
                                     </select>
                                 </div>
 
+                                <!-- CAMBIO: De INPUT a SELECT para Usuario/Escaner -->
                                 <div class="form-group">
-                                    <label for="escanerEdit">
+                                    <label for="escanerEdit"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-person"></i>
                                         Usuario / Escaner
                                     </label>
-                                    <select id="escanerEdit" class="form-control" required>
+                                    <select id="escanerEdit" class="form-control" required
+                                        style="width: 100%; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
                                         <option value="">Seleccione...</option>
+                                        <!-- Las opciones se cargarán dinámicamente desde la hoja USUARIOS -->
                                     </select>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="bolsas">
+                                    <label for="bolsas"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-package"></i>
                                         Bolsas
                                     </label>
-                                    <div class="input-group">
-                                        <input type="number" id="bolsas" class="form-control" min="0" value="0"
-                                            required>
+                                    <div class="input-group" style="display: flex; align-items: center; gap: 4px;">
+
+                                        <input type="number" id="bolsas" class="form-control" min="0" value="0" required
+                                            style="flex: 1; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
+
                                         <button type="button" class="btn-icon" onclick="adjustBolsas(1)"
-                                            title="Aumentar +1">
+                                            title="Aumentar +1"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
                                             <i class="codicon codicon-add"></i>
                                         </button>
+
                                         <button type="button" class="btn-icon" onclick="adjustBolsas(-1)"
-                                            title="Disminuir -1">
+                                            title="Disminuir -1"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
                                             <i class="codicon codicon-remove"></i>
                                         </button>
+
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="pvpEdit">
+                                    <label for="pvpEdit"
+                                        style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 500; font-size: 12px; color: var(--text-secondary);">
                                         <i class="codicon codicon-symbol-numeric"></i>
                                         PVP
                                     </label>
-                                    <div class="input-group">
-                                        <input type="text" id="pvpEdit" class="form-control" required>
+                                    <div class="input-group" style="display: flex; align-items: center; gap: 4px;">
+                                        <input type="text" id="pvpEdit" class="form-control" required
+                                            style="flex: 1; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input-bg);">
                                         <button type="button" class="btn-icon" onclick="adjustPVP(1000)"
-                                            title="Aumentar +1000">
+                                            title="Aumentar +1000"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
                                             <i class="codicon codicon-add"></i>
                                         </button>
                                         <button type="button" class="btn-icon" onclick="adjustPVP(-1000)"
-                                            title="Disminuir -1000">
+                                            title="Disminuir -1000"
+                                            style="padding: 8px; border: 1px solid var(--border); background: var(--button-bg); border-radius: 4px;">
                                             <i class="codicon codicon-remove"></i>
                                         </button>
                                     </div>
@@ -342,59 +372,78 @@
                         </div>
 
                         <!-- RESUMEN DE TOTALES EN LA PARTE SUPERIOR -->
-                        <div class="editor-summary-bar">
+                        <div class="editor-summary"
+                            style="margin-top: 20px; padding: 16px 20px; background-color: var(--sidebar-bg); border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; gap: 32px;">
-                                <div class="stat-item">
-                                    <div class="stat-icon primary">
-                                        <i class="codicon codicon-symbol-numeric"></i>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div
+                                        style="background-color: var(--primary-dim); padding: 10px; border-radius: 8px;">
+                                        <i class="codicon codicon-symbol-numeric"
+                                            style="font-size: 20px; color: var(--primary);"></i>
                                     </div>
-                                    <div class="stat-details">
-                                        <div class="stat-label">Total Unidades</div>
-                                        <div class="stat-value"><span id="editorTotalUnits">0</span></div>
+                                    <div>
+                                        <div
+                                            style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Total Unidades</div>
+                                        <div
+                                            style="font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--text);">
+                                            <span id="editorTotalUnits">0</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="stat-item">
-                                    <div class="stat-icon info">
-                                        <i class="codicon codicon-credit-card"></i>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="padding: 10px; border-radius: 8px;">
+                                        <i class="codicon codicon-credit-card"
+                                            style="font-size: 20px; color: var(--info);"></i>
                                     </div>
-                                    <div class="stat-details">
-                                        <div class="stat-label">Costo Total</div>
-                                        <div class="stat-value">$ <span id="editorTotalCost">0</span></div>
+                                    <div>
+                                        <div
+                                            style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Costo Total</div>
+                                        <div
+                                            style="font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--text);">
+                                            $ <span id="editorTotalCost">0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <button class="btn-primary" onclick="generateJSONFromEditor()"
-                                    title="Generar JSON con todos los cambios aplicados"
-                                    style="height: 40px; padding: 0 24px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px var(--primary-dim);">
-                                    <i class="codicon codicon-play-circle" style="margin-right: 8px;"></i> Procesar y
-                                    Generar JSON
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-icon" onclick="expandirTodo()" title="Expandir todo"
+                                    style="border: 1px solid var(--border); padding: 8px;">
+                                    <i class="codicon codicon-unfold"></i>
                                 </button>
-                                <div
-                                    style="display: flex; gap: 4px; padding-left: 16px; border-left: 1px solid var(--border);">
-                                    <button class="btn-icon" onclick="expandirTodo()"
-                                        title="Expandir todas las bodegas">
-                                        <i class="codicon codicon-unfold"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="colapsarTodo()"
-                                        title="Colapsar todas las bodegas">
-                                        <i class="codicon codicon-fold"></i>
-                                    </button>
-                                </div>
+                                <button class="btn-icon" onclick="colapsarTodo()" title="Colapsar todo"
+                                    style="border: 1px solid var(--border); padding: 8px;">
+                                    <i class="codicon codicon-fold"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- TABLA DE RESUMEN POR BODEGA -->
-                        <div class="op-editor-table-container">
-                            <table class="data-table" id="opEditorTable">
+                        <!-- TABLA DE RESUMEN POR BODEGA (CON DETALLE EDITABLE AL EXPANDIR) -->
+                        <div class="table-container" style="margin-top: 20px;">
+                            <table class="data-table" id="opEditorTable"
+                                style="width: 100%; border-collapse: collapse;">
                                 <thead>
-                                    <tr>
-                                        <th>Bodega</th>
-                                        <th></th>
-                                        <th></th>
-                                        <th style="text-align: right;">Cantidad</th>
-                                        <th style="text-align: right;">Costo Total</th>
-                                        <th></th>
+                                    <tr
+                                        style="background-color: var(--sidebar); border-bottom: 2px solid var(--border);">
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Bodega</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Cantidad</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: right; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                            Costo Total</th>
+                                        <th
+                                            style="padding: 12px 8px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="opEditorTableBody">
@@ -403,34 +452,51 @@
                             </table>
                         </div>
 
-                        <!-- JSON Viewer integrado -->
-                        <div id="jsonViewerSection" class="json-viewer-pro" style="display: none;">
-                            <div class="json-header" onclick="toggleJsonViewer()">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="codicon codicon-chevron-right" id="jsonViewerToggleIcon"></i>
-                                    <i class="codicon codicon-json" style="color: var(--warning);"></i>
-                                    <span style="font-weight: 600;">JSON Generado</span>
-                                    <span id="jsonViewerBadge" class="panel-badge" style="display: none;">Listo</span>
+                        <!-- JSON Viewer integrado (colapsable) -->
+                        <div id="jsonViewerSection" style="margin-top: 20px; display: none;">
+                            <div
+                                style="background-color: var(--sidebar-bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden;">
+                                <div id="jsonViewerHeader"
+                                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color 0.2s;"
+                                    onmouseover="this.style.backgroundColor='var(--hover)'"
+                                    onmouseout="this.style.backgroundColor='transparent'" onclick="toggleJsonViewer()">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <i class="codicon codicon-chevron-right" id="jsonViewerToggleIcon"
+                                            style="font-size: 16px; transition: transform 0.2s;"></i>
+                                        <i class="codicon codicon-json"
+                                            style="color: var(--warning); font-size: 16px;"></i>
+                                        <span style="font-weight: 600; font-size: 14px;">JSON Generado</span>
+                                        <span id="jsonViewerBadge"
+                                            style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; display: none;">Listo</span>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;" onclick="event.stopPropagation()">
+                                        <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-symbol-method"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-copy"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="clearJSON()" title="Limpiar"
+                                            style="padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--sidebar);">
+                                            <i class="codicon codicon-clear-all"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar"
+                                            style="display:none; padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--success); color: white;"
+                                            title="Guardar en Google Sheets">
+                                            <i class="codicon codicon-cloud-upload"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="panel-actions" onclick="event.stopPropagation()">
-                                    <button class="btn-icon" onclick="formatJSON()" title="Formatear JSON">
-                                        <i class="codicon codicon-symbol-method"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="copyJSON()" title="Copiar JSON">
-                                        <i class="codicon codicon-copy"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="clearJSON()" title="Limpiar">
-                                        <i class="codicon codicon-clear-all"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="saveToSheets()" id="saveBtnToolbar"
-                                        style="display:none; background: var(--success); color: white;"
-                                        title="Guardar en Google Sheets">
-                                        <i class="codicon codicon-cloud-upload"></i>
-                                    </button>
+                                <div id="jsonViewerBody" style="display: none; max-height: 400px; overflow-y: auto;">
+                                    <div class="json-editor" style="margin: 0;">
+                                        <pre id="jsonContent" class="json-content"
+                                            style="margin: 0; padding: 16px; font-size: 12px; line-height: 1.5; background: var(--editor); border-radius: 0;">{
+  "mensaje": "Genera un JSON desde el Editor OP"
+}</pre>
+                                    </div>
                                 </div>
-                            </div>
-                            <div id="jsonViewerBody" class="json-body" style="display: none;">
-                                <pre id="jsonContent" class="json-content-pre">{}</pre>
                             </div>
                         </div>
                     </div>
