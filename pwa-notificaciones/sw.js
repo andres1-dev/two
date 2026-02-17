@@ -53,46 +53,65 @@ self.addEventListener('activate', event => {
 //   - icon  (ruta ABSOLUTA con https://)
 //   - data  (para saber qué URL abrir al tocar)
 // ============================================
+// GAS URL para fetch en 'tickle' (iOS compatibility)
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
+
 self.addEventListener('push', event => {
     console.log('[SW] Push recibido');
 
-    var title = 'Nueva notificación';
-    var body = 'Tienes un mensaje nuevo';
-    var icon = BASE_URL + 'icon-192.png';
-    var url = BASE_URL;
-
-    if (event.data) {
-        try {
-            var d = event.data.json();
-            if (d.title) title = d.title;
-            if (d.body) body = d.body;
-            if (d.icon) icon = d.icon;
-            if (d.url) url = d.url;
-        } catch (e) {
-            // Si no es JSON, usar el texto como body
-            try { body = event.data.text(); } catch (e2) { }
+    // Promesa para obtener datos de la notificación
+    const getPayload = new Promise((resolve, reject) => {
+        if (event.data) {
+            try {
+                const json = event.data.json();
+                if (json && json.title) {
+                    console.log('[SW] Datos recibidos en payload');
+                    resolve(json);
+                    return;
+                }
+            } catch (e) {
+                console.log('[SW] Payload no es JSON válido o está vacío');
+            }
         }
-    }
 
-    // ⭐ iOS: el título NO puede estar vacío
-    if (!title || title.trim() === '') title = 'Notificación';
-
-    // Opciones COMPATIBLES con iOS Safari
-    var options = {
-        body: body,
-        icon: icon,
-        data: { url: url, timestamp: Date.now() }
-        // NO incluir: vibrate, requireInteraction, actions
-        // en iOS esas propiedades causan que la notificación falle silenciosamente
-    };
+        // Si no hay payload o falló, hacemos fetch al servidor (PULL)
+        // Esto es CRÍTICO para iOS si no podemos encriptar el payload
+        console.log('[SW] Sin payload válido, obteniendo de servidor...');
+        const cacheBuster = '&t=' + Date.now();
+        fetch(GAS_URL + '?action=get-latest-notification' + cacheBuster)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.notification) {
+                    resolve(data.notification);
+                } else {
+                    reject('No hay notificaciones recientes');
+                }
+            })
+            .catch(err => reject(err));
+    });
 
     event.waitUntil(
-        self.registration.showNotification(title, options)
-            .then(function () {
-                console.log('[SW] Notificación mostrada OK');
+        getPayload
+            .then(payload => {
+                const title = payload.title || 'Nueva notificación';
+                const options = {
+                    body: payload.body || 'Tienes un mensaje nuevo',
+                    icon: payload.icon || (BASE_URL + 'icon-192.png'),
+                    data: { url: payload.url || BASE_URL, timestamp: Date.now() },
+                    // iOS compatibility options
+                    tag: 'pwa-notification'
+                };
+
+                return self.registration.showNotification(title, options);
             })
-            .catch(function (err) {
-                console.error('[SW] Error mostrando notificación:', err);
+            .catch(err => {
+                console.error('[SW] Error procesando notificación:', err);
+                // Fallback mínimo
+                return self.registration.showNotification('Nueva notificación', {
+                    body: 'Abre la app para ver el mensaje',
+                    icon: BASE_URL + 'icon-192.png',
+                    data: { url: BASE_URL }
+                });
             })
     );
 });
