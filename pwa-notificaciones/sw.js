@@ -1,26 +1,21 @@
-// ============================================
-// SERVICE WORKER CON RUTAS RELATIVAS
-// ============================================
-
-// Base URL relativa al lugar donde está este archivo sw.js
-const BASE = (new URL('.', self.location)).href;
+// Service Worker para PWA Notificaciones
 const CACHE_NAME = 'pwa-notifications-v1';
+const BASE_URL = self.location.origin + self.location.pathname.replace(/[^/]*$/, '');
 
-// URLs para cachear (con rutas relativas al BASE)
+// Archivos para cachear
 const urlsToCache = [
-    './',
-    './index.html',
-    './manifest.json',
-    './script.js',
-    './sw.js',
-    './icon-192.png',
-    './icon-512.png'
-];
+    BASE_URL,
+    BASE_URL + 'index.html',
+    BASE_URL + 'manifest.json',
+    BASE_URL + 'script.js',
+    BASE_URL + 'icon-192.png',
+    BASE_URL + 'icon-512.png'
+].map(url => url.replace(/([^:]\/)\/+/g, '$1')); // Limpiar URLs duplicadas
 
-// Instalación del Service Worker
+// Instalación
 self.addEventListener('install', event => {
     console.log('🔧 Service Worker instalado');
-    console.log('📍 BASE URL:', BASE);
+    console.log('📍 Base URL:', BASE_URL);
 
     // Forzar activación inmediata
     self.skipWaiting();
@@ -29,16 +24,16 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('✅ Cacheando archivos desde:', BASE);
-                return cache.addAll(urlsToCache.map(url => new URL(url, BASE).href));
-            })
-            .catch(error => {
-                console.error('❌ Error cacheando:', error);
+                console.log('✅ Cacheando archivos...');
+                return cache.addAll(urlsToCache).catch(error => {
+                    console.error('❌ Error cacheando:', error);
+                    // Continuar aunque falle el cache
+                });
             })
     );
 });
 
-// Activación del Service Worker
+// Activación
 self.addEventListener('activate', event => {
     console.log('⚡ Service Worker activado');
     console.log('📍 Scope:', self.registration.scope);
@@ -49,135 +44,80 @@ self.addEventListener('activate', event => {
             return Promise.all(
                 cacheNames.map(cacheName => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('🗑️ Eliminando cache antiguo:', cacheName);
+                        console.log('🗑️ Eliminando cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
         }).then(() => {
-            // Tomar control inmediato de todos los clientes
-            return clients.claim();
+            // Tomar control inmediato
+            return self.clients.claim();
         })
     );
 });
 
-// Manejar notificaciones push
+// Notificaciones push
 self.addEventListener('push', event => {
-    console.log('📨 Notificación push recibida');
+    console.log('📨 Push recibido');
 
     let data = {
         title: 'Nueva notificación',
         body: 'Tienes un mensaje nuevo',
-        icon: new URL('./icon-192.png', BASE).href,
-        badge: new URL('./icon-192.png', BASE).href,
-        vibrate: [200, 100, 200],
+        icon: BASE_URL + 'icon-192.png',
+        badge: BASE_URL + 'icon-192.png',
         data: {
-            url: BASE, // URL base de la app
+            url: BASE_URL,
             timestamp: Date.now()
-        },
-        requireInteraction: true,
-        actions: [
-            {
-                action: 'open',
-                title: 'Abrir'
-            },
-            {
-                action: 'close',
-                title: 'Cerrar'
-            }
-        ]
+        }
     };
 
-    // Procesar datos recibidos
     if (event.data) {
         try {
             const receivedData = event.data.json();
             data = { ...data, ...receivedData };
-            // Asegurar que las URLs sean absolutas
-            if (data.icon) {
-                data.icon = new URL(data.icon, BASE).href;
-            }
-            if (data.badge) {
-                data.badge = new URL(data.badge, BASE).href;
-            }
         } catch (e) {
-            // Si no es JSON, usar como texto
             data.body = event.data.text();
         }
     }
 
-    // Mostrar la notificación
     event.waitUntil(
         self.registration.showNotification(data.title, {
             body: data.body,
             icon: data.icon,
             badge: data.badge,
-            vibrate: data.vibrate,
+            vibrate: [200, 100, 200],
             data: data.data,
-            actions: data.actions,
-            requireInteraction: data.requireInteraction,
-            tag: 'notification-' + Date.now(),
-            renotify: false
+            requireInteraction: true,
+            actions: [
+                { action: 'open', title: 'Abrir' },
+                { action: 'close', title: 'Cerrar' }
+            ]
         })
     );
 });
 
-// Manejar clic en notificación
+// Click en notificación
 self.addEventListener('notificationclick', event => {
-    console.log('👆 Notificación clickeada');
-
     const notification = event.notification;
-    const action = event.action;
-    const urlToOpen = notification.data?.url || BASE;
-
+    const urlToOpen = notification.data?.url || BASE_URL;
     notification.close();
 
-    // Manejar acciones
-    if (action === 'close') {
-        return;
-    }
-
     event.waitUntil(
-        (async () => {
-            // Buscar cliente existente
-            const allClients = await clients.matchAll({
-                includeUncontrolled: true,
-                type: 'window'
-            });
-
-            // Verificar si ya hay una ventana abierta con la URL
-            for (const client of allClients) {
-                if (client.url === urlToOpen && 'focus' in client) {
-                    await client.focus();
-                    return;
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then(clientList => {
+                for (const client of clientList) {
+                    if (client.url === urlToOpen && 'focus' in client) {
+                        return client.focus();
+                    }
                 }
-            }
-
-            // Si no, abrir nueva ventana
-            if (clients.openWindow) {
-                await clients.openWindow(urlToOpen);
-            }
-        })()
+                return clients.openWindow(urlToOpen);
+            })
     );
 });
 
-// Manejar cierre de notificación
-self.addEventListener('notificationclose', event => {
-    console.log('❌ Notificación cerrada');
-});
-
-// Manejar mensajes desde la página
-self.addEventListener('message', event => {
-    console.log('📩 Mensaje recibido:', event.data);
-
-    if (event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-});
-
-// Estrategia de cache: Network First, fallback a cache
+// Fetch con fallback a cache
 self.addEventListener('fetch', event => {
-    // Ignorar peticiones a Google Analytics u otros dominios externos
+    // Ignorar peticiones a otros dominios
     if (!event.request.url.startsWith(self.location.origin)) {
         return;
     }
@@ -185,28 +125,17 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // Clonar la respuesta
-                const responseClone = response.clone();
-
-                // Actualizar cache
-                caches.open(CACHE_NAME).then(cache => {
-                    cache.put(event.request, responseClone);
-                });
-
+                // Cachear respuestas exitosas
+                if (response.status === 200) {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                }
                 return response;
             })
             .catch(() => {
-                // Fallback a cache
                 return caches.match(event.request);
             })
     );
-});
-
-// Manejar errores
-self.addEventListener('error', event => {
-    console.error('❌ Error en Service Worker:', event.error);
-});
-
-self.addEventListener('unhandledrejection', event => {
-    console.error('❌ Promesa rechazada:', event.reason);
 });

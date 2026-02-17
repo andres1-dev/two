@@ -4,22 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWA Notificaciones Multiplataforma</title>
+    <title>PWA Notificaciones</title>
 
-    <!-- Manifest con ruta relativa -->
-    <link rel="manifest" href="./manifest.json">
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
 
-    <!-- Meta tags generales -->
+    <!-- Meta tags -->
     <meta name="theme-color" content="#0070f3">
-
-    <!-- Meta tags específicos para iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PWA Notif">
 
-    <!-- Iconos para iOS -->
-    <link rel="apple-touch-icon" href="./icon-192.png">
-    <link rel="apple-touch-startup-image" href="./icon-512.png">
+    <!-- Iconos -->
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <style>
         * {
@@ -29,7 +25,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -48,12 +44,6 @@
             border-radius: 20px;
             padding: 40px 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
         }
 
         h1 {
@@ -67,7 +57,6 @@
             color: #666;
             text-align: center;
             margin-bottom: 30px;
-            font-size: 1.1em;
         }
 
         .status-card {
@@ -85,7 +74,7 @@
             padding: 10px;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            word-break: break-word;
         }
 
         .device-info {
@@ -122,15 +111,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
             min-width: 200px;
-        }
-
-        button i {
-            font-size: 1.2em;
         }
 
         .btn-primary {
@@ -170,10 +151,6 @@
         .admin-panel h2 {
             color: #333;
             margin-bottom: 20px;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .form-group {
@@ -194,8 +171,6 @@
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 1em;
-            transition: border-color 0.3s ease;
-            font-family: inherit;
         }
 
         input:focus,
@@ -219,33 +194,6 @@
             background: #218838;
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-item {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-
-        .stat-value {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #0070f3;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
         .ios-install {
             background: #ffd700;
             color: #333;
@@ -253,46 +201,31 @@
             border-radius: 10px;
             margin-top: 20px;
             text-align: center;
-            font-weight: 500;
             display: none;
         }
 
         .ios-install.show {
             display: block;
-            animation: slideIn 0.5s ease;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
+        .error-details {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .error-details.show {
+            display: block;
         }
 
         .footer {
             text-align: center;
             margin-top: 30px;
             color: white;
-            opacity: 0.8;
-        }
-
-        @media (max-width: 480px) {
-            .card {
-                padding: 25px 20px;
-            }
-
-            h1 {
-                font-size: 1.8em;
-            }
-
-            button {
-                min-width: 100%;
-            }
         }
     </style>
 </head>
@@ -305,78 +238,57 @@
 
             <div class="status-card">
                 <div class="status" id="status">
-                    🔄 Verificando soporte...
+                    🔄 Inicializando...
                 </div>
                 <div class="device-info">
                     <span id="platform">📱 Detectando...</span>
                     <span id="browser">🌐 Detectando...</span>
-                    <span class="badge" id="pwaStatus">🌐 Navegador</span>
+                    <span class="badge" id="pwaStatus">🌐 Web</span>
                 </div>
+                <div class="error-details" id="errorDetails"></div>
             </div>
 
             <div class="button-group">
                 <button id="subscribeButton" class="btn-primary" style="display: none;">
-                    <span>🔔</span> Activar Notificaciones
+                    🔔 Activar Notificaciones
                 </button>
                 <button id="unsubscribeButton" class="btn-secondary" style="display: none;">
-                    <span>🔕</span> Desactivar Notificaciones
+                    🔕 Desactivar Notificaciones
+                </button>
+                <button id="retryButton" class="btn-secondary" style="display: none;">
+                    🔄 Reintentar
                 </button>
             </div>
 
             <div id="iosInstallMessage" class="ios-install">
-                📱 Para recibir notificaciones en iOS,
-                <strong>añade esta app a tu pantalla de inicio</strong>
-                (Compartir > Añadir a Pantalla de Inicio)
+                📱 Para iOS: Añade esta app a tu pantalla de inicio
             </div>
 
             <div class="admin-panel">
                 <h2>📨 Panel de Administración</h2>
 
-                <div class="stats" id="stats">
-                    <div class="stat-item">
-                        <div class="stat-value" id="subscribersCount">0</div>
-                        <div class="stat-label">Suscriptores</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="lastSent">-</div>
-                        <div class="stat-label">Último envío</div>
-                    </div>
-                </div>
-
                 <div class="form-group">
-                    <label for="notificationTitle">Título de la notificación</label>
-                    <input type="text" id="notificationTitle" placeholder="Ej: ¡Nueva oferta!"
-                        value="🎉 Notificación de prueba">
+                    <label for="notificationTitle">Título</label>
+                    <input type="text" id="notificationTitle" value="🔔 Notificación de prueba">
                 </div>
 
                 <div class="form-group">
                     <label for="notificationBody">Mensaje</label>
-                    <textarea id="notificationBody" placeholder="Escribe tu mensaje aquí..."
-                        rows="3">Este es un mensaje de prueba desde la PWA</textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="notificationUrl">URL al hacer clic (opcional)</label>
-                    <input type="url" id="notificationUrl" placeholder="https://tusitio.com" value="./">
+                    <textarea id="notificationBody" rows="3">Este es un mensaje de prueba</textarea>
                 </div>
 
                 <button id="sendNotificationButton" class="btn-send">
-                    <span>📨</span> Enviar Notificación a Todos
+                    📨 Enviar Notificación
                 </button>
-
-                <p style="margin-top: 15px; font-size: 0.8em; color: #666;">
-                    ⚡ Las notificaciones se enviarán a todos los dispositivos suscritos
-                </p>
             </div>
         </div>
 
         <div class="footer">
-            <p>PWA Notificaciones Multiplataforma • Funciona en iOS y Android</p>
+            <p>PWA Notificaciones • v1.0</p>
         </div>
     </div>
 
-    <!-- Script con ruta relativa -->
-    <script src="./script.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>

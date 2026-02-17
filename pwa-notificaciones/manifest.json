@@ -1,44 +1,24 @@
 {
-  "name": "PWA Notificaciones Multiplataforma",
+  "name": "PWA Notificaciones",
   "short_name": "PWA Notif",
-  "description": "Aplicación para enviar y recibir notificaciones push entre dispositivos",
-  "start_url": "./",
+  "description": "Aplicación de notificaciones push",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0070f3",
-  "orientation": "portrait",
-  "scope": "./",
+  "scope": ".",
   "icons": [
     {
-      "src": "./icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "Enviar notificación",
-      "short_name": "Enviar",
-      "description": "Enviar una nueva notificación",
-      "url": "./#send",
-      "icons": [
-        {
-          "src": "./icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ],
-  "categories": [
-    "utilities",
-    "communication"
-  ],
-  "prefer_related_applications": false
+  ]
 }

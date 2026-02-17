@@ -1,29 +1,10 @@
 // ============================================
-// SCRIPT PRINCIPAL CON RUTAS RELATIVAS - CORREGIDO
-// ============================================
-
-// Base URL relativa al lugar donde está este archivo
-const BASE = (new URL('.', import.meta.url)).href;
-console.log('📍 BASE URL:', BASE);
-
-// ============================================
 // CONFIGURACIÓN
 // ============================================
 const CONFIG = {
-    // IMPORTANTE: Reemplaza con tu URL de Google Apps Script
     GAS_URL: 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec',
-    DEBUG: true, // Cambiar a false en producción
-    BASE_URL: BASE
+    DEBUG: true
 };
-
-// ============================================
-// ESTADO GLOBAL
-// ============================================
-let swRegistration = null;
-let vapidPublicKey = null;
-let isSubscribed = false;
-let initializationAttempts = 0;
-const MAX_ATTEMPTS = 3;
 
 // ============================================
 // ELEMENTOS DEL DOM
@@ -32,220 +13,115 @@ const elements = {
     status: document.getElementById('status'),
     subscribeBtn: document.getElementById('subscribeButton'),
     unsubscribeBtn: document.getElementById('unsubscribeButton'),
+    retryBtn: document.getElementById('retryButton'),
     sendBtn: document.getElementById('sendNotificationButton'),
     platform: document.getElementById('platform'),
     browser: document.getElementById('browser'),
     pwaStatus: document.getElementById('pwaStatus'),
     iosInstallMessage: document.getElementById('iosInstallMessage'),
-    subscribersCount: document.getElementById('subscribersCount'),
-    lastSent: document.getElementById('lastSent'),
+    errorDetails: document.getElementById('errorDetails'),
     notificationTitle: document.getElementById('notificationTitle'),
-    notificationBody: document.getElementById('notificationBody'),
-    notificationUrl: document.getElementById('notificationUrl')
+    notificationBody: document.getElementById('notificationBody')
 };
 
 // ============================================
-// UTILIDADES
+// ESTADO GLOBAL
+// ============================================
+let swRegistration = null;
+let vapidPublicKey = null;
+let isSubscribed = false;
+
+// ============================================
+// FUNCIONES UTILITARIAS
 // ============================================
 
-// Convertir base64 a Uint8Array (necesario para VAPID)
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-
-    try {
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    } catch (error) {
-        console.error('Error converting base64:', error);
-        return new Uint8Array([]);
+function log(...args) {
+    if (CONFIG.DEBUG) {
+        console.log('[PWA]', ...args);
     }
 }
 
-// Función mejorada para llamar a GAS
-async function callGAS(path, method = 'GET', data = null) {
-    // Construir URL con el path como parámetro
-    const url = new URL(CONFIG.GAS_URL);
-    url.searchParams.append('path', path);
-
-    // Añadir información del dispositivo
-    url.searchParams.append('platform', getPlatform());
-    url.searchParams.append('browser', getBrowser());
-    url.searchParams.append('isPWA', isRunningAsPWA());
-    url.searchParams.append('base_url', CONFIG.BASE_URL);
-    url.searchParams.append('timestamp', Date.now());
-
-    const options = {
-        method: method,
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    };
-
-    if (data) {
-        // Añadir el path también en el body para POST
-        data._path = path;
-        data._base_url = CONFIG.BASE_URL;
-        options.body = JSON.stringify(data);
+function showError(message, details = '') {
+    elements.status.innerHTML = `❌ ${message}`;
+    if (details && elements.errorDetails) {
+        elements.errorDetails.innerHTML = details;
+        elements.errorDetails.classList.add('show');
     }
-
-    try {
-        if (CONFIG.DEBUG) console.log(`📡 Llamando a GAS: ${path}`, data);
-
-        // Añadir timeout para evitar que se cuelgue
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
-
-        options.signal = controller.signal;
-
-        const response = await fetch(url.toString(), options);
-        clearTimeout(timeoutId);
-
-        // GAS a veces devuelve texto plano en lugar de JSON
-        const responseText = await response.text();
-
-        try {
-            return JSON.parse(responseText);
-        } catch (e) {
-            if (CONFIG.DEBUG) console.log('Respuesta no es JSON:', responseText);
-            return { message: responseText, status: response.status };
-        }
-    } catch (error) {
-        if (error.name === 'AbortError') {
-            console.error('Timeout en llamada GAS');
-            throw new Error('Timeout - El servidor no responde');
-        }
-        console.error('Error en llamada GAS:', error);
-        throw error;
+    if (elements.retryBtn) {
+        elements.retryBtn.style.display = 'flex';
     }
 }
 
-// Detectar plataforma
 function getPlatform() {
     const ua = navigator.userAgent;
-    if (ua.match(/iPhone|iPad|iPod/i)) return 'iOS';
-    if (ua.match(/Android/i)) return 'Android';
-    if (ua.match(/Windows/i)) return 'Windows';
-    if (ua.match(/Mac/i)) return 'macOS';
-    if (ua.match(/Linux/i)) return 'Linux';
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+    if (/Android/i.test(ua)) return 'Android';
+    if (/Windows/i.test(ua)) return 'Windows';
+    if (/Mac/i.test(ua)) return 'macOS';
     return 'Desconocido';
 }
 
-// Detectar navegador
 function getBrowser() {
     const ua = navigator.userAgent;
-    if (ua.match(/Chrome/i) && !ua.match(/Edg/i)) return 'Chrome';
-    if (ua.match(/Firefox/i)) return 'Firefox';
-    if (ua.match(/Safari/i) && !ua.match(/Chrome/i)) return 'Safari';
-    if (ua.match(/Edg/i)) return 'Edge';
-    if (ua.match(/OPR/i)) return 'Opera';
+    if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) return 'Chrome';
+    if (/Firefox/i.test(ua)) return 'Firefox';
+    if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) return 'Safari';
+    if (/Edg/i.test(ua)) return 'Edge';
     return 'Desconocido';
 }
 
-// Detectar si está ejecutándose como PWA instalada
 function isRunningAsPWA() {
     return window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true;
 }
 
-// Verificar soporte de notificaciones - VERSIÓN CORREGIDA
-async function checkNotificationSupport() {
+function urlBase64ToUint8Array(base64String) {
     try {
-        console.log('🔍 Verificando soporte de notificaciones...');
-
-        // Verificar soporte básico
-        if (!('serviceWorker' in navigator)) {
-            elements.status.innerHTML = '❌ Tu navegador no soporta Service Workers';
-            return false;
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
         }
-
-        if (!('PushManager' in window)) {
-            elements.status.innerHTML = '❌ Tu navegador no soporta Push Notifications';
-            return false;
-        }
-
-        // Verificar si las notificaciones están soportadas
-        if (!('Notification' in window)) {
-            elements.status.innerHTML = '❌ Tu navegador no soporta Notificaciones';
-            return false;
-        }
-
-        // Verificar el estado actual de los permisos (sin solicitar)
-        const permissionStatus = Notification.permission;
-        console.log('📝 Estado del permiso:', permissionStatus);
-
-        if (permissionStatus === 'denied') {
-            elements.status.innerHTML = '❌ Has bloqueado las notificaciones. Para activarlas, ve a ajustes del sitio.';
-            return false;
-        }
-
-        // Si el permiso es 'granted' o 'default', podemos continuar
-        return true;
-
+        return outputArray;
     } catch (error) {
-        console.error('Error verificando soporte:', error);
-        elements.status.innerHTML = '❌ Error verificando soporte: ' + error.message;
-        return false;
+        log('Error converting base64:', error);
+        return new Uint8Array();
     }
 }
 
-// Función de diagnóstico mejorada
-async function diagnosticarServiceWorker() {
-    console.log('🔍 DIAGNÓSTICO SERVICE WORKER');
-    console.log('📍 BASE URL:', CONFIG.BASE_URL);
-    console.log('📍 URL actual:', window.location.href);
-    console.log('📍 Pathname:', window.location.pathname);
-    console.log('📍 Origen:', window.location.origin);
-    console.log('📍 User Agent:', navigator.userAgent);
-    console.log('📍 Plataforma:', getPlatform());
-    console.log('📍 Navegador:', getBrowser());
-    console.log('📍 Modo PWA:', isRunningAsPWA());
-    console.log('📍 Permiso Notificaciones:', Notification.permission);
+async function callGAS(path, method = 'GET', data = null) {
+    const url = new URL(CONFIG.GAS_URL);
+    url.searchParams.append('path', path);
 
-    // Verificar soporte
-    console.log('✅ Soporte SW:', 'serviceWorker' in navigator);
-    console.log('✅ Soporte Push:', 'PushManager' in window);
-    console.log('✅ Soporte Notifications:', 'Notification' in window);
+    const options = {
+        method: method,
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' }
+    };
 
-    // Verificar registros existentes
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+
     try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        console.log('📊 Registros encontrados:', registrations.length);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        options.signal = controller.signal;
 
-        for (const reg of registrations) {
-            console.log('  - Scope:', reg.scope);
-            console.log('  - Activo:', reg.active ? 'sí' : 'no');
-            console.log('  - Esperando:', reg.waiting ? 'sí' : 'no');
-            console.log('  - Instalando:', reg.installing ? 'sí' : 'no');
+        const response = await fetch(url.toString(), options);
+        clearTimeout(timeoutId);
+
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch {
+            return { message: text };
         }
     } catch (error) {
-        console.error('Error obteniendo registros:', error);
-    }
-
-    // Verificar archivo sw.js
-    try {
-        const swUrl = new URL('sw.js', window.location.href).href;
-        const response = await fetch(swUrl, { method: 'HEAD' });
-        console.log(`✅ sw.js accesible en ${swUrl}:`, response.status);
-    } catch (e) {
-        console.error('❌ sw.js NO accesible:', e);
-    }
-
-    // Verificar manifest.json
-    try {
-        const manifestUrl = new URL('manifest.json', window.location.href).href;
-        const response = await fetch(manifestUrl, { method: 'HEAD' });
-        console.log(`✅ manifest.json accesible en ${manifestUrl}:`, response.status);
-    } catch (e) {
-        console.error('❌ manifest.json NO accesible:', e);
+        log('Error calling GAS:', error);
+        throw error;
     }
 }
 
@@ -253,236 +129,121 @@ async function diagnosticarServiceWorker() {
 // FUNCIONES PRINCIPALES
 // ============================================
 
-// Inicializar la aplicación - VERSIÓN CORREGIDA
-async function initialize() {
+async function registerServiceWorker() {
     try {
-        initializationAttempts++;
-        console.log(`🔄 Intento de inicialización #${initializationAttempts}`);
-
-        elements.status.innerHTML = '🔄 Inicializando...';
-
-        // Diagnóstico inicial
-        await diagnosticarServiceWorker();
-
-        // Mostrar información del dispositivo
-        if (elements.platform) elements.platform.innerHTML = `📱 ${getPlatform()}`;
-        if (elements.browser) elements.browser.innerHTML = `🌐 ${getBrowser()}`;
-
-        // Detectar si es PWA instalada
-        if (isRunningAsPWA()) {
-            if (elements.pwaStatus) {
-                elements.pwaStatus.innerHTML = '📲 Modo PWA';
-                elements.pwaStatus.style.backgroundColor = '#28a745';
-            }
-        } else {
-            if (elements.pwaStatus) elements.pwaStatus.innerHTML = '🌐 Modo Web';
-            // Mostrar mensaje para iOS si corresponde
-            if (getPlatform() === 'iOS' && elements.iosInstallMessage) {
-                elements.iosInstallMessage.classList.add('show');
-            }
-        }
-
-        // Verificar soporte (sin solicitar permiso aún)
-        const hasSupport = await checkNotificationSupport();
-        if (!hasSupport) {
-            if (elements.subscribeBtn) elements.subscribeBtn.style.display = 'none';
-            return;
-        }
-
-        // Mostrar botón de suscripción si el permiso es default o granted
-        if (Notification.permission === 'granted') {
-            // Ya tiene permiso, verificamos suscripción
-            await setupServiceWorker();
-        } else if (Notification.permission === 'default') {
-            // Aún no ha decidido, mostramos botón para solicitar permiso
-            if (elements.subscribeBtn) {
-                elements.subscribeBtn.style.display = 'flex';
-                elements.status.innerHTML = '🔔 Haz clic en "Activar Notificaciones" para comenzar';
-            }
-        }
-
-    } catch (error) {
-        console.error('❌ Error en inicialización:', error);
-        elements.status.innerHTML = '❌ Error al inicializar: ' + error.message;
-
-        // Reintentar si no hemos excedido el máximo de intentos
-        if (initializationAttempts < MAX_ATTEMPTS) {
-            console.log(`🔄 Reintentando en 2 segundos... (Intento ${initializationAttempts}/${MAX_ATTEMPTS})`);
-            setTimeout(initialize, 2000);
-        }
-    }
-}
-
-// Configurar Service Worker - VERSIÓN CORREGIDA
-async function setupServiceWorker() {
-    try {
-        elements.status.innerHTML = '🔄 Configurando Service Worker...';
-
-        // Limpiar registros antiguos del Service Worker
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-            await registration.unregister();
-            console.log('🗑️ Service Worker anterior desregistrado:', registration.scope);
-        }
-
-        // Registrar Service Worker con el scope correcto (relativo)
         elements.status.innerHTML = '🔄 Registrando Service Worker...';
 
-        // Calcular el scope basado en la ubicación actual
-        const swPath = new URL('sw.js', window.location.href).href;
-        const scope = new URL('./', window.location.href).href;
+        // Desregistrar cualquier SW existente
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let reg of registrations) {
+            await reg.unregister();
+            log('SW desregistrado:', reg.scope);
+        }
 
-        console.log('📍 Registrando SW desde:', swPath);
-        console.log('📍 Con scope:', scope);
-
+        // Registrar nuevo SW
         swRegistration = await navigator.serviceWorker.register('sw.js', {
             scope: './'
         });
 
-        console.log('✅ Service Worker registrado:', swRegistration);
-        console.log('📍 Scope final:', swRegistration.scope);
+        log('SW registrado con scope:', swRegistration.scope);
 
-        // Esperar a que el SW esté activo
-        elements.status.innerHTML = '🔄 Activando Service Worker...';
+        // Esperar a que esté activo
+        await navigator.serviceWorker.ready;
+        elements.status.innerHTML = '✅ Service Worker listo';
 
-        // Esperar a que el SW esté listo
-        const registration = await navigator.serviceWorker.ready;
-        console.log('✅ Service Worker listo');
-
-        // Verificar si ya hay una suscripción
-        const subscription = await registration.pushManager.getSubscription();
-
-        if (subscription) {
-            // Ya está suscrito, verificamos en el servidor
-            updateUI(true);
-            elements.status.innerHTML = '✅ Ya estás suscrito a las notificaciones';
-        } else {
-            // No está suscrito, mostramos botón
-            if (Notification.permission === 'granted') {
-                // Tiene permiso pero no suscripción, puede suscribirse
-                if (elements.subscribeBtn) {
-                    elements.subscribeBtn.style.display = 'flex';
-                    elements.status.innerHTML = '🔔 Haz clic para activar las notificaciones';
-                }
-            } else {
-                // No tiene permiso
-                if (elements.subscribeBtn) {
-                    elements.subscribeBtn.style.display = 'flex';
-                    elements.status.innerHTML = '🔔 Haz clic para solicitar permiso';
-                }
-            }
-        }
-
-        // Obtener clave VAPID si es necesario
-        if (!vapidPublicKey) {
-            elements.status.innerHTML = '🔄 Obteniendo clave de seguridad...';
-            try {
-                vapidPublicKey = await callGAS('vapid-public-key', 'GET');
-                console.log('✅ Clave VAPID obtenida');
-            } catch (error) {
-                console.error('Error obteniendo VAPID:', error);
-                // Continuamos igual, se obtendrá al suscribirse
-            }
-        }
-
-        // Escuchar mensajes del Service Worker
-        navigator.serviceWorker.addEventListener('message', event => {
-            console.log('📩 Mensaje del SW:', event.data);
-            if (event.data && event.data.type === 'SUBSCRIBED') {
-                updateUI(true);
-            } else if (event.data && event.data.type === 'UNSUBSCRIBED') {
-                updateUI(false);
-            }
-        });
-
-        // Obtener estadísticas
-        await updateStats();
-
+        return true;
     } catch (error) {
-        console.error('❌ Error en setupServiceWorker:', error);
-        elements.status.innerHTML = '❌ Error configurando Service Worker: ' + error.message;
-        throw error;
-    }
-}
-
-// Verificar suscripción actual
-async function checkSubscription() {
-    try {
-        if (!swRegistration) {
-            console.log('⚠️ No hay registro de SW para verificar suscripción');
-            return false;
-        }
-
-        const subscription = await swRegistration.pushManager.getSubscription();
-        updateUI(!!subscription);
-
-        if (subscription) {
-            console.log('✅ Usuario suscrito:', subscription.endpoint);
-        } else {
-            console.log('ℹ️ Usuario no suscrito');
-        }
-
-        return !!subscription;
-    } catch (error) {
-        console.error('Error verificando suscripción:', error);
+        log('Error registrando SW:', error);
+        showError('Error registrando Service Worker', error.message);
         return false;
     }
 }
 
-// Actualizar interfaz según estado
-function updateUI(subscribed) {
-    isSubscribed = subscribed;
+async function checkPermission() {
+    try {
+        if (!('Notification' in window)) {
+            showError('Notificaciones no soportadas');
+            return false;
+        }
 
-    if (subscribed) {
-        if (elements.subscribeBtn) elements.subscribeBtn.style.display = 'none';
-        if (elements.unsubscribeBtn) elements.unsubscribeBtn.style.display = 'flex';
-        if (elements.status) elements.status.innerHTML = '✅ Notificaciones activadas';
-    } else {
-        if (elements.subscribeBtn) elements.subscribeBtn.style.display = 'flex';
-        if (elements.unsubscribeBtn) elements.unsubscribeBtn.style.display = 'none';
-        if (elements.status) elements.status.innerHTML = '⏸️ Notificaciones desactivadas';
+        const permission = Notification.permission;
+        log('Permiso actual:', permission);
+
+        if (permission === 'denied') {
+            showError('Permiso denegado. Desbloquea en ajustes.');
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        log('Error checking permission:', error);
+        return false;
     }
 }
 
-// Suscribirse a notificaciones - VERSIÓN CORREGIDA
+async function getVapidKey() {
+    try {
+        elements.status.innerHTML = '🔄 Obteniendo clave VAPID...';
+        const key = await callGAS('vapid-public-key', 'GET');
+
+        if (typeof key === 'string' && key.length > 0) {
+            vapidPublicKey = key;
+            log('VAPID key obtenida');
+            return true;
+        } else {
+            throw new Error('Clave VAPID inválida');
+        }
+    } catch (error) {
+        log('Error getting VAPID key:', error);
+        showError('Error obteniendo clave VAPID', error.message);
+        return false;
+    }
+}
+
+async function checkSubscription() {
+    try {
+        if (!swRegistration) return false;
+
+        const subscription = await swRegistration.pushManager.getSubscription();
+        isSubscribed = !!subscription;
+
+        if (isSubscribed) {
+            elements.subscribeBtn.style.display = 'none';
+            elements.unsubscribeBtn.style.display = 'flex';
+            elements.status.innerHTML = '✅ Notificaciones activadas';
+        } else {
+            elements.subscribeBtn.style.display = 'flex';
+            elements.unsubscribeBtn.style.display = 'none';
+            elements.status.innerHTML = '🔔 Haz clic para activar';
+        }
+
+        return isSubscribed;
+    } catch (error) {
+        log('Error checking subscription:', error);
+        return false;
+    }
+}
+
 async function subscribeToNotifications() {
     try {
         elements.status.innerHTML = '🔄 Solicitando permiso...';
 
-        // Solicitar permiso de forma segura
-        let permission;
-        try {
-            permission = await Notification.requestPermission();
-        } catch (error) {
-            // Algunos navegadores antiguos no devuelven promesa
-            permission = await new Promise((resolve) => {
-                Notification.requestPermission(resolve);
-            });
-        }
-
-        console.log('📝 Permiso resultado:', permission);
+        // Solicitar permiso
+        const permission = await Notification.requestPermission();
+        log('Permiso resultado:', permission);
 
         if (permission !== 'granted') {
-            elements.status.innerHTML = '❌ Permiso denegado. Para activar, ve a ajustes del sitio.';
+            showError('Permiso denegado');
             return;
         }
 
+        // Obtener VAPID key si no la tenemos
+        if (!vapidPublicKey) {
+            const success = await getVapidKey();
+            if (!success) return;
+        }
+
         elements.status.innerHTML = '🔄 Creando suscripción...';
-
-        // Verificar que tenemos el SW activo
-        if (!swRegistration || !swRegistration.active) {
-            swRegistration = await navigator.serviceWorker.ready;
-        }
-
-        // Obtener clave VAPID si no la tenemos
-        if (!vapidPublicKey) {
-            elements.status.innerHTML = '🔄 Obteniendo clave de seguridad...';
-            vapidPublicKey = await callGAS('vapid-public-key', 'GET');
-        }
-
-        if (!vapidPublicKey) {
-            throw new Error('No se pudo obtener la clave VAPID');
-        }
 
         // Crear suscripción
         const subscription = await swRegistration.pushManager.subscribe({
@@ -490,183 +251,157 @@ async function subscribeToNotifications() {
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
 
-        console.log('✅ Suscripción creada:', subscription);
+        log('Suscripción creada:', subscription);
 
         elements.status.innerHTML = '🔄 Guardando en servidor...';
 
         // Guardar en servidor
         const result = await callGAS('subscribe', 'POST', subscription);
+        log('Resultado servidor:', result);
 
         if (result && result.message) {
-            updateUI(true);
-            await updateStats();
-
-            // Enviar mensaje al Service Worker
-            if (swRegistration.active) {
-                swRegistration.active.postMessage({
-                    type: 'SUBSCRIBED',
-                    subscription: subscription
-                });
-            }
-
+            isSubscribed = true;
+            elements.subscribeBtn.style.display = 'none';
+            elements.unsubscribeBtn.style.display = 'flex';
             elements.status.innerHTML = '✅ ¡Notificaciones activadas!';
+
+            // Notificar al SW
+            if (swRegistration.active) {
+                swRegistration.active.postMessage({ type: 'SUBSCRIBED' });
+            }
         } else {
-            throw new Error('Error en el servidor');
+            throw new Error('Error en servidor');
         }
 
     } catch (error) {
-        console.error('❌ Error al suscribir:', error);
-        elements.status.innerHTML = '❌ Error al activar notificaciones: ' + error.message;
-
-        // Si el error es por la clave VAPID, mostramos mensaje más claro
-        if (error.message.includes('VAPID') || error.message.includes('key')) {
-            elements.status.innerHTML = '❌ Error de configuración: Verifica las claves VAPID en Google Sheets';
-        }
+        log('Error subscribing:', error);
+        showError('Error al activar', error.message);
     }
 }
 
-// Desuscribirse
 async function unsubscribeFromNotifications() {
     try {
-        elements.status.innerHTML = '🔄 Desactivando notificaciones...';
-
-        if (!swRegistration) {
-            swRegistration = await navigator.serviceWorker.ready;
-        }
+        elements.status.innerHTML = '🔄 Desactivando...';
 
         const subscription = await swRegistration.pushManager.getSubscription();
         if (subscription) {
-            // Eliminar del servidor
             await callGAS('unsubscribe', 'POST', { endpoint: subscription.endpoint });
-
-            // Desuscribir localmente
             await subscription.unsubscribe();
 
-            updateUI(false);
-            await updateStats();
-
-            // Enviar mensaje al Service Worker
-            if (swRegistration.active) {
-                swRegistration.active.postMessage({
-                    type: 'UNSUBSCRIBED'
-                });
-            }
-
+            isSubscribed = false;
+            elements.subscribeBtn.style.display = 'flex';
+            elements.unsubscribeBtn.style.display = 'none';
             elements.status.innerHTML = '✅ Notificaciones desactivadas';
-        } else {
-            updateUI(false);
-            elements.status.innerHTML = 'ℹ️ No estabas suscrito';
         }
     } catch (error) {
-        console.error('❌ Error al desuscribir:', error);
-        elements.status.innerHTML = '❌ Error al desactivar: ' + error.message;
+        log('Error unsubscribing:', error);
+        showError('Error al desactivar', error.message);
     }
 }
 
-// Enviar notificación (admin)
 async function sendNotification() {
-    const title = elements.notificationTitle ? elements.notificationTitle.value.trim() : 'Notificación';
-    const body = elements.notificationBody ? elements.notificationBody.value.trim() : 'Mensaje de prueba';
-    const url = elements.notificationUrl ? elements.notificationUrl.value.trim() : './';
+    const title = elements.notificationTitle.value.trim();
+    const body = elements.notificationBody.value.trim();
 
     if (!title || !body) {
-        alert('❌ Título y mensaje son requeridos');
+        alert('Completa todos los campos');
         return;
     }
 
-    // Confirmar envío
-    if (!confirm(`¿Enviar notificación "${title}" a todos los suscriptores?`)) {
-        return;
-    }
+    if (!confirm('¿Enviar notificación a todos?')) return;
 
-    if (elements.sendBtn) {
-        elements.sendBtn.disabled = true;
-        elements.sendBtn.innerHTML = '<span>⏳</span> Enviando...';
-    }
+    elements.sendBtn.disabled = true;
+    elements.sendBtn.innerHTML = '⏳ Enviando...';
 
     try {
         const result = await callGAS('send-notification', 'POST', {
-            title: title,
-            body: body,
-            icon: new URL('./icon-192.png', CONFIG.BASE_URL).href,
-            url: url
+            title, body,
+            icon: window.location.origin + window.location.pathname + 'icon-192.png'
         });
 
-        if (result && result.results) {
-            const { success, failed } = result.results;
-            alert(`✅ Notificaciones enviadas:
-            • Exitosas: ${success.length}
-            • Fallidas: ${failed.length}`);
-
-            // Actualizar último envío
-            if (elements.lastSent) {
-                elements.lastSent.innerHTML = new Date().toLocaleTimeString();
-            }
-        } else if (result && result.message) {
-            alert('✅ ' + result.message);
-        } else {
+        if (result && result.message) {
             alert('✅ Notificaciones enviadas');
+        } else {
+            alert('✅ Enviado');
         }
-
     } catch (error) {
-        console.error('❌ Error:', error);
-        alert('❌ Error al enviar: ' + error.message);
+        alert('❌ Error: ' + error.message);
     } finally {
-        if (elements.sendBtn) {
-            elements.sendBtn.disabled = false;
-            elements.sendBtn.innerHTML = '<span>📨</span> Enviar Notificación a Todos';
-        }
+        elements.sendBtn.disabled = false;
+        elements.sendBtn.innerHTML = '📨 Enviar Notificación';
     }
 }
 
-// Actualizar estadísticas
-async function updateStats() {
+async function initialize() {
     try {
-        // Esta función requeriría un endpoint adicional en GAS
-        // Por ahora simulamos
-        if (elements.subscribersCount) {
-            elements.subscribersCount.innerHTML = Math.floor(Math.random() * 10) + 1;
+        log('Inicializando PWA...');
+        log('URL:', window.location.href);
+
+        // Mostrar información del dispositivo
+        elements.platform.innerHTML = `📱 ${getPlatform()}`;
+        elements.browser.innerHTML = `🌐 ${getBrowser()}`;
+        elements.pwaStatus.innerHTML = isRunningAsPWA() ? '📲 PWA' : '🌐 Web';
+
+        // Verificar soporte básico
+        if (!('serviceWorker' in navigator)) {
+            showError('Service Worker no soportado');
+            return;
         }
+
+        if (!('PushManager' in window)) {
+            showError('Push notificaciones no soportadas');
+            return;
+        }
+
+        // Verificar permiso
+        const hasPermission = await checkPermission();
+        if (!hasPermission) return;
+
+        // Registrar Service Worker
+        const swRegistered = await registerServiceWorker();
+        if (!swRegistered) return;
+
+        // Verificar suscripción actual
+        await checkSubscription();
+
+        // Si el permiso es granted pero no hay suscripción, mostrar botón
+        if (Notification.permission === 'granted' && !isSubscribed) {
+            elements.subscribeBtn.style.display = 'flex';
+        }
+
+        // Mensaje para iOS
+        if (getPlatform() === 'iOS' && !isRunningAsPWA()) {
+            elements.iosInstallMessage.classList.add('show');
+        }
+
+        log('Inicialización completa');
+
     } catch (error) {
-        console.error('Error actualizando stats:', error);
+        log('Error en inicialización:', error);
+        showError('Error crítico', error.message);
     }
 }
 
 // ============================================
 // EVENT LISTENERS
 // ============================================
-if (elements.subscribeBtn) {
-    elements.subscribeBtn.addEventListener('click', subscribeToNotifications);
-}
+elements.subscribeBtn.addEventListener('click', subscribeToNotifications);
+elements.unsubscribeBtn.addEventListener('click', unsubscribeFromNotifications);
+elements.sendBtn.addEventListener('click', sendNotification);
 
-if (elements.unsubscribeBtn) {
-    elements.unsubscribeBtn.addEventListener('click', unsubscribeFromNotifications);
-}
-
-if (elements.sendBtn) {
-    elements.sendBtn.addEventListener('click', sendNotification);
-}
-
-// Detectar cambios en el modo de visualización (instalación PWA)
-if (window.matchMedia) {
-    window.matchMedia('(display-mode: standalone)').addEventListener('change', (media) => {
-        if (media.matches && elements.pwaStatus) {
-            elements.pwaStatus.innerHTML = '📲 Modo PWA';
-            elements.pwaStatus.style.backgroundColor = '#28a745';
-            if (elements.iosInstallMessage) {
-                elements.iosInstallMessage.classList.remove('show');
-            }
-        }
+if (elements.retryBtn) {
+    elements.retryBtn.addEventListener('click', () => {
+        elements.errorDetails.classList.remove('show');
+        elements.retryBtn.style.display = 'none';
+        initialize();
     });
 }
 
 // ============================================
-// INICIAR APLICACIÓN
+// INICIAR
 // ============================================
-// Asegurar que el DOM está cargado
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize);
 } else {
-    // DOM ya está cargado
     initialize();
 }
