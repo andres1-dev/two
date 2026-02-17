@@ -1,111 +1,116 @@
-// Service Worker para PWA Notificaciones
-const CACHE_NAME = 'pwa-notifications-v1';
+// Service Worker - Compatible iOS Safari 16.4+
+const CACHE_NAME = 'pwa-v2';
 const BASE_URL = self.location.origin + self.location.pathname.replace(/[^/]*$/, '');
 
-// Archivos para cachear
-const urlsToCache = [
-    BASE_URL,
-    BASE_URL + 'index.html',
-    BASE_URL + 'manifest.json',
-    BASE_URL + 'script.js',
-    BASE_URL + 'icon-192.png',
-    BASE_URL + 'icon-512.png'
-].map(url => url.replace(/([^:]\/)\/+/g, '$1')); // Limpiar URLs duplicadas
-
-// Instalación
+// ============================================
+// INSTALL
+// ============================================
 self.addEventListener('install', event => {
-    console.log('🔧 Service Worker instalado');
-    console.log('📍 Base URL:', BASE_URL);
-
-    // Forzar activación inmediata
+    console.log('[SW] Install');
     self.skipWaiting();
 
-    // Cachear archivos
+    const urls = [
+        BASE_URL,
+        BASE_URL + 'index.html',
+        BASE_URL + 'manifest.json',
+        BASE_URL + 'script.js'
+    ];
+
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('✅ Cacheando archivos...');
-                return cache.addAll(urlsToCache).catch(error => {
-                    console.error('❌ Error cacheando:', error);
-                    // Continuar aunque falle el cache
-                });
+        caches.open(CACHE_NAME).then(cache => {
+            // addAll falla si alguna URL da error — usamos add individual
+            return Promise.allSettled(urls.map(url => cache.add(url)));
+        })
+    );
+});
+
+// ============================================
+// ACTIVATE
+// ============================================
+self.addEventListener('activate', event => {
+    console.log('[SW] Activate');
+    event.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
+// ============================================
+// PUSH
+// iOS FIX: NO usar estas opciones en iOS porque las ignora
+// o lanza error silencioso:
+//   - vibrate        → ignorado en iOS
+//   - requireInteraction → ignorado en iOS
+//   - actions        → NO soportado en iOS (causa error)
+//   - badge          → soporte limitado
+//
+// iOS SÍ requiere:
+//   - title (obligatorio, no vacío)
+//   - body  (recomendado)
+//   - icon  (ruta ABSOLUTA con https://)
+//   - data  (para saber qué URL abrir al tocar)
+// ============================================
+self.addEventListener('push', event => {
+    console.log('[SW] Push recibido');
+
+    var title = 'Nueva notificación';
+    var body = 'Tienes un mensaje nuevo';
+    var icon = BASE_URL + 'icon-192.png';
+    var url = BASE_URL;
+
+    if (event.data) {
+        try {
+            var d = event.data.json();
+            if (d.title) title = d.title;
+            if (d.body) body = d.body;
+            if (d.icon) icon = d.icon;
+            if (d.url) url = d.url;
+        } catch (e) {
+            // Si no es JSON, usar el texto como body
+            try { body = event.data.text(); } catch (e2) { }
+        }
+    }
+
+    // ⭐ iOS: el título NO puede estar vacío
+    if (!title || title.trim() === '') title = 'Notificación';
+
+    // Opciones COMPATIBLES con iOS Safari
+    var options = {
+        body: body,
+        icon: icon,
+        data: { url: url, timestamp: Date.now() }
+        // NO incluir: vibrate, requireInteraction, actions
+        // en iOS esas propiedades causan que la notificación falle silenciosamente
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+            .then(function () {
+                console.log('[SW] Notificación mostrada OK');
+            })
+            .catch(function (err) {
+                console.error('[SW] Error mostrando notificación:', err);
             })
     );
 });
 
-// Activación
-self.addEventListener('activate', event => {
-    console.log('⚡ Service Worker activado');
-    console.log('📍 Scope:', self.registration.scope);
-
-    // Limpiar caches antiguos
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('🗑️ Eliminando cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => {
-            // Tomar control inmediato
-            return self.clients.claim();
-        })
-    );
-});
-
-// Notificaciones push
-self.addEventListener('push', event => {
-    console.log('📨 Push recibido');
-
-    let data = {
-        title: 'Nueva notificación',
-        body: 'Tienes un mensaje nuevo',
-        icon: BASE_URL + 'icon-192.png',
-        badge: BASE_URL + 'icon-192.png',
-        data: {
-            url: BASE_URL,
-            timestamp: Date.now()
-        }
-    };
-
-    if (event.data) {
-        try {
-            const receivedData = event.data.json();
-            data = { ...data, ...receivedData };
-        } catch (e) {
-            data.body = event.data.text();
-        }
-    }
-
-    event.waitUntil(
-        self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: data.icon,
-            badge: data.badge,
-            vibrate: [200, 100, 200],
-            data: data.data,
-            requireInteraction: true,
-            actions: [
-                { action: 'open', title: 'Abrir' },
-                { action: 'close', title: 'Cerrar' }
-            ]
-        })
-    );
-});
-
-// Click en notificación
+// ============================================
+// NOTIFICATION CLICK
+// ============================================
 self.addEventListener('notificationclick', event => {
-    const notification = event.notification;
-    const urlToOpen = notification.data?.url || BASE_URL;
+    console.log('[SW] Notificationclick');
+    var notification = event.notification;
+    var urlToOpen = (notification.data && notification.data.url) ? notification.data.url : BASE_URL;
     notification.close();
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then(clientList => {
-                for (const client of clientList) {
+            .then(function (clientList) {
+                for (var i = 0; i < clientList.length; i++) {
+                    var client = clientList[i];
                     if (client.url === urlToOpen && 'focus' in client) {
                         return client.focus();
                     }
@@ -115,26 +120,24 @@ self.addEventListener('notificationclick', event => {
     );
 });
 
-// Fetch con fallback a cache
+// ============================================
+// FETCH
+// ============================================
 self.addEventListener('fetch', event => {
-    // Ignorar peticiones a otros dominios
-    if (!event.request.url.startsWith(self.location.origin)) {
-        return;
-    }
+    if (!event.request.url.startsWith(self.location.origin)) return;
+    // No interceptar peticiones POST (GAS calls)
+    if (event.request.method !== 'GET') return;
 
     event.respondWith(
         fetch(event.request)
-            .then(response => {
-                // Cachear respuestas exitosas
-                if (response.status === 200) {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseClone);
-                    });
+            .then(function (response) {
+                if (response && response.status === 200) {
+                    var clone = response.clone();
+                    caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
                 }
                 return response;
             })
-            .catch(() => {
+            .catch(function () {
                 return caches.match(event.request);
             })
     );

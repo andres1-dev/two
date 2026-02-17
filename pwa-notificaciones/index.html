@@ -195,17 +195,26 @@
         }
 
         .ios-install {
-            background: #ffd700;
+            background: #fff8e1;
             color: #333;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 18px 20px;
+            border-radius: 12px;
             margin-top: 20px;
-            text-align: center;
+            border-left: 4px solid #ffc107;
             display: none;
+            line-height: 1.8;
+            font-size: 0.95em;
         }
 
         .ios-install.show {
             display: block;
+        }
+
+        .ios-install strong {
+            display: block;
+            font-size: 1.05em;
+            margin-bottom: 6px;
+            color: #e65100;
         }
 
         .error-details {
@@ -260,9 +269,7 @@
                 </button>
             </div>
 
-            <div id="iosInstallMessage" class="ios-install">
-                📱 Para iOS: Añade esta app a tu pantalla de inicio
-            </div>
+            <div id="iosInstallMessage" class="ios-install"></div>
 
             <div class="admin-panel">
                 <h2>📨 Panel de Administración</h2>
