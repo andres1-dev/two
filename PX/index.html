@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Probador de Notificaciones PWA</title>
+    <title>Probador de Notificaciones PWA - Diagnóstico</title>
     <link rel="manifest" href="manifest.json">
     <style>
         * { box-sizing: border-box; font-family: system-ui, sans-serif; }
@@ -16,24 +16,49 @@
         .secondary { background: #34a853; color: white; }
         .danger { background: #ea4335; color: white; }
         .info { background: #fbbc05; color: black; }
-        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
         .status { background: #e8f0fe; padding: 10px; border-radius: 8px; margin: 10px 0; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
         .flex { display: flex; gap: 10px; }
         .flex button { margin: 0; }
         .badge { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-left: 8px; }
         .badge.success { background: #34a853; color: white; }
         .badge.error { background: #ea4335; color: white; }
+        .badge.warning { background: #fbbc05; color: black; }
+        .diagnostic-item { padding: 8px; margin: 4px 0; background: #f8f9fa; border-radius: 4px; font-family: monospace; font-size: 0.9rem; }
+        .success { color: #34a853; }
+        .error { color: #ea4335; }
+        .warning { color: #fbbc05; }
     </style>
 </head>
 <body>
-    <h1>📱 Probador de Notificaciones Push</h1>
-    <p>API Endpoint: <code>https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec</code></p>
+    <h1>📱 Probador de Notificaciones Push v2</h1>
+    
+    <!-- Tarjeta de Diagnóstico Rápido -->
+    <div class="card">
+        <h2>🔧 Diagnóstico de Conexión</h2>
+        <div id="diagnosticStatus" class="status">Ejecutando diagnóstico...</div>
+        <button id="runDiagnostic" class="primary">🔄 Ejecutar Diagnóstico Completo</button>
+        <div id="diagnosticDetails"></div>
+    </div>
+
+    <!-- Configuración de Endpoint -->
+    <div class="card">
+        <h2>⚙️ Configuración API</h2>
+        <label>URL del Endpoint GAS:</label>
+        <input type="url" id="apiUrl" value="https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec" placeholder="URL de Google Apps Script">
+        <select id="corsMode">
+            <option value="cors">CORS (recomendado)</option>
+            <option value="no-cors">no-cors (solo lectura)</option>
+        </select>
+        <button id="testCors" class="info">🌐 Probar CORS</button>
+    </div>
 
     <!-- Tarjeta: Estado y Registro -->
     <div class="card">
-        <h2>🔧 Estado del Service Worker</h2>
+        <h2>🔧 Service Worker</h2>
         <div id="swStatus" class="status">Verificando...</div>
-        <button id="registerSw" class="primary">📌 Registrar/Actualizar Service Worker</button>
+        <button id="registerSw" class="primary">📌 Registrar SW</button>
+        <button id="unregisterSw" class="danger">🗑️ Desregistrar SW</button>
     </div>
 
     <!-- Tarjeta: Suscripción Push -->
@@ -44,207 +69,323 @@
             <button id="subscribe" class="secondary">✅ Suscribirse</button>
             <button id="unsubscribe" class="danger">❌ Desuscribirse</button>
         </div>
-        <button id="checkSubscription" class="info">🔄 Verificar suscripción</button>
+        <button id="checkSubscription" class="info">🔄 Verificar</button>
     </div>
 
     <!-- Tarjeta: Envío Personalizado -->
     <div class="card">
-        <h2>✉️ Enviar Notificación Personalizada</h2>
+        <h2>✉️ Enviar Notificación</h2>
         <input type="text" id="notifTitle" placeholder="Título" value="Notificación de prueba">
-        <textarea id="notifBody" placeholder="Mensaje" rows="3">Este es un mensaje de prueba personalizado</textarea>
-        <input type="text" id="notifIcon" placeholder="URL del ícono (opcional)" value="">
-        <button id="sendNotification" class="primary">🚀 ENVIAR NOTIFICACIÓN</button>
+        <textarea id="notifBody" placeholder="Mensaje" rows="3">Este es un mensaje de prueba</textarea>
+        <input type="text" id="notifIcon" placeholder="URL del ícono" value="">
+        <button id="sendNotification" class="primary">🚀 ENVIAR</button>
     </div>
 
-    <!-- Tarjeta: Logs y Respuestas -->
+    <!-- Tarjeta: Logs Detallados -->
     <div class="card">
         <h2>📋 Logs <span id="logBadge" class="badge">0</span></h2>
         <div id="logContainer" class="status"></div>
-        <button id="clearLogs" class="info">🧹 Limpiar logs</button>
-    </div>
-
-    <!-- Tarjeta: Debug -->
-    <div class="card">
-        <h2>🔍 Debug</h2>
-        <button id="testApi" class="info">🌐 Probar API (GET test)</button>
-        <button id="getVapidKey" class="info">🔑 Obtener clave VAPID</button>
-        <button id="listSubscriptions" class="info">📋 Listar suscripciones</button>
-        <button id="getLatestNotification" class="info">📦 Última notificación (iOS)</button>
+        <button id="clearLogs" class="info">🧹 Limpiar</button>
+        <button id="copyLogs" class="info">📋 Copiar logs</button>
     </div>
 
     <script>
-        // Configuración
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec';
+        // Configuración por defecto
+        let API_URL = document.getElementById('apiUrl').value;
         let swRegistration = null;
-        let currentSubscription = null;
-        
-        // Función de logging
-        function addLog(message, type = 'info') {
+
+        // Función de logging mejorada
+        function addLog(message, type = 'info', data = null) {
             const logContainer = document.getElementById('logContainer');
             const logBadge = document.getElementById('logBadge');
             const timestamp = new Date().toLocaleTimeString();
+            
             const logEntry = document.createElement('div');
-            logEntry.style.padding = '4px 0';
+            logEntry.style.padding = '8px 4px';
             logEntry.style.borderBottom = '1px solid #eee';
-            logEntry.style.color = type === 'error' ? '#ea4335' : (type === 'success' ? '#34a853' : '#333');
-            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#ea4335' : 
+                                   type === 'success' ? '#34a853' : 
+                                   type === 'warning' ? '#fbbc05' : '#333';
+            
+            let logText = `[${timestamp}] ${message}`;
+            if (data) {
+                logText += `\n📦 Datos: ${JSON.stringify(data, null, 2).substring(0, 200)}`;
+            }
+            
+            logEntry.textContent = logText;
+            logEntry.style.whiteSpace = 'pre-wrap';
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
             
             const logs = logContainer.children.length;
             logBadge.textContent = logs;
-            logBadge.className = `badge ${type === 'error' ? 'error' : 'success'}`;
+            logBadge.className = `badge ${type}`;
+            
+            console.log(`[${type}] ${message}`, data || '');
         }
 
-        // Limpiar logs
-        document.getElementById('clearLogs').addEventListener('click', () => {
-            document.getElementById('logContainer').innerHTML = '';
-            document.getElementById('logBadge').textContent = '0';
-            addLog('Logs limpiados');
+        // Fetch con manejo de errores mejorado
+        async function safeFetch(url, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+            
+            try {
+                addLog(`🌐 Fetching: ${url.substring(0, 100)}...`, 'info');
+                
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                    mode: document.getElementById('corsMode').value,
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8', // GAS espera texto plano
+                        ...options.headers
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                addLog(`📥 Respuesta status: ${response.status} ${response.statusText}`, 
+                       response.ok ? 'success' : 'warning');
+                
+                // Intentar obtener el texto de la respuesta
+                const text = await response.text();
+                addLog(`📄 Respuesta (primeros 200 chars): ${text.substring(0, 200)}`, 'info');
+                
+                // Intentar parsear JSON si es posible
+                try {
+                    const json = JSON.parse(text);
+                    return { ok: response.ok, status: response.status, data: json, raw: text };
+                } catch {
+                    return { ok: response.ok, status: response.status, data: text, raw: text };
+                }
+                
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    addLog('⏱️ Timeout: La petición tardó demasiado', 'error');
+                } else {
+                    addLog(`❌ Fetch error: ${err.message}`, 'error');
+                }
+                throw err;
+            }
+        }
+
+        // Diagnóstico completo
+        async function runDiagnostic() {
+            const diagnosticDiv = document.getElementById('diagnosticDetails');
+            diagnosticDiv.innerHTML = '';
+            addLog('🔍 Iniciando diagnóstico...', 'info');
+            
+            // 1. Verificar navegador
+            addDiagnosticItem('Navegador', navigator.userAgent);
+            
+            // 2. Verificar Service Worker
+            const swSupported = 'serviceWorker' in navigator;
+            addDiagnosticItem('Service Worker soportado', swSupported ? '✅ Sí' : '❌ No', swSupported);
+            
+            // 3. Verificar Push API
+            const pushSupported = 'PushManager' in window;
+            addDiagnosticItem('Push API soportada', pushSupported ? '✅ Sí' : '❌ No', pushSupported);
+            
+            // 4. Verificar URL
+            addDiagnosticItem('API URL', API_URL);
+            
+            // 5. Probar GET simple
+            try {
+                const result = await safeFetch(`${API_URL}?action=test`);
+                addDiagnosticItem('GET test', `✅ OK (${result.status})`, true);
+            } catch (err) {
+                addDiagnosticItem('GET test', `❌ Error: ${err.message}`, false);
+            }
+            
+            // 6. Probar OPTIONS (CORS)
+            try {
+                const response = await fetch(API_URL, { method: 'OPTIONS' });
+                addDiagnosticItem('CORS preflight', `✅ OK (${response.status})`, true);
+            } catch (err) {
+                addDiagnosticItem('CORS preflight', `❌ ${err.message}`, false);
+            }
+            
+            // 7. Verificar SSL
+            addDiagnosticItem('HTTPS', window.location.protocol === 'https:' ? '✅ Sí' : '❌ No (requerido para SW)', window.location.protocol === 'https:');
+            
+            addLog('✅ Diagnóstico completado', 'success');
+        }
+
+        function addDiagnosticItem(label, value, isOk = null) {
+            const div = document.getElementById('diagnosticDetails');
+            const item = document.createElement('div');
+            item.className = 'diagnostic-item';
+            
+            let color = '#333';
+            if (isOk === true) color = '#34a853';
+            if (isOk === false) color = '#ea4335';
+            
+            item.innerHTML = `<strong>${label}:</strong> <span style="color: ${color}">${value}</span>`;
+            div.appendChild(item);
+        }
+
+        // Probar CORS específicamente
+        async function testCors() {
+            try {
+                addLog('🌐 Probando CORS...', 'info');
+                
+                // Prueba con GET simple
+                const response = await fetch(`${API_URL}?action=test`, {
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' }
+                });
+                
+                const text = await response.text();
+                addLog('✅ CORS funciona correctamente', 'success');
+                addLog(`Respuesta: ${text.substring(0, 100)}`, 'info');
+                
+            } catch (err) {
+                addLog(`❌ Error CORS: ${err.message}`, 'error');
+                addLog('💡 Solución: Publica el script GAS como "Ejecutarse como: Yo" y "Acceso: Cualquier persona"', 'warning');
+            }
+        }
+
+        // Verificar suscripción push
+        async function checkPushSubscription() {
+            if (!swRegistration) {
+                swRegistration = await navigator.serviceWorker.ready;
+            }
+            const subscription = await swRegistration.pushManager.getSubscription();
+            if (subscription) {
+                document.getElementById('pushStatus').textContent = '✅ Suscripción activa';
+                addLog('Suscripción encontrada', 'success');
+                return subscription;
+            } else {
+                document.getElementById('pushStatus').textContent = '❌ No hay suscripción';
+                return null;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('runDiagnostic').addEventListener('click', runDiagnostic);
+        document.getElementById('testCors').addEventListener('click', testCors);
+        
+        document.getElementById('apiUrl').addEventListener('change', (e) => {
+            API_URL = e.target.value;
+            addLog(`URL actualizada: ${API_URL}`, 'info');
         });
 
-        // Registrar Service Worker
         document.getElementById('registerSw').addEventListener('click', async () => {
             try {
                 addLog('Registrando Service Worker...');
                 if ('serviceWorker' in navigator) {
                     swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
-                    document.getElementById('swStatus').textContent = '✅ Service Worker registrado correctamente';
-                    addLog('Service Worker registrado exitosamente', 'success');
-                } else {
-                    throw new Error('Service Worker no soportado');
+                    document.getElementById('swStatus').textContent = '✅ SW registrado';
+                    addLog('SW registrado exitosamente', 'success');
+                    
+                    // Verificar suscripción existente
+                    await checkPushSubscription();
                 }
             } catch (err) {
-                document.getElementById('swStatus').textContent = `❌ Error: ${err.message}`;
+                document.getElementById('swStatus').textContent = `❌ ${err.message}`;
                 addLog(`Error SW: ${err.message}`, 'error');
             }
         });
 
-        // Obtener clave VAPID
-        async function getVapidPublicKey() {
+        document.getElementById('unregisterSw').addEventListener('click', async () => {
             try {
-                const response = await fetch(`${API_URL}?action=vapid-public-key`);
-                if (!response.ok) throw new Error('Error HTTP');
-                const key = await response.text();
-                addLog('Clave VAPID obtenida correctamente', 'success');
-                return key;
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let reg of registrations) {
+                    await reg.unregister();
+                }
+                document.getElementById('swStatus').textContent = '❌ SW desregistrado';
+                addLog('SW desregistrado', 'success');
             } catch (err) {
-                addLog(`Error obteniendo VAPID: ${err.message}`, 'error');
-                throw err;
+                addLog(`Error: ${err.message}`, 'error');
             }
-        }
+        });
 
-        // Suscribirse
         document.getElementById('subscribe').addEventListener('click', async () => {
             try {
                 if (!swRegistration) {
                     swRegistration = await navigator.serviceWorker.ready;
                 }
+
+                // Obtener clave VAPID
+                addLog('Obteniendo clave VAPID...');
+                const vapidResult = await safeFetch(`${API_URL}?action=vapid-public-key`);
                 
-                addLog('Solicitando clave VAPID...');
-                const vapidPublicKey = await getVapidPublicKey();
+                if (!vapidResult.ok) throw new Error('No se pudo obtener clave VAPID');
                 
-                addLog('Convirtiendo clave VAPID...');
-                const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+                const vapidKey = vapidResult.data;
+                addLog('Clave VAPID obtenida', 'success');
+
+                // Convertir clave
+                const convertedKey = urlBase64ToUint8Array(vapidKey);
                 
+                // Suscribir
                 addLog('Suscribiendo a push...');
                 const subscription = await swRegistration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: convertedKey
                 });
-                
+
+                // Enviar al servidor
                 addLog('Enviando suscripción al servidor...');
-                const response = await fetch(API_URL, {
+                const subData = {
+                    action: 'subscribe',
+                    subscription: subscription.toJSON()
+                };
+
+                const result = await safeFetch(API_URL, {
                     method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'subscribe',
-                        subscription: subscription.toJSON()
-                    })
+                    body: JSON.stringify(subData)
                 });
-                
-                const result = await response.json();
-                if (result.success) {
-                    currentSubscription = subscription;
-                    document.getElementById('pushStatus').textContent = '✅ Suscrito correctamente';
-                    addLog('Suscripción guardada en servidor', 'success');
+
+                if (result.ok) {
+                    document.getElementById('pushStatus').textContent = '✅ Suscrito';
+                    addLog('Suscripción guardada', 'success', result.data);
                 } else {
-                    throw new Error(result.message || 'Error en servidor');
+                    throw new Error('Error en servidor');
                 }
-                
+
             } catch (err) {
-                document.getElementById('pushStatus').textContent = `❌ Error: ${err.message}`;
+                document.getElementById('pushStatus').textContent = `❌ ${err.message}`;
                 addLog(`Error suscripción: ${err.message}`, 'error');
             }
         });
 
-        // Desuscribirse
         document.getElementById('unsubscribe').addEventListener('click', async () => {
             try {
-                if (!swRegistration) {
-                    swRegistration = await navigator.serviceWorker.ready;
-                }
-                
-                const subscription = await swRegistration.pushManager.getSubscription();
+                const subscription = await checkPushSubscription();
                 if (subscription) {
                     const endpoint = subscription.endpoint;
-                    
                     await subscription.unsubscribe();
                     
-                    const response = await fetch(API_URL, {
+                    const result = await safeFetch(API_URL, {
                         method: 'POST',
-                        mode: 'cors',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'unsubscribe',
                             endpoint: endpoint
                         })
                     });
                     
-                    const result = await response.json();
                     document.getElementById('pushStatus').textContent = '❌ Desuscrito';
                     addLog('Desuscripción exitosa', 'success');
                 }
             } catch (err) {
-                addLog(`Error desuscripción: ${err.message}`, 'error');
+                addLog(`Error: ${err.message}`, 'error');
             }
         });
 
-        // Verificar suscripción
-        document.getElementById('checkSubscription').addEventListener('click', async () => {
-            try {
-                if (!swRegistration) {
-                    swRegistration = await navigator.serviceWorker.ready;
-                }
-                
-                const subscription = await swRegistration.pushManager.getSubscription();
-                if (subscription) {
-                    currentSubscription = subscription;
-                    document.getElementById('pushStatus').textContent = '✅ Activa';
-                    addLog(`Suscripción activa: ${subscription.endpoint.substring(0, 50)}...`, 'success');
-                } else {
-                    document.getElementById('pushStatus').textContent = '❌ No hay suscripción';
-                    addLog('No hay suscripción activa', 'info');
-                }
-            } catch (err) {
-                addLog(`Error verificando: ${err.message}`, 'error');
-            }
-        });
+        document.getElementById('checkSubscription').addEventListener('click', checkPushSubscription);
 
-        // Enviar notificación personalizada
         document.getElementById('sendNotification').addEventListener('click', async () => {
             try {
                 const title = document.getElementById('notifTitle').value;
                 const body = document.getElementById('notifBody').value;
                 const icon = document.getElementById('notifIcon').value;
                 
-                addLog(`Enviando notificación: "${title}"...`);
+                addLog(`Enviando: "${title}"...`);
                 
-                const response = await fetch(API_URL, {
+                const result = await safeFetch(API_URL, {
                     method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'send-notification',
                         title: title,
@@ -252,76 +393,30 @@
                         icon: icon
                     })
                 });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    addLog(`✅ Notificación enviada: ${result.message}`, 'success');
-                    addLog(`Estadísticas: ${result.stats?.sent || 0} enviadas, ${result.stats?.failed || 0} fallidas`, 'info');
+
+                if (result.ok) {
+                    addLog('✅ Notificación enviada', 'success', result.data);
                 } else {
-                    throw new Error(result.message || 'Error desconocido');
+                    addLog('❌ Error en envío', 'error', result.data);
                 }
-                
-            } catch (err) {
-                addLog(`Error enviando: ${err.message}`, 'error');
-            }
-        });
 
-        // Test API
-        document.getElementById('testApi').addEventListener('click', async () => {
-            try {
-                addLog('Probando API (GET test)...');
-                const response = await fetch(`${API_URL}?action=test`);
-                const data = await response.json();
-                addLog(`API respondió: ${data.message} - ${data.time}`, 'success');
-            } catch (err) {
-                addLog(`Error test: ${err.message}`, 'error');
-            }
-        });
-
-        // Listar suscripciones
-        document.getElementById('listSubscriptions').addEventListener('click', async () => {
-            try {
-                addLog('Obteniendo lista de suscripciones...');
-                const response = await fetch(`${API_URL}?action=list-subscriptions`);
-                const data = await response.json();
-                addLog(`Total suscripciones: ${data.count}`, data.success ? 'success' : 'error');
-                data.subscriptions?.forEach((sub, i) => {
-                    addLog(`[${i+1}] ${sub.endpoint} (${sub.created})`, 'info');
-                });
-            } catch (err) {
-                addLog(`Error listando: ${err.message}`, 'error');
-            }
-        });
-
-        // Última notificación
-        document.getElementById('getLatestNotification').addEventListener('click', async () => {
-            try {
-                addLog('Obteniendo última notificación...');
-                const response = await fetch(`${API_URL}?action=get-latest-notification`);
-                const data = await response.json();
-                if (data.success) {
-                    addLog(`Notificación: ${data.notification.title} - ${data.notification.body}`, 'success');
-                } else {
-                    addLog('No hay notificaciones recientes', 'info');
-                }
             } catch (err) {
                 addLog(`Error: ${err.message}`, 'error');
             }
         });
 
-        // Obtener clave VAPID manualmente
-        document.getElementById('getVapidKey').addEventListener('click', async () => {
-            try {
-                addLog('Obteniendo clave VAPID...');
-                const key = await getVapidPublicKey();
-                addLog(`Clave VAPID: ${key.substring(0, 30)}...`, 'success');
-            } catch (err) {
-                addLog(`Error: ${err.message}`, 'error');
-            }
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            document.getElementById('logContainer').innerHTML = '';
+            document.getElementById('logBadge').textContent = '0';
         });
 
-        // Utilidad: Base64URL a Uint8Array
+        document.getElementById('copyLogs').addEventListener('click', () => {
+            const logs = document.getElementById('logContainer').innerText;
+            navigator.clipboard.writeText(logs);
+            addLog('Logs copiados al portapapeles', 'success');
+        });
+
+        // Utilidad Base64
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -333,27 +428,10 @@
             return outputArray;
         }
 
-        // Auto-registrar SW al cargar
+        // Inicialización
         window.addEventListener('load', async () => {
-            if ('serviceWorker' in navigator) {
-                try {
-                    swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
-                    document.getElementById('swStatus').textContent = '✅ Service Worker listo';
-                    addLog('Service Worker auto-registrado', 'success');
-                    
-                    // Verificar suscripción existente
-                    const subscription = await swRegistration.pushManager.getSubscription();
-                    if (subscription) {
-                        currentSubscription = subscription;
-                        document.getElementById('pushStatus').textContent = '✅ Suscripción activa';
-                        addLog('Suscripción existente detectada', 'success');
-                    }
-                } catch (err) {
-                    document.getElementById('swStatus').textContent = `❌ Error: ${err.message}`;
-                }
-            } else {
-                document.getElementById('swStatus').textContent = '❌ Service Worker no soportado';
-            }
+            addLog('🚀 App iniciada', 'success');
+            await runDiagnostic();
         });
     </script>
 </body>
