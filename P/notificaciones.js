@@ -132,6 +132,7 @@ class NotificationManager {
             if (data.title) form.append('title', data.title);
             if (data.body) form.append('body', data.body);
             if (data.icon) form.append('icon', data.icon);
+            if (data.url) form.append('url', data.url);
         }
 
         const res = await fetch(this.notifApiUrl, {
@@ -245,18 +246,21 @@ class NotificationManager {
             // 2. Determinar fecha objetivo
             let finalDateStr = "";
             let finalDateVal = 0;
+            let finalDateObj = null;
 
             if (targetDateStr) {
                 // targetDateStr viene de <input type="date"> -> YYYY-MM-DD
                 const parts = targetDateStr.split('-');
                 finalDateVal = (parseInt(parts[0]) * 10000) + (parseInt(parts[1]) * 100) + parseInt(parts[2]);
                 finalDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                finalDateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             } else {
                 // Buscar la fecha más reciente
                 allDeliveries.forEach(d => {
                     if (d.dateVal > finalDateVal) {
                         finalDateVal = d.dateVal;
                         finalDateStr = d.dateStr;
+                        finalDateObj = d.dateObj;
                     }
                 });
             }
@@ -342,7 +346,7 @@ class NotificationManager {
 
             console.log(`✅ Reporte inteligente generado: ${finalDateStr}`);
 
-            const titulo = `📊 Reporte Entregas | ${finalDateStr}`;
+            const titulo = `Reporte de Entregas | ${finalDateStr}`;
             const headerResumen = `*Consolidado del Día:*
 📦 Facturas: ${facturasUnicas.size}
 🔢 Unidades: ${totalUnidades.toLocaleString('es-CO')}
@@ -351,11 +355,17 @@ class NotificationManager {
 
             const cuerpoCompleto = headerResumen + bodyDetalle;
 
+            // Simple body for the push notification
+            const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const diaNombre = diasSemana[finalDateObj.getDay()];
+            const cuerpoSimple = `Reporte Entregas del día ${diaNombre} ${finalDateStr}: Facturas: ${facturasUnicas.size} Unidades: ${totalUnidades.toLocaleString('es-CO')} Total: ${formatCurrency(totalValor)}`;
+
             // ⭐ Enviar al GAS de r1 con action=send-notification
             const resData = await this.callNotifAPI('send-notification', 'POST', {
                 title: titulo,
-                body: cuerpoCompleto,
-                icon: ''
+                body: cuerpoSimple,
+                icon: '',
+                url: `./?showReport=${finalDateVal}`
             });
 
             if (resData && resData.success) {

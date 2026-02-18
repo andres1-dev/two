@@ -131,6 +131,21 @@ function initUIListeners() {
     // Inicializar UI de Configuracion
     initSettingsUI();
 
+    // Detector de reporte desde notificación
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportDate = urlParams.get('showReport');
+    if (reportDate) {
+        // Limpiar URL para que al recargar no vuelva a saltar
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Esperar a que los datos carguen
+        const checkInterval = setInterval(() => {
+            if (window.dataLoaded && typeof showDetailedReport === 'function') {
+                clearInterval(checkInterval);
+                showDetailedReport(parseInt(reportDate));
+            }
+        }, 500);
+    }
+
     // Detector para deshabilitar el teclado virtual en dispositivos móviles
     document.addEventListener('touchstart', function (e) {
         const cameraModal = document.getElementById('cameraModal');
