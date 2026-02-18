@@ -1637,24 +1637,37 @@ input:checked+.slider:before {
 .client-report-card {
   background: var(--surface);
   border-radius: 24px;
-  padding: 24px;
+  padding: 0;
   margin-bottom: 20px;
   border: 1px solid var(--border-light);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
   transition: all 0.3s;
+  overflow: hidden;
 }
 
-.client-report-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-soft);
+.client-header {
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: white;
+  transition: background 0.2s;
+}
+
+.client-header:hover {
+  background: var(--background);
+}
+
+.client-info {
+  flex: 1;
 }
 
 .client-name {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 800;
   color: var(--text-main);
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1662,6 +1675,53 @@ input:checked+.slider:before {
 
 .client-name i {
   color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.client-summary-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.client-summary-row span {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.client-summary-row i {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.toggle-icon {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 8px;
+}
+
+.client-sessions {
+  padding: 0 24px 24px;
+  border-top: 1px dashed var(--border-light);
+  background: white;
+}
+
+.client-report-card.active {
+  border-color: var(--primary-soft);
+}
+
+.client-report-card.active .client-header {
+  background: var(--surface);
+}
+
+.client-report-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1);
 }
 
 .session-item {

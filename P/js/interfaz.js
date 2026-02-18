@@ -967,6 +967,23 @@ function initSettingsUI() {
     if (clientSelect) clientSelect.addEventListener('change', updateSettings);
 }
 
+// Función global para manejar el colapsable
+window.toggleClientReport = function (id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById('icon-' + id);
+    if (!el || !icon) return;
+
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+        el.parentElement.classList.add('active');
+    } else {
+        el.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+        el.parentElement.classList.remove('active');
+    }
+};
+
 /**
  * Obtiene la fecha más reciente que contiene entregas confirmadas
  */
@@ -1125,6 +1142,16 @@ async function showDetailedReport(target) {
         const deliveries = clientGroups[clientName];
         deliveries.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
 
+        let clientTotalUnidades = 0;
+        let clientTotalValor = 0;
+        const clientFacturasUnicas = new Set();
+
+        deliveries.forEach(d => {
+            clientTotalUnidades += parseFloat(d.cantidad) || 0;
+            clientTotalValor += parseFloat(d.valorBruto) || 0;
+            clientFacturasUnicas.add(d.factura);
+        });
+
         const sessions = [];
         let currentSess = null;
 
@@ -1172,10 +1199,25 @@ async function showDetailedReport(target) {
                 </div>`;
         });
 
+        // Generar ID único para el colapsable
+        const clientId = `client-${clientName.replace(/\s+/g, '-').toLowerCase()}`;
+
         clientsHtml += `
             <div class="client-report-card">
-                <div class="client-name"><i class="fas fa-building"></i> <span>${clientName}</span></div>
-                <div class="client-sessions">${sessionsHtml}</div>
+                <div class="client-header" onclick="toggleClientReport('${clientId}')">
+                    <div class="client-info">
+                        <div class="client-name"><i class="fas fa-building"></i> <span>${clientName}</span></div>
+                        <div class="client-summary-row">
+                            <span><i class="fas fa-file-invoice"></i> ${clientFacturasUnicas.size} Facs</span>
+                            <span><i class="fas fa-boxes-stacked"></i> ${clientTotalUnidades.toLocaleString('es-CO')} Unds</span>
+                            <span><i class="fas fa-hand-holding-dollar"></i> ${formatCur(clientTotalValor)}</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down toggle-icon" id="icon-${clientId}"></i>
+                </div>
+                <div class="client-sessions" id="${clientId}" style="display: none;">
+                    ${sessionsHtml}
+                </div>
             </div>`;
     });
 
