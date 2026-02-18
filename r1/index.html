@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Notificaciones</title>
+    <meta name="description" content="Aplicación de notificaciones push personalizadas para cualquier dispositivo">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Meta tags -->
+    <meta name="theme-color" content="#0070f3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PWA Notif">
+
+    <!-- Iconos específicos para iOS (apple-touch-icon) - rutas corregidas -->
+    <link rel="apple-touch-icon" href="icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167x167.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="icons/icon-76x76.png">
+
+    <!-- Favicon general - rutas corregidas -->
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #0070f3;
+        }
+
+        .status {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            word-break: break-word;
+        }
+
+        .device-info {
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .badge {
+            background: #0070f3;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #0070f3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0051a2;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 2px dashed #0070f3;
+        }
+
+        .admin-panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #0070f3;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Plantillas rápidas */
+        .template-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .template-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #555;
+            transition: all 0.2s ease;
+            min-width: auto;
+            box-shadow: none;
+            font-family: inherit;
+        }
+
+        .template-chip:hover {
+            border-color: #0070f3;
+            color: #0070f3;
+            background: #f0f6ff;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .template-chip.active {
+            border-color: #0070f3;
+            background: #0070f3;
+            color: white;
+        }
+
+        /* Preview de notificación */
+        .notification-preview {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .notification-preview .notif-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .notification-preview .notif-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-preview .notif-app {
+            font-size: 0.7em;
+            color: #8888aa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .notification-preview .notif-title {
+            font-size: 0.95em;
+            font-weight: 600;
+            color: #e0e0ff;
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .notification-preview .notif-body {
+            font-size: 0.85em;
+            color: #9999bb;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .notification-preview .notif-time {
+            font-size: 0.7em;
+            color: #6666aa;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .preview-label {
+            font-size: 0.75em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-send:hover {
+            background: linear-gradient(135deg, #218838, #1baa80);
+            transform: scale(1.02);
+        }
+
+        .ios-install {
+            background: #fff8e1;
+            color: #333;
+            padding: 18px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+            display: none;
+            line-height: 1.8;
+            font-size: 0.95em;
+        }
+
+        .ios-install.show {
+            display: block;
+        }
+
+        .ios-install strong {
+            display: block;
+            font-size: 1.05em;
+            margin-bottom: 6px;
+            color: #e65100;
+        }
+
+        .error-details {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .error-details.show {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+        }
+
+        /* Separador */
+        .section-divider {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 20px 0;
+        }
+
+        /* Animación sutil */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 1.6em;
+            }
+
+            button {
+                min-width: 160px;
+                font-size: 1em;
+                padding: 12px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📱 Notificaciones PWA</h1>
+            <p class="subtitle">Recibe notificaciones en cualquier dispositivo</p>
+
+            <div class="status-card">
+                <div class="status" id="status">
+                    🔄 Inicializando...
+                </div>
+                <div class="device-info">
+                    <span id="platform">📱 Detectando...</span>
+                    <span id="browser">🌐 Detectando...</span>
+                    <span class="badge" id="pwaStatus">🌐 Web</span>
+                </div>
+                <div class="error-details" id="errorDetails"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="subscribeButton" class="btn-primary" style="display: none;">
+                    🔔 Activar Notificaciones
+                </button>
+                <button id="unsubscribeButton" class="btn-secondary" style="display: none;">
+                    🔕 Desactivar Notificaciones
+                </button>
+                <button id="retryButton" class="btn-secondary" style="display: none;">
+                    🔄 Reintentar
+                </button>
+            </div>
+
+            <div id="iosInstallMessage" class="ios-install"></div>
+
+            <div class="admin-panel" id="adminPanel">
+                <h2>📨 Enviar Mensaje Personalizado</h2>
+
+                <!-- Plantillas rápidas -->
+                <div class="form-group">
+                    <label>Plantillas rápidas</label>
+                    <div class="template-chips" id="templateChips">
+                        <button type="button" class="template-chip" data-title="📢 Aviso Importante"
+                            data-body="Hay una actualización importante que debes revisar. Abre la app para más detalles.">📢
+                            Aviso</button>
+                        <button type="button" class="template-chip" data-title="🚚 Actualización de Entrega"
+                            data-body="Tu pedido tiene una actualización. Revisa el estado en la aplicación.">🚚
+                            Entrega</button>
+                        <button type="button" class="template-chip" data-title="⚡ Recordatorio"
+                            data-body="Este es un recordatorio para que revises las tareas pendientes del día.">⚡
+                            Recordatorio</button>
+                        <button type="button" class="template-chip" data-title="🎉 ¡Buenas Noticias!"
+                            data-body="Tenemos excelentes noticias para ti. ¡Abre la app para descubrir!">🎉 Buenas
+                            Noticias</button>
+                        <button type="button" class="template-chip" data-title="📋 Resumen del Día"
+                            data-body="El resumen de actividades del día ya está disponible. Revisa los detalles.">📋
+                            Resumen</button>
+                    </div>
+                </div>
+
+                <hr class="section-divider">
+
+                <div class="form-group">
+                    <label for="notificationTitle">Título del mensaje</label>
+                    <input type="text" id="notificationTitle" placeholder="Ej: 🔔 Aviso importante para el equipo">
+                </div>
+
+                <div class="form-group">
+                    <label for="notificationBody">Cuerpo del mensaje</label>
+                    <textarea id="notificationBody" rows="3"
+                        placeholder="Escribe aquí tu mensaje personalizado..."></textarea>
+                </div>
+
+                <!-- Vista previa de la notificación -->
+                <div class="preview-label">👁️ Vista previa</div>
+                <div class="notification-preview" id="notificationPreview">
+                    <div class="notif-icon">📱</div>
+                    <div class="notif-content">
+                        <div class="notif-app">PWA Notificaciones</div>
+                        <div class="notif-title" id="previewTitle">Título del mensaje</div>
+                        <div class="notif-body" id="previewBody">El cuerpo del mensaje aparecerá aquí...</div>
+                    </div>
+                    <div class="notif-time">Ahora</div>
+                </div>
+
+                <button id="sendNotificationButton" class="btn-send">
+                    📨 Enviar Notificación a Todos
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>PWA Notificaciones • v2.0</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
