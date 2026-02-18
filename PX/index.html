@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probador de Notificaciones PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; color: #333; font-size: 1.3rem; }
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.8; }
+        .primary { background: #4285f4; color: white; }
+        .secondary { background: #34a853; color: white; }
+        .danger { background: #ea4335; color: white; }
+        .info { background: #fbbc05; color: black; }
+        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        .status { background: #e8f0fe; padding: 10px; border-radius: 8px; margin: 10px 0; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+        .flex { display: flex; gap: 10px; }
+        .flex button { margin: 0; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-left: 8px; }
+        .badge.success { background: #34a853; color: white; }
+        .badge.error { background: #ea4335; color: white; }
+    </style>
+</head>
+<body>
+    <h1>📱 Probador de Notificaciones Push</h1>
+    <p>API Endpoint: <code>https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec</code></p>
+
+    <!-- Tarjeta: Estado y Registro -->
+    <div class="card">
+        <h2>🔧 Estado del Service Worker</h2>
+        <div id="swStatus" class="status">Verificando...</div>
+        <button id="registerSw" class="primary">📌 Registrar/Actualizar Service Worker</button>
+    </div>
+
+    <!-- Tarjeta: Suscripción Push -->
+    <div class="card">
+        <h2>🔔 Suscripción Push</h2>
+        <div id="pushStatus" class="status">No suscrito</div>
+        <div class="flex">
+            <button id="subscribe" class="secondary">✅ Suscribirse</button>
+            <button id="unsubscribe" class="danger">❌ Desuscribirse</button>
+        </div>
+        <button id="checkSubscription" class="info">🔄 Verificar suscripción</button>
+    </div>
+
+    <!-- Tarjeta: Envío Personalizado -->
+    <div class="card">
+        <h2>✉️ Enviar Notificación Personalizada</h2>
+        <input type="text" id="notifTitle" placeholder="Título" value="Notificación de prueba">
+        <textarea id="notifBody" placeholder="Mensaje" rows="3">Este es un mensaje de prueba personalizado</textarea>
+        <input type="text" id="notifIcon" placeholder="URL del ícono (opcional)" value="">
+        <button id="sendNotification" class="primary">🚀 ENVIAR NOTIFICACIÓN</button>
+    </div>
+
+    <!-- Tarjeta: Logs y Respuestas -->
+    <div class="card">
+        <h2>📋 Logs <span id="logBadge" class="badge">0</span></h2>
+        <div id="logContainer" class="status"></div>
+        <button id="clearLogs" class="info">🧹 Limpiar logs</button>
+    </div>
+
+    <!-- Tarjeta: Debug -->
+    <div class="card">
+        <h2>🔍 Debug</h2>
+        <button id="testApi" class="info">🌐 Probar API (GET test)</button>
+        <button id="getVapidKey" class="info">🔑 Obtener clave VAPID</button>
+        <button id="listSubscriptions" class="info">📋 Listar suscripciones</button>
+        <button id="getLatestNotification" class="info">📦 Última notificación (iOS)</button>
+    </div>
+
+    <script>
+        // Configuración
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec';
+        let swRegistration = null;
+        let currentSubscription = null;
+        
+        // Función de logging
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logBadge = document.getElementById('logBadge');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.padding = '4px 0';
+            logEntry.style.borderBottom = '1px solid #eee';
+            logEntry.style.color = type === 'error' ? '#ea4335' : (type === 'success' ? '#34a853' : '#333');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            const logs = logContainer.children.length;
+            logBadge.textContent = logs;
+            logBadge.className = `badge ${type === 'error' ? 'error' : 'success'}`;
+        }
+
+        // Limpiar logs
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            document.getElementById('logContainer').innerHTML = '';
+            document.getElementById('logBadge').textContent = '0';
+            addLog('Logs limpiados');
+        });
+
+        // Registrar Service Worker
+        document.getElementById('registerSw').addEventListener('click', async () => {
+            try {
+                addLog('Registrando Service Worker...');
+                if ('serviceWorker' in navigator) {
+                    swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
+                    document.getElementById('swStatus').textContent = '✅ Service Worker registrado correctamente';
+                    addLog('Service Worker registrado exitosamente', 'success');
+                } else {
+                    throw new Error('Service Worker no soportado');
+                }
+            } catch (err) {
+                document.getElementById('swStatus').textContent = `❌ Error: ${err.message}`;
+                addLog(`Error SW: ${err.message}`, 'error');
+            }
+        });
+
+        // Obtener clave VAPID
+        async function getVapidPublicKey() {
+            try {
+                const response = await fetch(`${API_URL}?action=vapid-public-key`);
+                if (!response.ok) throw new Error('Error HTTP');
+                const key = await response.text();
+                addLog('Clave VAPID obtenida correctamente', 'success');
+                return key;
+            } catch (err) {
+                addLog(`Error obteniendo VAPID: ${err.message}`, 'error');
+                throw err;
+            }
+        }
+
+        // Suscribirse
+        document.getElementById('subscribe').addEventListener('click', async () => {
+            try {
+                if (!swRegistration) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+                
+                addLog('Solicitando clave VAPID...');
+                const vapidPublicKey = await getVapidPublicKey();
+                
+                addLog('Convirtiendo clave VAPID...');
+                const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+                
+                addLog('Suscribiendo a push...');
+                const subscription = await swRegistration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: convertedKey
+                });
+                
+                addLog('Enviando suscripción al servidor...');
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'subscribe',
+                        subscription: subscription.toJSON()
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentSubscription = subscription;
+                    document.getElementById('pushStatus').textContent = '✅ Suscrito correctamente';
+                    addLog('Suscripción guardada en servidor', 'success');
+                } else {
+                    throw new Error(result.message || 'Error en servidor');
+                }
+                
+            } catch (err) {
+                document.getElementById('pushStatus').textContent = `❌ Error: ${err.message}`;
+                addLog(`Error suscripción: ${err.message}`, 'error');
+            }
+        });
+
+        // Desuscribirse
+        document.getElementById('unsubscribe').addEventListener('click', async () => {
+            try {
+                if (!swRegistration) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+                
+                const subscription = await swRegistration.pushManager.getSubscription();
+                if (subscription) {
+                    const endpoint = subscription.endpoint;
+                    
+                    await subscription.unsubscribe();
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'unsubscribe',
+                            endpoint: endpoint
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    document.getElementById('pushStatus').textContent = '❌ Desuscrito';
+                    addLog('Desuscripción exitosa', 'success');
+                }
+            } catch (err) {
+                addLog(`Error desuscripción: ${err.message}`, 'error');
+            }
+        });
+
+        // Verificar suscripción
+        document.getElementById('checkSubscription').addEventListener('click', async () => {
+            try {
+                if (!swRegistration) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+                
+                const subscription = await swRegistration.pushManager.getSubscription();
+                if (subscription) {
+                    currentSubscription = subscription;
+                    document.getElementById('pushStatus').textContent = '✅ Activa';
+                    addLog(`Suscripción activa: ${subscription.endpoint.substring(0, 50)}...`, 'success');
+                } else {
+                    document.getElementById('pushStatus').textContent = '❌ No hay suscripción';
+                    addLog('No hay suscripción activa', 'info');
+                }
+            } catch (err) {
+                addLog(`Error verificando: ${err.message}`, 'error');
+            }
+        });
+
+        // Enviar notificación personalizada
+        document.getElementById('sendNotification').addEventListener('click', async () => {
+            try {
+                const title = document.getElementById('notifTitle').value;
+                const body = document.getElementById('notifBody').value;
+                const icon = document.getElementById('notifIcon').value;
+                
+                addLog(`Enviando notificación: "${title}"...`);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send-notification',
+                        title: title,
+                        body: body,
+                        icon: icon
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog(`✅ Notificación enviada: ${result.message}`, 'success');
+                    addLog(`Estadísticas: ${result.stats?.sent || 0} enviadas, ${result.stats?.failed || 0} fallidas`, 'info');
+                } else {
+                    throw new Error(result.message || 'Error desconocido');
+                }
+                
+            } catch (err) {
+                addLog(`Error enviando: ${err.message}`, 'error');
+            }
+        });
+
+        // Test API
+        document.getElementById('testApi').addEventListener('click', async () => {
+            try {
+                addLog('Probando API (GET test)...');
+                const response = await fetch(`${API_URL}?action=test`);
+                const data = await response.json();
+                addLog(`API respondió: ${data.message} - ${data.time}`, 'success');
+            } catch (err) {
+                addLog(`Error test: ${err.message}`, 'error');
+            }
+        });
+
+        // Listar suscripciones
+        document.getElementById('listSubscriptions').addEventListener('click', async () => {
+            try {
+                addLog('Obteniendo lista de suscripciones...');
+                const response = await fetch(`${API_URL}?action=list-subscriptions`);
+                const data = await response.json();
+                addLog(`Total suscripciones: ${data.count}`, data.success ? 'success' : 'error');
+                data.subscriptions?.forEach((sub, i) => {
+                    addLog(`[${i+1}] ${sub.endpoint} (${sub.created})`, 'info');
+                });
+            } catch (err) {
+                addLog(`Error listando: ${err.message}`, 'error');
+            }
+        });
+
+        // Última notificación
+        document.getElementById('getLatestNotification').addEventListener('click', async () => {
+            try {
+                addLog('Obteniendo última notificación...');
+                const response = await fetch(`${API_URL}?action=get-latest-notification`);
+                const data = await response.json();
+                if (data.success) {
+                    addLog(`Notificación: ${data.notification.title} - ${data.notification.body}`, 'success');
+                } else {
+                    addLog('No hay notificaciones recientes', 'info');
+                }
+            } catch (err) {
+                addLog(`Error: ${err.message}`, 'error');
+            }
+        });
+
+        // Obtener clave VAPID manualmente
+        document.getElementById('getVapidKey').addEventListener('click', async () => {
+            try {
+                addLog('Obteniendo clave VAPID...');
+                const key = await getVapidPublicKey();
+                addLog(`Clave VAPID: ${key.substring(0, 30)}...`, 'success');
+            } catch (err) {
+                addLog(`Error: ${err.message}`, 'error');
+            }
+        });
+
+        // Utilidad: Base64URL a Uint8Array
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Auto-registrar SW al cargar
+        window.addEventListener('load', async () => {
+            if ('serviceWorker' in navigator) {
+                try {
+                    swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
+                    document.getElementById('swStatus').textContent = '✅ Service Worker listo';
+                    addLog('Service Worker auto-registrado', 'success');
+                    
+                    // Verificar suscripción existente
+                    const subscription = await swRegistration.pushManager.getSubscription();
+                    if (subscription) {
+                        currentSubscription = subscription;
+                        document.getElementById('pushStatus').textContent = '✅ Suscripción activa';
+                        addLog('Suscripción existente detectada', 'success');
+                    }
+                } catch (err) {
+                    document.getElementById('swStatus').textContent = `❌ Error: ${err.message}`;
+                }
+            } else {
+                document.getElementById('swStatus').textContent = '❌ Service Worker no soportado';
+            }
+        });
+    </script>
+</body>
+</html>
