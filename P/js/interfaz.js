@@ -893,3 +893,191 @@ function initSettingsUI() {
 
     if (clientSelect) clientSelect.addEventListener('change', updateSettings);
 }
+
+/**
+ * Muestra el Reporte Detallado (Modal Premium)
+ * @param {number} targetDateVal - Fecha en formato YYYYMMDD
+ */
+async function showDetailedReport(targetDateVal) {
+    console.log('📊 Generando reporte detallado para:', targetDateVal);
+
+    let modal = document.getElementById('reportDetailedModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'reportDetailedModal';
+        modal.className = 'report-modal';
+        document.body.appendChild(modal);
+    }
+
+    if (!window.database || window.database.length === 0) {
+        alert("Los datos aún no se han cargado por completo. Espera un momento y vuelve a intentarlo.");
+        return;
+    }
+
+    // 1. Recopilar y filtrar entregas del día
+    const allDeliveries = [];
+    const parseDateHelper = (str) => {
+        if (!str) return null;
+        // Formato DD/MM/YYYY HH:mm:ss o MM/DD/YYYY HH:mm:ss
+        const match = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        if (match) {
+            // Intentar DD/MM/YYYY
+            const day = parseInt(match[1]);
+            const month = parseInt(match[2]) - 1;
+            const year = parseInt(match[3]);
+            return new Date(year, month, day, parseInt(match[4] || 0), parseInt(match[5] || 0));
+        }
+        return new Date(str);
+    };
+
+    window.database.forEach(item => {
+        const itemsAProcesar = item.datosSiesa || (item.factura ? [item] : []);
+        itemsAProcesar.forEach(f => {
+            const esEntregado = f.confirmacion && f.confirmacion.includes('ENTREGADO');
+            if (!esEntregado) return;
+
+            const dateObj = parseDateHelper(f.fechaEntrega || f.fecha);
+            if (!dateObj) return;
+
+            const dVal = (dateObj.getFullYear() * 10000) + ((dateObj.getMonth() + 1) * 100) + dateObj.getDate();
+            if (dVal === targetDateVal) {
+                allDeliveries.push({ ...f, dateObj });
+            }
+        });
+    });
+
+    if (allDeliveries.length === 0) {
+        alert("No se encontraron entregas confirmadas para esta fecha.");
+        return;
+    }
+
+    // 2. Consolidar por clientes y sesiones (1 hora de diferencia)
+    const clientGroups = {};
+    let totalUnidades = 0;
+    let totalValor = 0;
+    const facturasUnicas = new Set();
+
+    allDeliveries.forEach(d => {
+        const client = d.cliente || "CLIENTE NO IDENTIFICADO";
+        if (!clientGroups[client]) clientGroups[client] = [];
+        clientGroups[client].push(d);
+
+        facturasUnicas.add(d.factura);
+        totalUnidades += parseFloat(d.cantidad) || 0;
+        totalValor += parseFloat(d.valorBruto) || 0;
+    });
+
+    const formatCur = (v) => new Intl.NumberFormat('es-CO', {
+        style: 'currency', currency: 'COP', minimumFractionDigits: 0
+    }).format(v);
+
+    const sampleDate = allDeliveries[0].dateObj;
+    const dateStr = sampleDate.toLocaleDateString('es-CO', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    let clientsHtml = "";
+    Object.keys(clientGroups).sort().forEach(clientName => {
+        const deliveries = clientGroups[clientName];
+        deliveries.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+        const sessions = [];
+        let currentSess = null;
+
+        deliveries.forEach(d => {
+            if (!currentSess || (d.dateObj.getTime() - currentSess.last.getTime() > 3600 * 1000)) {
+                currentSess = {
+                    start: d.dateObj,
+                    last: d.dateObj,
+                    unidades: 0,
+                    facturas: new Set(),
+                    valor: 0
+                };
+                sessions.push(currentSess);
+            }
+            currentSess.last = d.dateObj;
+            currentSess.unidades += parseFloat(d.cantidad) || 0;
+            currentSess.facturas.add(d.factura);
+            currentSess.valor += parseFloat(d.valorBruto) || 0;
+        });
+
+        let sessionsHtml = "";
+        sessions.forEach((s, i) => {
+            const timeStr = s.start.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+            sessionsHtml += `
+                <div class="session-item">
+                    <div class="session-time"><i class="far fa-clock"></i> ${timeStr}</div>
+                    <div class="session-details">
+                        <div class="sess-stat">
+                            <span class="v">${s.facturas.size}</span>
+                            <span class="l">Facs</span>
+                        </div>
+                        <div class="sess-stat">
+                            <span class="v">${s.unidades.toLocaleString('es-CO')}</span>
+                            <span class="l">Unds</span>
+                        </div>
+                        <div class="sess-stat">
+                            <span class="v">${formatCur(s.valor)}</span>
+                            <span class="l">Valor</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        clientsHtml += `
+            <div class="client-report-card">
+                <div class="client-name">
+                    <i class="fas fa-building"></i>
+                    <span>${clientName}</span>
+                </div>
+                <div class="client-sessions">${sessionsHtml}</div>
+            </div>
+        `;
+    });
+
+    modal.innerHTML = `
+        <div class="report-header">
+            <div class="report-title">
+                <h2>Detalle de Entregas</h2>
+                <p>${dateStr}</p>
+            </div>
+            <button class="report-close-btn" onclick="document.getElementById('reportDetailedModal').style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="report-body">
+            <div class="report-stats-grid">
+                <div class="report-stat-card">
+                    <i class="fas fa-file-invoice"></i>
+                    <span class="val">${facturasUnicas.size}</span>
+                    <span class="lab">Facturas</span>
+                </div>
+                <div class="report-stat-card">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span class="val">${totalUnidades.toLocaleString('es-CO')}</span>
+                    <span class="lab">Unidades</span>
+                </div>
+                <div class="report-stat-card">
+                    <i class="fas fa-hand-holding-dollar"></i>
+                    <span class="val">${formatCur(totalValor)}</span>
+                    <span class="lab">Valor Total</span>
+                </div>
+            </div>
+            
+            <div class="report-section-title">
+                <i class="fas fa-list-ul"></i> Consolidado por Clientes
+            </div>
+            
+            <div class="clients-list">
+                ${clientsHtml}
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">
+                <i class="fas fa-info-circle"></i> Las entregas se agrupan automáticamente si tienen más de 1 hora de diferencia.
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+}

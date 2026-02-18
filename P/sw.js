@@ -1,10 +1,10 @@
 // Service Worker para PandaDash - Versión optimizada para PWA
-const CACHE_NAME = 'pandadash-v9.4'; // Incrementar versión
+const CACHE_NAME = 'pandadash-v9.5'; // Incrementar versión
 
 const BASE = (new URL('.', self.location)).href;
 
 const RELATIVE_ASSETS = [
-  '',
+  /*'',
   'index.html',
   'css/estilos_admin.css',
   'css/estilos_base.css',
@@ -13,9 +13,9 @@ const RELATIVE_ASSETS = [
   'css/estilos_qr_escaner.css',
   'css/estilos_soporte_grid.css',
   'css/estilos_soporte.css',
-  'css/estilos_upload.css',
+  'css/estilos_upload.css', */
   /* scripts principales */
-  'js/admin_usuarios.js',
+  /*'js/admin_usuarios.js',
   'js/auth.js',
   'js/camara.js',
   'js/cola_carga.js',
@@ -30,7 +30,7 @@ const RELATIVE_ASSETS = [
   'js/renderizado.js',
   'js/sonidos.js',
   'js/soporte_grid.js',
-  'js/upload_siesa.js',
+  'js/upload_siesa.js',*/
   /* icons */
   'icons/icon-192.png',
   'icons/icon-256.png',

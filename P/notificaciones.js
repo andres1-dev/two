@@ -348,9 +348,9 @@ class NotificationManager {
 
             const titulo = `Reporte de Entregas | ${finalDateStr}`;
             const headerResumen = `*Consolidado del Día:*
-📦 Facturas: ${facturasUnicas.size}
-🔢 Unidades: ${totalUnidades.toLocaleString('es-CO')}
-💰 Total: ${formatCurrency(totalValor)}
+Facturas: ${facturasUnicas.size}
+Unidades: ${totalUnidades.toLocaleString('es-CO')}
+Total: ${formatCurrency(totalValor)}
 ----------------------------`;
 
             const cuerpoCompleto = headerResumen + bodyDetalle;
