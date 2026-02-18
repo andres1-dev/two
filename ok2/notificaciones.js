@@ -1,11 +1,19 @@
+// ============================================
+// NotificationManager — Adaptado para usar GAS r1 (VAPID/JWT)
+// ============================================
 class NotificationManager {
     constructor() {
         this.swRegistration = null;
         this.isSubscribed = false;
-        this.vapidPublicKey = 'BCmC8fdwQf-J8GzQJ902q-gA';
+        this.vapidPublicKey = null; // Se obtiene dinámicamente de r1
         this.lastNotificationTimestamp = 0;
 
-        console.log('🔔 NotificationManager Constructor iniciado');
+        // URL del GAS de notificaciones r1
+        this.notifApiUrl = (typeof API_URL_NOTIF !== 'undefined')
+            ? API_URL_NOTIF
+            : 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
+
+        console.log('🔔 NotificationManager Constructor iniciado (r1 API)');
         this.setupUI();
         this.init();
     }
@@ -25,6 +33,8 @@ class NotificationManager {
             if (this.swRegistration) {
                 console.log('✅ Service Worker vinculado a Notificaciones');
                 this.updateUIForState(Notification.permission);
+
+                // Enviar la URL de r1 al SW para polling
                 this.sendPollingConfigToSW();
 
                 if ('periodicSync' in this.swRegistration) {
@@ -100,6 +110,65 @@ class NotificationManager {
         console.log(`🔔 NotificationManager: Verificando acceso para rol [${role}]`);
     }
 
+    // ============================================
+    // Llamar al GAS de Notificaciones (VAPID/JWT)
+    // ============================================
+    async callNotifAPI(action, method = 'GET', data = null) {
+        if (method === 'GET') {
+            const res = await fetch(this.notifApiUrl + '?action=' + action, { mode: 'cors' });
+            const text = await res.text();
+            try { return JSON.parse(text); } catch { return text; }
+        }
+
+        const form = new URLSearchParams();
+        form.append('action', action);
+        if (data) {
+            form.append('data', JSON.stringify(data));
+            if (data.endpoint) form.append('endpoint', data.endpoint);
+            if (data.keys) {
+                if (data.keys.p256dh) form.append('p256dh', data.keys.p256dh);
+                if (data.keys.auth) form.append('auth', data.keys.auth);
+            }
+            if (data.title) form.append('title', data.title);
+            if (data.body) form.append('body', data.body);
+            if (data.icon) form.append('icon', data.icon);
+        }
+
+        const res = await fetch(this.notifApiUrl, {
+            method: 'POST', mode: 'cors', body: form,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { return text; }
+    }
+
+    // ============================================
+    // Obtener la clave VAPID pública desde r1
+    // ============================================
+    async fetchVapidKey() {
+        try {
+            const res = await fetch(this.notifApiUrl + '?action=vapid-public-key', { mode: 'cors' });
+            const text = (await res.text()).trim();
+
+            if (text.startsWith('{')) {
+                const obj = JSON.parse(text);
+                throw new Error(obj.error || obj.message || 'Error VAPID');
+            }
+            if (text.length > 20) {
+                this.vapidPublicKey = text;
+                console.log('✅ Clave VAPID obtenida de r1');
+                return true;
+            }
+            throw new Error('Clave VAPID inválida');
+        } catch (err) {
+            console.error('❌ Error obteniendo VAPID key:', err.message);
+            return false;
+        }
+    }
+
+    // ============================================
+    // ENVIAR REPORTE DIARIO → usa r1 send-notification
+    // ============================================
     async sendDailySummary() {
         const btn = document.getElementById('sendSummaryBtn');
         const originalHtml = btn.innerHTML;
@@ -176,22 +245,21 @@ class NotificationManager {
             const titulo = `REPORTE DE ENTREGAS | ${finalDateStr}`;
             const cuerpo = `Entregas: ${finalStats.facturas.size} | Unidades: ${finalStats.unidades.toLocaleString('es-CO')} | Total: ${formatter.format(finalStats.valor)}`;
 
-            const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
-            const formData = new FormData();
-            formData.append('action', 'send_push_notification');
-            formData.append('title', titulo);
-            formData.append('body', cuerpo);
+            // ⭐ Enviar al GAS de r1 con action=send-notification
+            const resData = await this.callNotifAPI('send-notification', 'POST', {
+                title: titulo,
+                body: cuerpo,
+                icon: ''
+            });
 
-            const res = await fetch(urlToUse, { method: 'POST', body: formData });
-            const resData = await res.json();
-
-            if (resData.success) {
-                alert('✅ Resumen diario enviado correctamente.');
+            if (resData && resData.success) {
+                alert(`✅ Resumen enviado correctamente.\n${resData.message || ''}`);
+                // Disparar check inmediato en el SW
                 if (this.swRegistration && this.swRegistration.active) {
                     this.swRegistration.active.postMessage({ type: 'CHECK_NOW' });
                 }
             } else {
-                throw new Error(resData.message);
+                throw new Error(resData.message || resData.error || 'Error desconocido');
             }
 
         } catch (e) {
@@ -238,49 +306,59 @@ class NotificationManager {
         return false;
     }
 
+    // ============================================
+    // Suscribir — usa r1 (VAPID key dinámica + subscribe)
+    // ============================================
     async subscribeToPush() {
-        if (!this.vapidPublicKey || this.vapidPublicKey.length < 10 || !this.swRegistration) return;
+        if (!this.swRegistration) return;
 
         try {
+            // Obtener la clave VAPID de r1 si no la tenemos
+            if (!this.vapidPublicKey) {
+                const ok = await this.fetchVapidKey();
+                if (!ok) {
+                    console.warn('⚠️ No se pudo obtener VAPID key, push no disponible');
+                    return;
+                }
+            }
+
             const applicationServerKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
             const subscription = await this.swRegistration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: applicationServerKey
             });
+
             this.isSubscribed = true;
-            await this.saveSubscriptionToBackend(subscription);
+
+            // ⭐ Guardar suscripción en r1 con action=subscribe
+            const subJSON = subscription.toJSON();
+            const result = await this.callNotifAPI('subscribe', 'POST', subJSON);
+
+            if (result && result.success) {
+                console.log('✅ Suscripción guardada en r1:', result.message);
+            } else {
+                console.warn('⚠️ Respuesta de r1 al suscribir:', result);
+            }
+
         } catch (e) {
-            console.warn('Push manual no soportado o configurado:', e.message);
+            console.warn('Push subscribe error:', e.message);
         }
     }
 
-    async saveSubscriptionToBackend(subscription) {
-        const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
-        if (!urlToUse) return;
-
-        let userId = window.currentUser ? window.currentUser.id : 'anonimo';
-
-        const formData = new FormData();
-        formData.append('action', 'save_push_subscription');
-        formData.append('userId', userId);
-        formData.append('subscription', JSON.stringify(subscription));
-
-        try {
-            fetch(urlToUse, { method: 'POST', body: formData });
-        } catch (e) { }
-    }
-
+    // ============================================
+    // Enviar configuración de polling al SW → apunta a r1
+    // ============================================
     sendPollingConfigToSW() {
-        const urlToUse = typeof API_URL_POST !== 'undefined' ? API_URL_POST : (window.CONFIG ? window.CONFIG.API_URL_POST : null);
         const userId = window.currentUser ? window.currentUser.id : 'anonimo';
 
-        if (this.swRegistration && this.swRegistration.active && urlToUse) {
+        if (this.swRegistration && this.swRegistration.active) {
             this.swRegistration.active.postMessage({
                 type: 'SET_POLLING_CONFIG',
-                url: urlToUse,
+                url: this.notifApiUrl,       // ⭐ Ahora apunta a r1
                 userId: userId,
                 lastTs: this.lastNotificationTimestamp
             });
+            console.log('🔔 Polling configurado → r1 API');
         }
     }
 

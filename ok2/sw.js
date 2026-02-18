@@ -1,9 +1,37 @@
 // Service Worker para PandaDash - Versión optimizada para PWA
-const CACHE_NAME = 'pandadash-v9.3'; // Incrementar versión
+const CACHE_NAME = 'pandadash-v9.4'; // Incrementar versión
 
 const BASE = (new URL('.', self.location)).href;
 
 const RELATIVE_ASSETS = [
+  '',
+  'index.html',
+  'css/estilos_admin.css',
+  'css/estilos_base.css',
+  'css/estilos_contenido.css',
+  'css/estilos_interfaz.css',
+  'css/estilos_qr_escaner.css',
+  'css/estilos_soporte_grid.css',
+  'css/estilos_soporte.css',
+  'css/estilos_upload.css',
+  /* scripts principales */
+  'js/admin_usuarios.js',
+  'js/auth.js',
+  'js/camara.js',
+  'js/cola_carga.js',
+  'js/configuracion.js',
+  'js/datos.js',
+  'js/historial.js',
+  'js/inicio.js',
+  'js/interfaz.js',
+  'js/lector_qr.js',
+  'js/principal.js',
+  'js/qr_escaner.js',
+  'js/renderizado.js',
+  'js/sonidos.js',
+  'js/soporte_grid.js',
+  'js/upload_siesa.js',
+  /* icons */
   'icons/icon-192.png',
   'icons/icon-256.png',
   'icons/icon-384.png',
@@ -206,27 +234,27 @@ async function startBackgroundPolling() {
 
 async function checkNotifications() {
   const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
-  const userId = USER_ID_POLLING || await getPersistentValue('pollingUserId');
 
-  if (!url || !userId) {
-    console.log('[SW Polling] Sin URL o User ID, abortando check.');
+  if (!url) {
+    console.log('[SW Polling] Sin URL configurada, abortando check.');
     return;
   }
 
   try {
-    const lastTs = await getPersistentValue('lastNotifTs') || 0;
-    const fetchUrl = `${url}${url.includes('?') ? '&' : '?'}action=check_notification&userId=${encodeURIComponent(userId)}&_cb=${Date.now()}`;
+    const lastTs = (await getPersistentValue('lastNotifTs')) || 0;
+    // ⭐ r1 usa action=get-latest-notification vía GET
+    const fetchUrl = `${url}?action=get-latest-notification&_cb=${Date.now()}`;
 
-    console.log(`[SW Polling] Consultando servidor para usuario ${userId}...`);
+    console.log('[SW Polling] Consultando servidor r1...');
     const res = await fetch(fetchUrl);
     const data = await res.json();
 
     if (data.success && data.notification) {
       const notif = data.notification;
-      const ts = parseInt(notif.timestamp);
+      const ts = parseInt(notif.timestamp) || 0;
 
       if (ts > lastTs) {
-        console.log(`[SW Polling] ¡Nueva notificación para usuario ${userId}!`);
+        console.log('[SW Polling] ¡Nueva notificación recibida de r1!');
         await setPersistentValue('lastNotifTs', ts);
 
         self.registration.showNotification(notif.title || 'PandaDash', {
@@ -246,30 +274,64 @@ async function checkNotifications() {
   }
 }
 
-// Push real
+// Push real — compatible con r1 (payload directo en Android, tickle vacío en iOS)
+const R1_GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
+
 self.addEventListener('push', (event) => {
   console.log('[SW] Push real recibido');
-  let data = { title: 'PandaDash', body: 'Nueva notificación recibida' };
 
-  try {
+  const getPayload = new Promise((resolve, reject) => {
+    // Intentar leer payload directo (Android/Chrome)
     if (event.data) {
-      data = event.data.json();
+      try {
+        const json = event.data.json();
+        if (json && json.title) {
+          console.log('[SW] Datos recibidos en payload directo');
+          resolve(json);
+          return;
+        }
+      } catch (e) {
+        console.log('[SW] Payload no es JSON válido');
+      }
     }
-  } catch (e) {
-    if (event.data) data.body = event.data.text();
-  }
 
-  const options = {
-    body: data.body,
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'push-notif',
-    data: { url: data.url || './' }
-  };
+    // Sin payload (iOS tickle) → fetch desde r1
+    console.log('[SW] Sin payload, obteniendo de r1...');
+    const cacheBuster = '&t=' + Date.now();
+    fetch(R1_GAS_URL + '?action=get-latest-notification' + cacheBuster)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.notification) {
+          resolve(data.notification);
+        } else {
+          reject('No hay notificaciones recientes');
+        }
+      })
+      .catch(err => reject(err));
+  });
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    getPayload
+      .then(payload => {
+        const title = payload.title || 'PandaDash';
+        const options = {
+          body: payload.body || 'Tienes un mensaje nuevo',
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'push-notif',
+          data: { url: payload.url || './', timestamp: Date.now() }
+        };
+        return self.registration.showNotification(title, options);
+      })
+      .catch(err => {
+        console.error('[SW] Error procesando push:', err);
+        return self.registration.showNotification('PandaDash', {
+          body: 'Abre la app para ver el mensaje',
+          icon: './icons/icon-192.png',
+          data: { url: './' }
+        });
+      })
   );
 });
 
