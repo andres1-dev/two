@@ -215,6 +215,24 @@ function initUIListeners() {
                 }
             }, 800);
         }
+
+        // --- LÓGICA DE PESTAÑAS DEL REPORTE ---
+        const tabBtns = document.querySelectorAll('.report-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                window.activeReportTab = tab;
+
+                // Actualizar UI de botones
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Recargar reporte con la misma fecha
+                if (window.lastReportTarget) {
+                    showDetailedReport(window.lastReportTarget);
+                }
+            });
+        });
     } catch (err) {
         console.error("Error initializing UI Listeners:", err);
     }
@@ -1032,6 +1050,21 @@ function getLatestDeliveryDateVal() {
 async function showDetailedReport(target) {
     const modal = document.getElementById('reportDetailedModal');
     const contentArea = document.getElementById('reportContentArea');
+
+    // Guardar el último target y asegurar tab por defecto
+    window.lastReportTarget = target;
+    if (!window.activeReportTab) window.activeReportTab = 'delivery';
+
+    // Sincronizar UI de pestañas
+    const tabBtns = document.querySelectorAll('.report-tab-btn');
+    tabBtns.forEach(btn => {
+        if (btn.getAttribute('data-tab') === window.activeReportTab) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
     const reportTitle = document.querySelector('#reportDetailedModal .report-title h2');
     const reportSubtitle = document.querySelector('#reportDetailedModal .report-title p');
 
@@ -1078,8 +1111,23 @@ async function showDetailedReport(target) {
         return;
     }
 
-    if (reportTitle) reportTitle.textContent = "Detalle de Entregas";
+    if (reportTitle) reportTitle.textContent = "Resumen Diario";
     if (reportSubtitle) reportSubtitle.textContent = dateDisplayString;
+
+    // Si no es la pestaña de Delivery, mostrar contenido vacío/pendiente
+    if (window.activeReportTab !== 'delivery') {
+        const tabName = window.activeReportTab.charAt(0).toUpperCase() + window.activeReportTab.slice(1);
+        contentArea.innerHTML = `
+            <div style="text-align:center; padding:60px; color:var(--text-tertiary);">
+                <i class="fas fa-hammer" style="font-size:3rem; margin-bottom:20px; opacity:0.3;"></i>
+                <h3 style="color:var(--text-main); margin-bottom:10px;">Módulo ${tabName}</h3>
+                <p>Esta sección está en desarrollo y estará disponible próximamente.</p>
+                <div style="margin-top:20px; display:inline-block; padding:8px 16px; background:var(--primary-soft); color:var(--primary); border-radius:12px; font-weight:700; font-size:0.75rem;">
+                    PRÓXIMAMENTE
+                </div>
+            </div>`;
+        return;
+    }
 
     const robustParse = (str) => {
         if (!str) return null;
