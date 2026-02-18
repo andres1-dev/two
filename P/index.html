@@ -511,15 +511,17 @@
           <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between;">
             <div id="status">Sistema Listo</div>
             <div style="display: flex; gap: 12px;">
+              <button id="openDailyReportBtn" class="icon-btn" title="Resumen Diario">
+                <i class="fas fa-chart-pie"></i>
+              </button>
               <button id="mobileQueueBtn" class="icon-btn" title="Cola de carga"
                 onclick="if(window.toggleQueue) window.toggleQueue();">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span class="mobile-queue-badge" style="display: none;">0</span>
-                <!-- Botón de Grid (reemplaza al de soportes anterior) -->
-                <button id="openSoportesGridBtn" class="icon-btn" title="Entregas">
-                  <i class="fas fa-images"></i>
-                  <span class="notification-badge" id="soportesNotification" style="display: none;">•</span>
-                </button>
+              </button>
+              <button id="openSoportesGridBtn" class="icon-btn" title="Entregas">
+                <i class="fas fa-images"></i>
+                <span class="notification-badge" id="soportesNotification" style="display: none;">•</span>
               </button>
               <button id="refreshDataBtn" class="icon-btn" onclick="loadDataFromServer()" title="Actualizar">
                 <i class="fas fa-sync-alt"></i>
@@ -1020,245 +1022,268 @@
       </div>
     </div>
 
-  </div> <!-- #app-frame -->
+    <!-- Modal Reporte Detallado -->
+    <div id="reportDetailedModal" class="report-modal" style="display: none;">
+      <div class="report-header">
+        <div class="report-title">
+          <h2>Resumen de Entregas</h2>
+          <div class="report-date-selector">
+            <i class="fas fa-calendar-alt"></i>
+            <input type="text" id="reportDateRange" placeholder="Seleccionar fecha...">
+          </div>
+        </div>
+        <button class="report-close-btn" onclick="document.getElementById('reportDetailedModal').style.display='none'">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="report-body">
+        <div id="reportContentArea">
+          <!-- Se llena dinámicamente -->
+          <div style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Cargando reporte...</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <!-- JS Modularizado -->
-  <script src="js/cola_carga.js"></script>
-  <script src="js/configuracion.js"></script>
-  <script src="js/sonidos.js"></script>
-  <script src="js/interfaz.js"></script>
-  <script src="js/renderizado.js"></script>
-  <script src="js/principal.js"></script>
-  <script src="notificaciones.js"></script>
-  <script src="js/datos.js"></script>
-  <script src="js/lector_qr.js"></script>
-  <script src="js/camara.js"></script>
-  <script src="js/qr_escaner.js"></script>
-  <script src="sw.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/admin_usuarios.js"></script>
-  <script src="js/historial.js"></script>
-  <script src="js/inicio.js"></script>
-  <script src="js/cola_carga_core.js"></script>
-  <script src="js/cola_carga_ui.js"></script>
-  <script src="js/soportes_datatable.js"></script>
+    <!-- JS Modularizado -->
+    <script src="js/cola_carga.js"></script>
+    <script src="js/configuracion.js"></script>
+    <script src="js/sonidos.js"></script>
+    <script src="js/interfaz.js"></script>
+    <script src="js/renderizado.js"></script>
+    <script src="js/principal.js"></script>
+    <script src="notificaciones.js"></script>
+    <script src="js/datos.js"></script>
+    <script src="js/lector_qr.js"></script>
+    <script src="js/camara.js"></script>
+    <script src="js/qr_escaner.js"></script>
+    <script src="sw.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin_usuarios.js"></script>
+    <script src="js/historial.js"></script>
+    <script src="js/inicio.js"></script>
+    <script src="js/cola_carga_core.js"></script>
+    <script src="js/cola_carga_ui.js"></script>
+    <script src="js/soportes_datatable.js"></script>
 
-  <!-- Soportes Grid -->
-  <link rel="stylesheet" href="css/estilos_soportes_grid.css">
-  <script src="js/soportes_grid.js"></script>
+    <!-- Soportes Grid -->
+    <link rel="stylesheet" href="css/estilos_soportes_grid.css">
+    <script src="js/soportes_grid.js"></script>
 
-  <script>
-    // =========================================
-    // INICIALIZACIÓN CORREGIDA - SOPORTES GRID
-    // =========================================
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log('🚀 Inicializando eventos del Grid');
-
-      // Elementos DOM
-      const openBtn = document.getElementById('openSoportesGridBtn');
-      const closeBtn = document.getElementById('closeSoportesGridBtn');
-      const modal = document.getElementById('soportesGridModal');
-      const overlay = document.getElementById('soportesGridOverlay');
-      const searchInput = document.getElementById('soportesGridSearch');
-      const filterToday = document.getElementById('filterTodayBtn');
-      const filterWeek = document.getElementById('filterWeekBtn');
-      const resetFilter = document.getElementById('resetFilterBtn');
-
+    <script>
       // =========================================
-      // ABRIR MODAL
+      // INICIALIZACIÓN CORREGIDA - SOPORTES GRID
       // =========================================
-      if (openBtn) {
-        openBtn.onclick = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('Abriendo modal de entregas');
+      document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 Inicializando eventos del Grid');
 
-          modal.style.display = 'flex';
-          overlay.style.display = 'block';
+        // Elementos DOM
+        const openBtn = document.getElementById('openSoportesGridBtn');
+        const closeBtn = document.getElementById('closeSoportesGridBtn');
+        const modal = document.getElementById('soportesGridModal');
+        const overlay = document.getElementById('soportesGridOverlay');
+        const searchInput = document.getElementById('soportesGridSearch');
+        const filterToday = document.getElementById('filterTodayBtn');
+        const filterWeek = document.getElementById('filterWeekBtn');
+        const resetFilter = document.getElementById('resetFilterBtn');
 
-          // Resetear búsqueda
-          if (searchInput) searchInput.value = '';
+        // =========================================
+        // ABRIR MODAL
+        // =========================================
+        if (openBtn) {
+          openBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Abriendo modal de entregas');
 
-          // Resetear filtros activos
-          if (filterToday) filterToday.classList.remove('active');
-          if (filterWeek) filterWeek.classList.remove('active');
+            modal.style.display = 'flex';
+            overlay.style.display = 'block';
 
-          // Cargar datos si no se han cargado
-          if (window.SoportesGrid) {
-            if (SoportesGrid.entregas.length === 0) {
-              SoportesGrid.cargarDatos();
-            } else {
-              // Resetear filtros y recargar
+            // Resetear búsqueda
+            if (searchInput) searchInput.value = '';
+
+            // Resetear filtros activos
+            if (filterToday) filterToday.classList.remove('active');
+            if (filterWeek) filterWeek.classList.remove('active');
+
+            // Cargar datos si no se han cargado
+            if (window.SoportesGrid) {
+              if (SoportesGrid.entregas.length === 0) {
+                SoportesGrid.cargarDatos();
+              } else {
+                // Resetear filtros y recargar
+                SoportesGrid.resetFiltros();
+              }
+            }
+          };
+        }
+
+        // =========================================
+        // CERRAR MODAL
+        // =========================================
+        const closeModal = function () {
+          modal.style.display = 'none';
+          overlay.style.display = 'none';
+        };
+
+        if (closeBtn) closeBtn.onclick = closeModal;
+        if (overlay) overlay.onclick = closeModal;
+
+        // =========================================
+        // BÚSQUEDA EN TIEMPO REAL
+        // =========================================
+        if (searchInput) {
+          let debounceTimer;
+          searchInput.oninput = function (e) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              if (window.SoportesGrid) {
+                console.log('Buscando:', e.target.value);
+                SoportesGrid.aplicarFiltros({ busqueda: e.target.value });
+              }
+            }, 400); // Delay para mejor rendimiento
+          };
+        }
+
+        // =========================================
+        // FILTRO DE HOY - CORREGIDO
+        // =========================================
+        if (filterToday) {
+          filterToday.onclick = function (e) {
+            e.preventDefault();
+            console.log('Filtrar por HOY');
+
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            today.setHours(0, 0, 0, 0);
+            tomorrow.setHours(0, 0, 0, 0);
+
+            if (window.SoportesGrid) {
+              SoportesGrid.aplicarFiltros({
+                fechaInicio: today,
+                fechaFin: tomorrow
+              });
+            }
+
+            // UI feedback
+            filterToday.classList.add('active');
+            if (filterWeek) filterWeek.classList.remove('active');
+            if (resetFilter) resetFilter.classList.remove('active');
+
+            // Limpiar búsqueda
+            if (searchInput) searchInput.value = '';
+          };
+        }
+
+        // =========================================
+        // FILTRO DE SEMANA - CORREGIDO
+        // =========================================
+        if (filterWeek) {
+          filterWeek.onclick = function (e) {
+            e.preventDefault();
+            console.log('Filtrar por ÚLTIMA SEMANA');
+
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            today.setHours(23, 59, 59, 999);
+            weekAgo.setHours(0, 0, 0, 0);
+
+            if (window.SoportesGrid) {
+              SoportesGrid.aplicarFiltros({
+                fechaInicio: weekAgo,
+                fechaFin: today
+              });
+            }
+
+            // UI feedback
+            filterWeek.classList.add('active');
+            if (filterToday) filterToday.classList.remove('active');
+            if (resetFilter) resetFilter.classList.remove('active');
+
+            // Limpiar búsqueda
+            if (searchInput) searchInput.value = '';
+          };
+        }
+
+        // =========================================
+        // RESET FILTROS
+        // =========================================
+        if (resetFilter) {
+          resetFilter.onclick = function (e) {
+            e.preventDefault();
+            console.log('Resetear filtros');
+
+            if (window.SoportesGrid) {
               SoportesGrid.resetFiltros();
             }
-          }
-        };
-      }
 
-      // =========================================
-      // CERRAR MODAL
-      // =========================================
-      const closeModal = function () {
-        modal.style.display = 'none';
-        overlay.style.display = 'none';
-      };
+            // UI feedback
+            filterToday.classList.remove('active');
+            filterWeek.classList.remove('active');
+            resetFilter.classList.remove('active');
 
-      if (closeBtn) closeBtn.onclick = closeModal;
-      if (overlay) overlay.onclick = closeModal;
-
-      // =========================================
-      // BÚSQUEDA EN TIEMPO REAL
-      // =========================================
-      if (searchInput) {
-        let debounceTimer;
-        searchInput.oninput = function (e) {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (window.SoportesGrid) {
-              console.log('Buscando:', e.target.value);
-              SoportesGrid.aplicarFiltros({ busqueda: e.target.value });
-            }
-          }, 400); // Delay para mejor rendimiento
-        };
-      }
-
-      // =========================================
-      // FILTRO DE HOY - CORREGIDO
-      // =========================================
-      if (filterToday) {
-        filterToday.onclick = function (e) {
-          e.preventDefault();
-          console.log('Filtrar por HOY');
-
-          const today = new Date();
-          const tomorrow = new Date(today);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-
-          today.setHours(0, 0, 0, 0);
-          tomorrow.setHours(0, 0, 0, 0);
-
-          if (window.SoportesGrid) {
-            SoportesGrid.aplicarFiltros({
-              fechaInicio: today,
-              fechaFin: tomorrow
-            });
-          }
-
-          // UI feedback
-          filterToday.classList.add('active');
-          if (filterWeek) filterWeek.classList.remove('active');
-          if (resetFilter) resetFilter.classList.remove('active');
-
-          // Limpiar búsqueda
-          if (searchInput) searchInput.value = '';
-        };
-      }
-
-      // =========================================
-      // FILTRO DE SEMANA - CORREGIDO
-      // =========================================
-      if (filterWeek) {
-        filterWeek.onclick = function (e) {
-          e.preventDefault();
-          console.log('Filtrar por ÚLTIMA SEMANA');
-
-          const today = new Date();
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-
-          today.setHours(23, 59, 59, 999);
-          weekAgo.setHours(0, 0, 0, 0);
-
-          if (window.SoportesGrid) {
-            SoportesGrid.aplicarFiltros({
-              fechaInicio: weekAgo,
-              fechaFin: today
-            });
-          }
-
-          // UI feedback
-          filterWeek.classList.add('active');
-          if (filterToday) filterToday.classList.remove('active');
-          if (resetFilter) resetFilter.classList.remove('active');
-
-          // Limpiar búsqueda
-          if (searchInput) searchInput.value = '';
-        };
-      }
-
-      // =========================================
-      // RESET FILTROS
-      // =========================================
-      if (resetFilter) {
-        resetFilter.onclick = function (e) {
-          e.preventDefault();
-          console.log('Resetear filtros');
-
-          if (window.SoportesGrid) {
-            SoportesGrid.resetFiltros();
-          }
-
-          // UI feedback
-          filterToday.classList.remove('active');
-          filterWeek.classList.remove('active');
-          resetFilter.classList.remove('active');
-
-          // Limpiar búsqueda
-          if (searchInput) searchInput.value = '';
-        };
-      }
-
-      // =========================================
-      // MODAL DE IMAGEN
-      // =========================================
-      const downloadBtn = document.getElementById('downloadImageBtn');
-      if (downloadBtn) {
-        downloadBtn.onclick = function () {
-          const img = document.getElementById('soportesModalImage');
-          if (img && img.src) {
-            const a = document.createElement('a');
-            a.href = img.src;
-            a.download = 'soporte_' + new Date().getTime() + '.jpg';
-            a.click();
-          }
-        };
-      }
-
-      // =========================================
-      // CERRAR MODAL DE IMAGEN CON ESC
-      // =========================================
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-          const imageModal = document.getElementById('soportesImageModal');
-          if (imageModal) imageModal.style.display = 'none';
+            // Limpiar búsqueda
+            if (searchInput) searchInput.value = '';
+          };
         }
-      });
 
-      // =========================================
-      // CERRAR AL HACER CLICK FUERA DE LA IMAGEN
-      // =========================================
-      const imageModal = document.getElementById('soportesImageModal');
-      if (imageModal) {
-        imageModal.onclick = function (e) {
-          if (e.target === imageModal) {
-            imageModal.style.display = 'none';
+        // =========================================
+        // MODAL DE IMAGEN
+        // =========================================
+        const downloadBtn = document.getElementById('downloadImageBtn');
+        if (downloadBtn) {
+          downloadBtn.onclick = function () {
+            const img = document.getElementById('soportesModalImage');
+            if (img && img.src) {
+              const a = document.createElement('a');
+              a.href = img.src;
+              a.download = 'soporte_' + new Date().getTime() + '.jpg';
+              a.click();
+            }
+          };
+        }
+
+        // =========================================
+        // CERRAR MODAL DE IMAGEN CON ESC
+        // =========================================
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            const imageModal = document.getElementById('soportesImageModal');
+            if (imageModal) imageModal.style.display = 'none';
           }
-        };
-      }
+        });
 
-      // =========================================
-      // EXPORTAR EXCEL (opcional)
-      // =========================================
-      const exportBtn = document.getElementById('exportSoportesBtn');
-      if (exportBtn && window.SoportesGrid) {
-        exportBtn.onclick = function () {
-          SoportesGrid.exportarExcel();
-        };
-      }
+        // =========================================
+        // CERRAR AL HACER CLICK FUERA DE LA IMAGEN
+        // =========================================
+        const imageModal = document.getElementById('soportesImageModal');
+        if (imageModal) {
+          imageModal.onclick = function (e) {
+            if (e.target === imageModal) {
+              imageModal.style.display = 'none';
+            }
+          };
+        }
 
-      console.log('✅ Eventos del Grid configurados');
-    });
-  </script>
+        // =========================================
+        // EXPORTAR EXCEL (opcional)
+        // =========================================
+        const exportBtn = document.getElementById('exportSoportesBtn');
+        if (exportBtn && window.SoportesGrid) {
+          exportBtn.onclick = function () {
+            SoportesGrid.exportarExcel();
+          };
+        }
+
+        console.log('✅ Eventos del Grid configurados');
+      });
+    </script>
 
 </body>
 

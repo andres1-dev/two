@@ -1434,27 +1434,33 @@ input:checked+.slider:before {
   display: none;
   position: fixed;
   inset: 0;
-  background: white;
+  background: var(--background);
   z-index: 20000;
   flex-direction: column;
-  animation: slideInRight 0.3s ease-out;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 .report-header {
-  padding: 20px;
+  padding: 20px 24px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border-light);
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .report-title {
@@ -1474,18 +1480,53 @@ input:checked+.slider:before {
   color: var(--text-secondary);
 }
 
+.report-date-selector {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--background);
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+
+.report-date-selector i {
+  color: var(--primary);
+  font-size: 0.85rem;
+}
+
+.report-date-selector input {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  outline: none;
+  width: 180px;
+  font-family: inherit;
+}
+
 .report-close-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   border: none;
   background: var(--background);
   color: var(--text-main);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-close-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+  transform: rotate(90deg);
 }
 
 .report-body {
@@ -1502,34 +1543,85 @@ input:checked+.slider:before {
   margin-bottom: 25px;
 }
 
+@media (max-width: 400px) {
+  .report-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 .report-stat-card {
   background: white;
-  padding: 15px 10px;
-  border-radius: 16px;
+  padding: 18px 8px;
+  border-radius: 20px;
   text-align: center;
   border: 1px solid var(--border-light);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.report-stat-card:active {
+  transform: scale(0.96);
+}
+
+.report-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  border-radius: 0 0 10px 10px;
+  background: var(--primary);
+}
+
+.report-stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  opacity: 0.8;
 }
 
 .report-stat-card i {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  margin-bottom: 10px;
   color: var(--primary);
-  margin-bottom: 8px;
-  display: block;
+  opacity: 0.9;
 }
 
 .report-stat-card .val {
-  font-size: 1.1rem;
-  font-weight: 700;
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
   color: var(--text-main);
+  line-height: 1.2;
 }
 
 .report-stat-card .lab {
+  display: block;
   font-size: 0.65rem;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  font-weight: 600;
-  margin-top: 2px;
+  font-weight: 700;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Ajuste específico para valores largos de moneda en móvil */
+@media (max-width: 380px) {
+  .report-stat-card .val {
+    font-size: 1rem;
+  }
 }
 
 .report-section-title {
@@ -1543,12 +1635,19 @@ input:checked+.slider:before {
 }
 
 .client-report-card {
-  background: white;
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 16px;
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 20px;
   border: 1px solid var(--border-light);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+}
+
+.client-report-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-soft);
 }
 
 .client-name {
@@ -1599,26 +1698,51 @@ input:checked+.slider:before {
 
 .session-details {
   background: var(--background);
-  border-radius: 12px;
-  padding: 10px;
+  border-radius: 16px;
+  padding: 15px;
   display: flex;
   justify-content: space-around;
-  gap: 5px;
+  gap: 15px;
+  border: 1px solid var(--border-light);
 }
 
 .sess-stat {
   text-align: center;
+  flex: 1;
 }
 
 .sess-stat .v {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 2px;
 }
 
 .sess-stat .l {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
   text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.report-date-selector {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--background);
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  width: fit-content;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-date-selector:hover {
+  border-color: var(--primary);
+  background: white;
 }

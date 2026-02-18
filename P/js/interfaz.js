@@ -128,22 +128,95 @@ function initUIListeners() {
     // Inicializar Modos de Interacción (PDA, Manual, Cámara)
     initPDAModes();
 
-    // Inicializar UI de Configuracion
-    initSettingsUI();
+    try {
+        // Inicializar UI de Configuracion
+        initSettingsUI();
 
-    // Detector de reporte desde notificación
-    const urlParams = new URLSearchParams(window.location.search);
-    const reportDate = urlParams.get('showReport');
-    if (reportDate) {
-        // Limpiar URL para que al recargar no vuelva a saltar
-        window.history.replaceState({}, document.title, window.location.pathname);
-        // Esperar a que los datos carguen
-        const checkInterval = setInterval(() => {
-            if (window.dataLoaded && typeof showDetailedReport === 'function') {
-                clearInterval(checkInterval);
-                showDetailedReport(parseInt(reportDate));
-            }
-        }, 500);
+        // --- Reporte Detallado e Inicialización de Flatpickr ---
+        const rDateInput = document.getElementById('reportDateRange');
+
+        // Helper para rango por defecto (Hoy y un mes atrás)
+        const getReportDefaultRange = () => {
+            const end = new Date();
+            const start = new Date();
+            start.setMonth(start.getMonth() - 1);
+            return [start, end];
+        };
+
+        if (rDateInput && typeof flatpickr !== 'undefined') {
+            console.log("Initializing Flatpickr for Report");
+
+            // Buscar la fecha más reciente para el valor predeterminado
+            const latest = getLatestDeliveryDateVal() || new Date();
+
+            flatpickr(rDateInput, {
+                mode: "range",
+                dateFormat: "d/m/Y",
+                locale: "es",
+                maxDate: "today",
+                defaultDate: [latest, latest],
+                onClose: function (selectedDates) {
+                    if (selectedDates.length === 2) {
+                        showDetailedReport(selectedDates);
+                    } else if (selectedDates.length === 1) {
+                        showDetailedReport(selectedDates[0]);
+                    }
+                }
+            });
+        }
+
+        // Listener para el botón manual del reporte
+        const reportBtn = document.getElementById('openDailyReportBtn');
+        if (reportBtn) {
+            console.log("Report button found, attaching listener");
+            reportBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                // 1. Abrir el modal inmediatamente (Estado: Cargando)
+                const modal = document.getElementById('reportDetailedModal');
+                const contentArea = document.getElementById('reportContentArea');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    if (contentArea) contentArea.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-sync fa-spin fa-2x"></i><p>Calculando resumen...</p></div>';
+                }
+
+                try {
+                    // 2. Asegurar datos
+                    let db = window.database || (typeof database !== 'undefined' ? database : null);
+                    if (!db || db.length === 0) {
+                        if (typeof silentReloadData === 'function') {
+                            await Promise.race([
+                                silentReloadData(),
+                                new Promise(resolve => setTimeout(resolve, 3000))
+                            ]);
+                            db = window.database || (typeof database !== 'undefined' ? database : null);
+                        }
+                    }
+
+                    // 3. Abrir con la última fecha con datos por defecto
+                    const latestDate = getLatestDeliveryDateVal() || new Date();
+                    showDetailedReport(latestDate);
+                } catch (err) {
+                    console.error("Critical report error:", err);
+                    if (contentArea) contentArea.innerHTML = `<div style="text-align:center; padding:20px; color:var(--danger);"><i class="fas fa-bug"></i> Error crítico. Refresca la página.</div>`;
+                }
+            });
+        }
+
+        // Detector de reporte (desde notificación)
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportDateReq = urlParams.get('showReport');
+        if (reportDateReq) {
+            const checkDataInterval = setInterval(() => {
+                if (window.dataLoaded && typeof showDetailedReport === 'function') {
+                    clearInterval(checkDataInterval);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    showDetailedReport(parseInt(reportDateReq));
+                }
+            }, 800);
+        }
+    } catch (err) {
+        console.error("Error initializing UI Listeners:", err);
     }
 
     // Detector para deshabilitar el teclado virtual en dispositivos móviles
@@ -895,86 +968,157 @@ function initSettingsUI() {
 }
 
 /**
- * Muestra el Reporte Detallado (Modal Premium)
- * @param {number} targetDateVal - Fecha en formato YYYYMMDD
+ * Obtiene la fecha más reciente que contiene entregas confirmadas
  */
-async function showDetailedReport(targetDateVal) {
-    console.log('📊 Generando reporte detallado para:', targetDateVal);
+function getLatestDeliveryDateVal() {
+    try {
+        const db = window.database || (typeof database !== 'undefined' ? database : null);
+        if (!db || !Array.isArray(db)) return null;
+        let maxDate = null;
 
-    let modal = document.getElementById('reportDetailedModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'reportDetailedModal';
-        modal.className = 'report-modal';
-        document.body.appendChild(modal);
+        const robustParse = (str) => {
+            if (!str) return null;
+            if (str instanceof Date) return str;
+            const s = String(str).trim();
+            // Formato DD/MM/YYYY o DD-MM-YYYY
+            const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
+        db.forEach(item => {
+            if (!item) return;
+            const subs = item.datosSiesa || (item.factura ? [item] : []);
+            subs.forEach(f => {
+                const conf = String(f.confirmacion || f.estado || f.estadoEntrega || "").toUpperCase();
+                // Ser muy inclusivo con lo que se considera entregado
+                if (conf.includes('ENTREGADO') || conf.includes('CONFIRMADO') || conf.includes('✅')) {
+                    const d = robustParse(f.fechaEntrega || f.fecha);
+                    if (d) {
+                        if (!maxDate || d > maxDate) maxDate = d;
+                    }
+                }
+            });
+        });
+        return maxDate;
+    } catch (e) {
+        console.warn("Error in getLatestDeliveryDateVal:", e);
+        return null;
     }
+}
 
-    if (!window.database || window.database.length === 0) {
-        alert("Los datos aún no se han cargado por completo. Espera un momento y vuelve a intentarlo.");
+/**
+ * Muestra el Reporte Detallado (Modal Premium)
+ * @param {number|Date|Array} target - Fecha YYYYMMDD, Objeto Date o Rango [Start, End]
+ */
+async function showDetailedReport(target) {
+    const modal = document.getElementById('reportDetailedModal');
+    const contentArea = document.getElementById('reportContentArea');
+    const reportTitle = document.querySelector('#reportDetailedModal .report-title h2');
+    const reportSubtitle = document.querySelector('#reportDetailedModal .report-title p');
+
+    console.log("ShowDetailedReport iniciado:", target);
+
+    if (!modal || !contentArea) return;
+
+    modal.style.display = 'flex';
+    contentArea.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-circle-notch fa-spin fa-2x"></i><p>Analizando registros de entregas...</p></div>';
+
+    const db = window.database || (typeof database !== 'undefined' ? database : null);
+
+    if (!db || !Array.isArray(db) || db.length === 0) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-database" style="font-size:3rem; margin-bottom:15px;"></i><p>Base de datos vacía o no disponible.</p></div>`;
         return;
     }
 
-    // 1. Recopilar y filtrar entregas del día
-    const allDeliveries = [];
-    const parseDateHelper = (str) => {
-        if (!str) return null;
-        // Formato DD/MM/YYYY HH:mm:ss o MM/DD/YYYY HH:mm:ss
-        const match = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
-        if (match) {
-            // Intentar DD/MM/YYYY
-            const day = parseInt(match[1]);
-            const month = parseInt(match[2]) - 1;
-            const year = parseInt(match[3]);
-            return new Date(year, month, day, parseInt(match[4] || 0), parseInt(match[5] || 0));
+    // 1. Normalizar fechas de búsqueda con extremada precaución
+    let startDate = null;
+    let endDate = null;
+    let dateDisplayString = "";
+
+    try {
+        if (Array.isArray(target) && target.length === 2) {
+            startDate = new Date(target[0]); startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(target[1]); endDate.setHours(23, 59, 59, 999);
+            dateDisplayString = `${startDate.toLocaleDateString('es-CO')} - ${endDate.toLocaleDateString('es-CO')}`;
+        } else if (target instanceof Date) {
+            startDate = new Date(target); startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(target); endDate.setHours(23, 59, 59, 999);
+            dateDisplayString = startDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } else if (typeof target === 'number') {
+            const yr = Math.floor(target / 10000);
+            const mo = Math.floor((target % 10000) / 100) - 1;
+            const dy = target % 100;
+            startDate = new Date(yr, mo, dy, 0, 0, 0);
+            endDate = new Date(yr, mo, dy, 23, 59, 59, 999);
+            dateDisplayString = startDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } else {
+            throw new Error("Formato de fecha desconocido");
         }
-        return new Date(str);
+    } catch (e) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:20px; color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Error en formato de fecha para el reporte.</div>`;
+        return;
+    }
+
+    if (reportTitle) reportTitle.textContent = "Detalle de Entregas";
+    if (reportSubtitle) reportSubtitle.textContent = dateDisplayString;
+
+    const robustParse = (str) => {
+        if (!str) return null;
+        if (str instanceof Date) return str;
+        const m = String(str).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        if (m) {
+            return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]), parseInt(m[4] || 0), parseInt(m[5] || 0));
+        }
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
     };
 
-    window.database.forEach(item => {
-        const itemsAProcesar = item.datosSiesa || (item.factura ? [item] : []);
-        itemsAProcesar.forEach(f => {
-            const esEntregado = f.confirmacion && f.confirmacion.includes('ENTREGADO');
-            if (!esEntregado) return;
-
-            const dateObj = parseDateHelper(f.fechaEntrega || f.fecha);
-            if (!dateObj) return;
-
-            const dVal = (dateObj.getFullYear() * 10000) + ((dateObj.getMonth() + 1) * 100) + dateObj.getDate();
-            if (dVal === targetDateVal) {
-                allDeliveries.push({ ...f, dateObj });
+    // 2. Filtrar deliveries en el rango
+    const filteredDeliveries = [];
+    db.forEach(item => {
+        if (!item) return;
+        const subs = item.datosSiesa || (item.factura ? [item] : []);
+        subs.forEach(f => {
+            if (!f) return;
+            const conf = String(f.confirmacion || f.estado || f.estadoEntrega || "").toUpperCase();
+            if (conf.includes('ENTREGADO') || conf.includes('CONFIRMADO') || conf.includes('✅')) {
+                const dateObj = robustParse(f.fechaEntrega || f.fecha);
+                // Comparar solo fechas (sin horas) para evitar errores de zona horaria
+                if (dateObj) {
+                    const dTime = new Date(dateObj).setHours(0, 0, 0, 0);
+                    const sTime = new Date(startDate).setHours(0, 0, 0, 0);
+                    const eTime = new Date(endDate).setHours(23, 59, 59, 999);
+                    if (dTime >= sTime && dTime <= eTime) {
+                        filteredDeliveries.push({ ...f, dateObj });
+                    }
+                }
             }
         });
     });
 
-    if (allDeliveries.length === 0) {
-        alert("No se encontraron entregas confirmadas para esta fecha.");
+    if (filteredDeliveries.length === 0) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-calendar-times" style="font-size:3rem; margin-bottom:15px;"></i><p>No se encontraron entregas en este periodo.</p></div>`;
         return;
     }
 
-    // 2. Consolidar por clientes y sesiones (1 hora de diferencia)
+    // 3. Consolidar
     const clientGroups = {};
     let totalUnidades = 0;
     let totalValor = 0;
     const facturasUnicas = new Set();
 
-    allDeliveries.forEach(d => {
+    filteredDeliveries.forEach(d => {
         const client = d.cliente || "CLIENTE NO IDENTIFICADO";
         if (!clientGroups[client]) clientGroups[client] = [];
         clientGroups[client].push(d);
-
         facturasUnicas.add(d.factura);
         totalUnidades += parseFloat(d.cantidad) || 0;
         totalValor += parseFloat(d.valorBruto) || 0;
     });
 
-    const formatCur = (v) => new Intl.NumberFormat('es-CO', {
-        style: 'currency', currency: 'COP', minimumFractionDigits: 0
-    }).format(v);
-
-    const sampleDate = allDeliveries[0].dateObj;
-    const dateStr = sampleDate.toLocaleDateString('es-CO', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
+    const formatCur = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
 
     let clientsHtml = "";
     Object.keys(clientGroups).sort().forEach(clientName => {
@@ -986,13 +1130,7 @@ async function showDetailedReport(targetDateVal) {
 
         deliveries.forEach(d => {
             if (!currentSess || (d.dateObj.getTime() - currentSess.last.getTime() > 3600 * 1000)) {
-                currentSess = {
-                    start: d.dateObj,
-                    last: d.dateObj,
-                    unidades: 0,
-                    facturas: new Set(),
-                    valor: 0
-                };
+                currentSess = { start: d.dateObj, last: d.dateObj, unidades: 0, facturas: new Set(), valor: 0 };
                 sessions.push(currentSess);
             }
             currentSess.last = d.dateObj;
@@ -1002,82 +1140,55 @@ async function showDetailedReport(targetDateVal) {
         });
 
         let sessionsHtml = "";
-        sessions.forEach((s, i) => {
-            const timeStr = s.start.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+        sessions.forEach(s => {
+            const startStr = s.start.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const endStr = s.last.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const dateStr = s.start.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' });
+
+            // Calcular duración
+            const diffMs = s.last.getTime() - s.start.getTime();
+            const mins = Math.floor(diffMs / 60000);
+            let durationStr = "";
+            if (mins > 0) {
+                const hrs = Math.floor(mins / 60);
+                const rm = mins % 60;
+                durationStr = hrs > 0 ? `${hrs}h ${rm}m` : `${mins} min`;
+            }
+
+            const timeDisplay = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+            const durationBadge = durationStr ? `<span style="background:var(--primary-soft); color:var(--primary); padding:2px 8px; border-radius:8px; font-size:0.65rem; margin-left:8px; font-weight:700;">${durationStr}</span>` : "";
+
             sessionsHtml += `
                 <div class="session-item">
-                    <div class="session-time"><i class="far fa-clock"></i> ${timeStr}</div>
-                    <div class="session-details">
-                        <div class="sess-stat">
-                            <span class="v">${s.facturas.size}</span>
-                            <span class="l">Facs</span>
-                        </div>
-                        <div class="sess-stat">
-                            <span class="v">${s.unidades.toLocaleString('es-CO')}</span>
-                            <span class="l">Unds</span>
-                        </div>
-                        <div class="sess-stat">
-                            <span class="v">${formatCur(s.valor)}</span>
-                            <span class="l">Valor</span>
-                        </div>
+                    <div class="session-time">
+                        <i class="far fa-clock"></i> ${timeDisplay} ${durationBadge}
+                        <span style="font-size:0.7rem; color:var(--text-tertiary); margin-left:5px;">(${dateStr})</span>
                     </div>
-                </div>
-            `;
+                    <div class="session-details">
+                        <div class="sess-stat"><span class="v">${s.facturas.size}</span><span class="l">Facturas</span></div>
+                        <div class="sess-stat"><span class="v">${s.unidades.toLocaleString('es-CO')}</span><span class="l">Unidades</span></div>
+                        <div class="sess-stat"><span class="v">${formatCur(s.valor)}</span><span class="l">Valor</span></div>
+                    </div>
+                </div>`;
         });
 
         clientsHtml += `
             <div class="client-report-card">
-                <div class="client-name">
-                    <i class="fas fa-building"></i>
-                    <span>${clientName}</span>
-                </div>
+                <div class="client-name"><i class="fas fa-building"></i> <span>${clientName}</span></div>
                 <div class="client-sessions">${sessionsHtml}</div>
-            </div>
-        `;
+            </div>`;
     });
 
-    modal.innerHTML = `
-        <div class="report-header">
-            <div class="report-title">
-                <h2>Detalle de Entregas</h2>
-                <p>${dateStr}</p>
-            </div>
-            <button class="report-close-btn" onclick="document.getElementById('reportDetailedModal').style.display='none'">
-                <i class="fas fa-times"></i>
-            </button>
+    contentArea.innerHTML = `
+        <div class="report-stats-grid">
+            <div class="report-stat-card"><i class="fas fa-file-invoice"></i><span class="val">${facturasUnicas.size}</span><span class="lab">Facturas</span></div>
+            <div class="report-stat-card"><i class="fas fa-boxes-stacked"></i><span class="val">${totalUnidades.toLocaleString('es-CO')}</span><span class="lab">Unidades</span></div>
+            <div class="report-stat-card"><i class="fas fa-hand-holding-dollar"></i><span class="val">${formatCur(totalValor)}</span><span class="lab">Valor Total</span></div>
         </div>
-        <div class="report-body">
-            <div class="report-stats-grid">
-                <div class="report-stat-card">
-                    <i class="fas fa-file-invoice"></i>
-                    <span class="val">${facturasUnicas.size}</span>
-                    <span class="lab">Facturas</span>
-                </div>
-                <div class="report-stat-card">
-                    <i class="fas fa-boxes-stacked"></i>
-                    <span class="val">${totalUnidades.toLocaleString('es-CO')}</span>
-                    <span class="lab">Unidades</span>
-                </div>
-                <div class="report-stat-card">
-                    <i class="fas fa-hand-holding-dollar"></i>
-                    <span class="val">${formatCur(totalValor)}</span>
-                    <span class="lab">Valor Total</span>
-                </div>
-            </div>
-            
-            <div class="report-section-title">
-                <i class="fas fa-list-ul"></i> Consolidado por Clientes
-            </div>
-            
-            <div class="clients-list">
-                ${clientsHtml}
-            </div>
-            
-            <div style="margin-top: 30px; padding: 20px; text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">
-                <i class="fas fa-info-circle"></i> Las entregas se agrupan automáticamente si tienen más de 1 hora de diferencia.
-            </div>
+        <div class="report-section-title"><i class="fas fa-list-ul"></i> Detalle por Clientes</div>
+        <div class="clients-list">${clientsHtml}</div>
+        <div style="margin-top: 30px; padding: 20px; text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">
+            <i class="fas fa-info-circle"></i> Las entregas se agrupan automáticamente si tienen más de 1 hora de diferencia.
         </div>
     `;
-
-    modal.style.display = 'flex';
 }
