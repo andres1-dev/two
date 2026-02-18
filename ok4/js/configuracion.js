@@ -72,11 +72,8 @@ function getSavedAppMode() {
     }
 }
 
-// API_URL (datos, usuarios, soportes)
+// API_URL
 const API_URL_POST = "https://script.google.com/macros/s/AKfycbyOwBp1er4nu9Uth2nS5rY2tYfvY-NMdWJkA3dIjmuaVUTLvnUyKtJIG62ACK22RpNWRQ/exec";
-
-// API_URL Notificaciones Push (r1 - VAPID/JWT dedicado)
-const API_URL_NOTIF = "https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec";
 
 // Variables globales de estado
 let database = [];

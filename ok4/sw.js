@@ -206,27 +206,27 @@ async function startBackgroundPolling() {
 
 async function checkNotifications() {
   const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
+  const userId = USER_ID_POLLING || await getPersistentValue('pollingUserId');
 
-  if (!url) {
-    console.log('[SW Polling] Sin URL configurada, abortando check.');
+  if (!url || !userId) {
+    console.log('[SW Polling] Sin URL o User ID, abortando check.');
     return;
   }
 
   try {
-    const lastTs = (await getPersistentValue('lastNotifTs')) || 0;
-    // ⭐ r1 usa action=get-latest-notification vía GET
-    const fetchUrl = `${url}?action=get-latest-notification&_cb=${Date.now()}`;
+    const lastTs = await getPersistentValue('lastNotifTs') || 0;
+    const fetchUrl = `${url}${url.includes('?') ? '&' : '?'}action=check_notification&userId=${encodeURIComponent(userId)}&_cb=${Date.now()}`;
 
-    console.log('[SW Polling] Consultando servidor r1...');
+    console.log(`[SW Polling] Consultando servidor para usuario ${userId}...`);
     const res = await fetch(fetchUrl);
     const data = await res.json();
 
     if (data.success && data.notification) {
       const notif = data.notification;
-      const ts = parseInt(notif.timestamp) || 0;
+      const ts = parseInt(notif.timestamp);
 
       if (ts > lastTs) {
-        console.log('[SW Polling] ¡Nueva notificación recibida de r1!');
+        console.log(`[SW Polling] ¡Nueva notificación para usuario ${userId}!`);
         await setPersistentValue('lastNotifTs', ts);
 
         self.registration.showNotification(notif.title || 'PandaDash', {
@@ -246,64 +246,30 @@ async function checkNotifications() {
   }
 }
 
-// Push real — compatible con r1 (payload directo en Android, tickle vacío en iOS)
-const R1_GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
-
+// Push real
 self.addEventListener('push', (event) => {
   console.log('[SW] Push real recibido');
+  let data = { title: 'PandaDash', body: 'Nueva notificación recibida' };
 
-  const getPayload = new Promise((resolve, reject) => {
-    // Intentar leer payload directo (Android/Chrome)
+  try {
     if (event.data) {
-      try {
-        const json = event.data.json();
-        if (json && json.title) {
-          console.log('[SW] Datos recibidos en payload directo');
-          resolve(json);
-          return;
-        }
-      } catch (e) {
-        console.log('[SW] Payload no es JSON válido');
-      }
+      data = event.data.json();
     }
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
 
-    // Sin payload (iOS tickle) → fetch desde r1
-    console.log('[SW] Sin payload, obteniendo de r1...');
-    const cacheBuster = '&t=' + Date.now();
-    fetch(R1_GAS_URL + '?action=get-latest-notification' + cacheBuster)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.notification) {
-          resolve(data.notification);
-        } else {
-          reject('No hay notificaciones recientes');
-        }
-      })
-      .catch(err => reject(err));
-  });
+  const options = {
+    body: data.body,
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: data.tag || 'push-notif',
+    data: { url: data.url || './' }
+  };
 
   event.waitUntil(
-    getPayload
-      .then(payload => {
-        const title = payload.title || 'PandaDash';
-        const options = {
-          body: payload.body || 'Tienes un mensaje nuevo',
-          icon: './icons/icon-192.png',
-          badge: './icons/icon-192.png',
-          vibrate: [200, 100, 200],
-          tag: 'push-notif',
-          data: { url: payload.url || './', timestamp: Date.now() }
-        };
-        return self.registration.showNotification(title, options);
-      })
-      .catch(err => {
-        console.error('[SW] Error procesando push:', err);
-        return self.registration.showNotification('PandaDash', {
-          body: 'Abre la app para ver el mensaje',
-          icon: './icons/icon-192.png',
-          data: { url: './' }
-        });
-      })
+    self.registration.showNotification(data.title, options)
   );
 });
 

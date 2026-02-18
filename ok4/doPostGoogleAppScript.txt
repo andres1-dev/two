@@ -122,6 +122,13 @@ function doGet(e) {
 
     const action = e.parameter.action;
     
+    if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     return ContentService.createTextOutput("PandaDash API Active")
       .setMimeType(ContentService.MimeType.TEXT);
@@ -181,7 +188,20 @@ if (e.parameter.action === "resetPassword") {
       return cambiarPassword(params.token, params.newPassword);
     }
     
-
+    // --- NUEVAS ACCIONES PARA NOTIFICACIONES PUSH ---
+    else if (action === 'save_push_subscription') {
+       return guardarSuscripcionPush(params.userId, params.subscription);
+    }
+    else if (action === 'send_push_notification') {
+       return procesarEnvioNotificacion(params.title, params.body);
+    }
+    else if (action === 'check_notification') {
+       const signal = PropertiesService.getScriptProperties().getProperty('LAST_GLOBAL_NOTIF');
+       return ContentService.createTextOutput(JSON.stringify({
+         success: true, 
+         notification: signal ? JSON.parse(signal) : null
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
     
     // Guardar datos (Acción por defecto si no es ninguna de las anteriores)
     const datos = {
@@ -224,6 +244,106 @@ if (e.parameter.action === "resetPassword") {
   }
 }
 
+// --- FUNCIONES PARA NOTIFICACIONES PUSH ---
+
+function guardarSuscripcionPush(userId, subscriptionJson) {
+  try {
+    if (!userId || !subscriptionJson) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Faltan datos de suscripción'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Parsear la suscripción si viene como string JSON
+    let subscription;
+    try {
+      subscription = JSON.parse(subscriptionJson);
+    } catch (e) {
+      subscription = subscriptionJson;
+    }
+
+    // Obtener suscripciones existentes
+    const props = PropertiesService.getScriptProperties();
+    const subscriptionsJson = props.getProperty('PUSH_SUBSCRIPTIONS') || '[]';
+    let subscriptions = JSON.parse(subscriptionsJson);
+    
+    // Buscar si ya existe una suscripción para este usuario
+    const existingIndex = subscriptions.findIndex(s => s.userId === userId);
+    
+    if (existingIndex >= 0) {
+      // Actualizar suscripción existente
+      subscriptions[existingIndex] = {
+        userId: userId,
+        subscription: subscription,
+        lastUpdated: Date.now()
+      };
+    } else {
+      // Agregar nueva suscripción
+      subscriptions.push({
+        userId: userId,
+        subscription: subscription,
+        lastUpdated: Date.now()
+      });
+    }
+    
+    // Guardar suscripciones
+    props.setProperty('PUSH_SUBSCRIPTIONS', JSON.stringify(subscriptions));
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Suscripción guardada correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error guardando suscripción push: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function procesarEnvioNotificacion(titulo, cuerpo) {
+  try {
+    if (!titulo || !cuerpo) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Faltan título o cuerpo de la notificación'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const notificacion = {
+      title: titulo,
+      body: cuerpo,
+      timestamp: Date.now()
+    };
+    
+    // Guardar la notificación para que pueda ser consultada vía polling
+    PropertiesService.getScriptProperties().setProperty('LAST_GLOBAL_NOTIF', JSON.stringify(notificacion));
+    
+    // También podemos guardar un historial de notificaciones
+    const historyJson = PropertiesService.getScriptProperties().getProperty('NOTIFICATION_HISTORY') || '[]';
+    let history = JSON.parse(historyJson);
+    history.unshift(notificacion); // Agregar al inicio
+    if (history.length > 50) history = history.slice(0, 50); // Mantener solo últimas 50
+    PropertiesService.getScriptProperties().setProperty('NOTIFICATION_HISTORY', JSON.stringify(history));
+    
+    console.log("Notificación enviada: " + titulo + " - " + cuerpo);
+
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: true,
+      message: 'Notificación enviada correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (e) {
+    Logger.log('Error enviando notificación: ' + e.message);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      message: e.message 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
 // --- GESTIÓN DE USUARIOS ---
 
