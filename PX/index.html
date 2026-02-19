@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Notificaciones - CORS Fixed</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        .primary { background: #4285f4; color: white; }
+        .secondary { background: #34a853; color: white; }
+        .danger { background: #ea4335; color: white; }
+        .info { background: #fbbc05; color: black; }
+        .status { background: #e8f0fe; padding: 10px; border-radius: 8px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .warning { background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>📱 Notificaciones PWA - Modo Compatible</h1>
+    
+    <div class="warning">
+        <strong>⚠️ Modo compatible con GAS:</strong> Usando JSONP para GET y iframe oculto para POST
+    </div>
+
+    <div class="card">
+        <h2>🔧 Diagnóstico Rápido</h2>
+        <div id="diagnosticStatus" class="status"></div>
+        <button id="testJsonp" class="info">🌐 Probar JSONP</button>
+        <button id="testIframePost" class="info">📤 Probar POST con iframe</button>
+    </div>
+
+    <div class="card">
+        <h2>1️⃣ Registrar Service Worker</h2>
+        <button id="registerSw" class="primary">📌 Registrar SW</button>
+        <div id="swStatus" class="status">Esperando...</div>
+    </div>
+
+    <div class="card">
+        <h2>2️⃣ Obtener Clave VAPID</h2>
+        <button id="getVapidKey" class="secondary">🔑 Obtener Clave VAPID</button>
+        <div id="vapidStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>3️⃣ Suscribirse a Notificaciones</h2>
+        <button id="subscribe" class="secondary">✅ Suscribirse</button>
+        <button id="checkSubscription" class="info">🔄 Verificar Suscripción</button>
+        <div id="pushStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>4️⃣ Enviar Notificación</h2>
+        <input type="text" id="notifTitle" placeholder="Título" value="Notificación de prueba">
+        <textarea id="notifBody" placeholder="Mensaje" rows="3">¡Funciona con CORS!</textarea>
+        <input type="text" id="notifIcon" placeholder="URL del ícono (opcional)" value="">
+        <button id="sendNotification" class="primary">🚀 ENVIAR NOTIFICACIÓN</button>
+    </div>
+
+    <div class="card">
+        <h2>📋 Logs</h2>
+        <div id="logContainer" class="status"></div>
+        <button id="clearLogs" class="info">🧹 Limpiar</button>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyK1miSWu81LzaoIiIchNsZtXsFtZshf9U8Z9goZovzd7kmx8mStvcpCYIJZspNQVhI/exec';
+        let swRegistration = null;
+        let vapidPublicKey = null;
+
+        // ============================================
+        // FUNCIÓN MAGICA: JSONP para GET (evita CORS)
+        // ============================================
+        function jsonpGet(action, callback) {
+            return new Promise((resolve, reject) => {
+                const callbackName = `jsonp_callback_${Date.now()}`;
+                const script = document.createElement('script');
+                
+                // Crear función global temporal
+                window[callbackName] = (data) => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    
+                    // Intentar parsear si es string JSON
+                    try {
+                        if (typeof data === 'string') {
+                            try {
+                                data = JSON.parse(data);
+                            } catch (e) {
+                                // No es JSON, mantener como string
+                            }
+                        }
+                        resolve({ ok: true, data: data });
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+
+                // Manejar errores
+                script.onerror = (err) => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('Error en JSONP'));
+                };
+
+                // Construir URL con callback
+                script.src = `${API_URL}?action=${action}&callback=${callbackName}`;
+                document.body.appendChild(script);
+                
+                // Timeout
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Timeout'));
+                    }
+                }, 10000);
+            });
+        }
+
+        // ============================================
+        // POST con iframe oculto (para GAS)
+        // ============================================
+        function postWithIframe(data) {
+            return new Promise((resolve, reject) => {
+                const iframeId = `iframe_${Date.now()}`;
+                const formId = `form_${Date.now()}`;
+                
+                // Crear iframe oculto
+                const iframe = document.createElement('iframe');
+                iframe.id = iframeId;
+                iframe.name = iframeId;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Crear formulario
+                const form = document.createElement('form');
+                form.id = formId;
+                form.method = 'POST';
+                form.action = API_URL;
+                form.target = iframeId;
+                form.style.display = 'none';
+                
+                // Añadir datos como campos ocultos
+                Object.keys(data).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = typeof data[key] === 'object' ? 
+                        JSON.stringify(data[key]) : data[key];
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                
+                // Escuchar respuesta del iframe
+                iframe.onload = () => {
+                    try {
+                        // Intentar leer contenido del iframe
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const content = iframeDoc.body.textContent || iframeDoc.body.innerText;
+                        
+                        // Limpiar
+                        document.body.removeChild(iframe);
+                        document.body.removeChild(form);
+                        
+                        try {
+                            resolve({ ok: true, data: JSON.parse(content) });
+                        } catch {
+                            resolve({ ok: true, data: content });
+                        }
+                    } catch (err) {
+                        // Error de CORS al leer iframe, pero el POST pudo funcionar
+                        document.body.removeChild(iframe);
+                        document.body.removeChild(form);
+                        resolve({ ok: true, data: 'POST enviado (no se puede leer respuesta)' });
+                    }
+                };
+                
+                // Timeout
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                        document.body.removeChild(form);
+                        reject(new Error('Timeout en POST'));
+                    }
+                }, 10000);
+                
+                // Enviar formulario
+                form.submit();
+            });
+        }
+
+        // ============================================
+        // Logging
+        // ============================================
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.padding = '4px 0';
+            logEntry.style.borderBottom = '1px solid #eee';
+            logEntry.style.color = type === 'error' ? '#ea4335' : 
+                                   type === 'success' ? '#34a853' : '#333';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // ============================================
+        // Pruebas
+        // ============================================
+        document.getElementById('testJsonp').addEventListener('click', async () => {
+            try {
+                addLog('Probando JSONP...');
+                const result = await jsonpGet('test');
+                addLog(`✅ JSONP exitoso: ${JSON.stringify(result.data)}`, 'success');
+            } catch (err) {
+                addLog(`❌ Error JSONP: ${err.message}`, 'error');
+            }
+        });
+
+        document.getElementById('testIframePost').addEventListener('click', async () => {
+            try {
+                addLog('Probando POST con iframe...');
+                const result = await postWithIframe({ 
+                    action: 'test',
+                    data: 'prueba'
+                });
+                addLog(`✅ POST iframe: ${JSON.stringify(result.data)}`, 'success');
+            } catch (err) {
+                addLog(`❌ Error POST: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Registrar SW
+        // ============================================
+        document.getElementById('registerSw').addEventListener('click', async () => {
+            try {
+                addLog('Registrando Service Worker...');
+                swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
+                document.getElementById('swStatus').innerHTML = '✅ Service Worker registrado';
+                addLog('SW registrado correctamente', 'success');
+            } catch (err) {
+                document.getElementById('swStatus').innerHTML = `❌ Error: ${err.message}`;
+                addLog(`Error SW: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Obtener VAPID Key con JSONP
+        // ============================================
+        document.getElementById('getVapidKey').addEventListener('click', async () => {
+            try {
+                addLog('Obteniendo clave VAPID con JSONP...');
+                const result = await jsonpGet('vapid-public-key');
+                
+                // La clave viene como texto plano
+                vapidPublicKey = result.data;
+                document.getElementById('vapidStatus').innerHTML = 
+                    `✅ Clave VAPID obtenida: ${vapidPublicKey.substring(0, 30)}...`;
+                addLog('Clave VAPID obtenida correctamente', 'success');
+                
+            } catch (err) {
+                document.getElementById('vapidStatus').innerHTML = `❌ Error: ${err.message}`;
+                addLog(`Error VAPID: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Suscribirse
+        // ============================================
+        document.getElementById('subscribe').addEventListener('click', async () => {
+            try {
+                if (!swRegistration) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+                
+                if (!vapidPublicKey) {
+                    addLog('Obteniendo clave VAPID primero...');
+                    const result = await jsonpGet('vapid-public-key');
+                    vapidPublicKey = result.data;
+                }
+                
+                addLog('Convirtiendo clave VAPID...');
+                const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+                
+                addLog('Suscribiendo a push...');
+                const subscription = await swRegistration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: convertedKey
+                });
+                
+                addLog('Enviando suscripción al servidor con iframe POST...');
+                const subData = {
+                    action: 'subscribe',
+                    subscription: JSON.stringify(subscription.toJSON())
+                };
+                
+                await postWithIframe(subData);
+                
+                document.getElementById('pushStatus').innerHTML = '✅ Suscrito correctamente';
+                addLog('Suscripción completada', 'success');
+                
+            } catch (err) {
+                document.getElementById('pushStatus').innerHTML = `❌ Error: ${err.message}`;
+                addLog(`Error suscripción: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Verificar suscripción
+        // ============================================
+        document.getElementById('checkSubscription').addEventListener('click', async () => {
+            try {
+                if (!swRegistration) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+                
+                const subscription = await swRegistration.pushManager.getSubscription();
+                if (subscription) {
+                    document.getElementById('pushStatus').innerHTML = 
+                        `✅ Activa: ${subscription.endpoint.substring(0, 50)}...`;
+                    addLog('Suscripción activa encontrada', 'success');
+                } else {
+                    document.getElementById('pushStatus').innerHTML = '❌ No hay suscripción activa';
+                    addLog('No hay suscripción activa', 'warning');
+                }
+            } catch (err) {
+                addLog(`Error verificando: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Enviar notificación
+        // ============================================
+        document.getElementById('sendNotification').addEventListener('click', async () => {
+            try {
+                const title = document.getElementById('notifTitle').value;
+                const body = document.getElementById('notifBody').value;
+                const icon = document.getElementById('notifIcon').value;
+                
+                addLog(`Enviando notificación: "${title}"...`);
+                
+                const result = await postWithIframe({
+                    action: 'send-notification',
+                    title: title,
+                    body: body,
+                    icon: icon
+                });
+                
+                addLog('✅ Notificación enviada al servidor', 'success');
+                if (result.data && typeof result.data === 'object') {
+                    addLog(`Respuesta: ${JSON.stringify(result.data)}`, 'info');
+                }
+                
+            } catch (err) {
+                addLog(`Error enviando: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================
+        // Utilidades
+        // ============================================
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            document.getElementById('logContainer').innerHTML = '';
+        });
+
+        // Inicialización
+        window.addEventListener('load', () => {
+            addLog('🚀 App iniciada en modo compatible con GAS');
+        });
+    </script>
+</body>
+</html>

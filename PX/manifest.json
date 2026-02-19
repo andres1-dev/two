@@ -1,0 +1,20 @@
+{
+    "name": "Probador de Notificaciones Push",
+    "short_name": "PushTester",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f5f5f5",
+    "theme_color": "#4285f4",
+    "icons": [
+        {
+            "src": "https://via.placeholder.com/192",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://via.placeholder.com/512",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
