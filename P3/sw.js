@@ -1,7 +1,37 @@
-// Service Worker para PandaDash - v9.6 ULTRA OPTIMIZADO
-const CACHE_NAME = 'pandadash-v9.65';
+// Service Worker para PandaDash - Versión optimizada para PWA
+const CACHE_NAME = 'pandadash-v9.5'; // Incrementar versión
 
-const ASSETS_TO_CACHE = [
+const BASE = (new URL('.', self.location)).href;
+
+const RELATIVE_ASSETS = [
+  /*'',
+  'index.html',
+  'css/estilos_admin.css',
+  'css/estilos_base.css',
+  'css/estilos_contenido.css',
+  'css/estilos_interfaz.css',
+  'css/estilos_qr_escaner.css',
+  'css/estilos_soporte_grid.css',
+  'css/estilos_soporte.css',
+  'css/estilos_upload.css', */
+  /* scripts principales */
+  /*'js/admin_usuarios.js',
+  'js/auth.js',
+  'js/camara.js',
+  'js/cola_carga.js',
+  'js/configuracion.js',
+  'js/datos.js',
+  'js/historial.js',
+  'js/inicio.js',
+  'js/interfaz.js',
+  'js/lector_qr.js',
+  'js/principal.js',
+  'js/qr_escaner.js',
+  'js/renderizado.js',
+  'js/sonidos.js',
+  'js/soporte_grid.js',
+  'js/upload_siesa.js',*/
+  /* icons */
   'icons/icon-192.png',
   'icons/icon-256.png',
   'icons/icon-384.png',
@@ -11,17 +41,24 @@ const ASSETS_TO_CACHE = [
   'icons/favicon.ico'
 ];
 
-// Configuración de polling
+const EXTERNAL_ASSETS = [
+  'https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js',
+  'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+];
+
+const ASSETS_TO_CACHE = [
+  ...RELATIVE_ASSETS.map(p => new URL(p, BASE).href)
+];
+
 let API_URL_POLLING = null;
 let USER_ID_POLLING = null;
-let POLLING_INTERVAL = 60000; // 1 minuto
-let lastNotifTimestamp = 0;
-let pollingTimer = null;
 
-// IndexedDB optimizado
 const DB_NAME = 'PandaDashNotifications';
 const DB_VERSION = 1;
 
+// Inicializar IndexedDB
 async function getDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -37,70 +74,105 @@ async function getDB() {
 }
 
 async function setPersistentValue(key, value) {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('config', 'readwrite');
-      tx.objectStore('config').put(value, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (e) {
-    console.warn('[SW] IndexedDB error:', e);
-  }
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('config', 'readwrite');
+    tx.objectStore('config').put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 async function getPersistentValue(key) {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('config', 'readonly');
-      const req = tx.objectStore('config').get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  } catch (e) {
-    return null;
-  }
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('config', 'readonly');
+    const req = tx.objectStore('config').get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 // Instalación
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando...');
+  console.log('[SW] 🔧 Instalando Service Worker...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
+      .then(cache => {
+        console.log('[SW] Cacheando assets locales...');
+        return cache.addAll(ASSETS_TO_CACHE)
+          .then(() => {
+            console.log('[SW] Assets locales cacheados');
+            return Promise.allSettled(
+              EXTERNAL_ASSETS.map(url =>
+                cache.add(url)
+                  .then(() => console.log(`[SW] Cacheado: ${url}`))
+                  .catch(err => {
+                    console.warn(`[SW] No se pudo cachear ${url}:`, err.message);
+                    return null;
+                  })
+              )
+            );
+          });
+      })
+      .then(() => {
+        console.log('[SW] Instalación completada');
+        return self.skipWaiting();
+      })
+      .catch(err => {
+        console.error('[SW] Error durante instalación:', err);
+      })
   );
 });
 
 // Activación
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando...');
+  console.log('[SW] Activando Service Worker...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('[SW] Eliminando cache:', cache);
+            console.log('[SW] Eliminando cache antiguo:', cache);
             return caches.delete(cache);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      console.log('[SW] Service Worker activado');
+      return self.clients.claim();
+    })
   );
 });
 
-// Fetch básico (solo assets estáticos)
+// Fetch strategy
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const url = new URL(req.url);
+
   if (!req.url.startsWith('http') || req.method !== 'GET') return;
 
-  // Solo cachear assets locales
-  if (req.url.includes('/icons/') || req.url.includes('favicon.ico')) {
+  if (url.hostname.includes('sheets.googleapis.com') || url.hostname.includes('script.google.com')) return;
+
+  const isIcon = url.pathname.includes('/icons/') || url.pathname.includes('favicon.ico');
+  const isExternal = EXTERNAL_ASSETS.some(cdn => req.url.startsWith(cdn));
+
+  if (isIcon || isExternal) {
     event.respondWith(
-      caches.match(req).then(cached => cached || fetch(req))
+      caches.match(req).then(cached => {
+        return cached || fetch(req).then(response => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+          }
+          return response;
+        });
+      })
     );
+  } else {
+    event.respondWith(fetch(req).catch(() => {
+      return caches.match(req);
+    }));
   }
 });
 
@@ -110,85 +182,169 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 
+  if (event.data && event.data.type === 'CHECK_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_NAME });
+  }
+
   if (event.data && event.data.type === 'SET_POLLING_CONFIG') {
-    API_URL_POLLING = event.data.url;
-    USER_ID_POLLING = event.data.userId;
-    if (event.data.interval) POLLING_INTERVAL = event.data.interval;
+    const url = event.data.url;
+    const userId = event.data.userId;
+    const ts = event.data.lastTs || 0;
 
-    setPersistentValue('pollingUrl', API_URL_POLLING);
-    setPersistentValue('pollingUserId', USER_ID_POLLING);
+    setPersistentValue('pollingUrl', url);
+    setPersistentValue('pollingUserId', userId);
 
-    console.log('[SW] Polling configurado:', API_URL_POLLING);
-    startPolling();
+    const currentTs = getPersistentValue('lastNotifTs') || 0;
+    if (ts > currentTs) {
+      setPersistentValue('lastNotifTs', ts);
+    }
+
+    API_URL_POLLING = url;
+    USER_ID_POLLING = userId;
+    console.log('[SW] URL de Polling y User ID configurados');
+    startBackgroundPolling();
+  }
+
+  if (event.data && event.data.type === 'CHECK_NOW') {
+    checkNotifications();
   }
 });
 
-// Push real
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push recibido');
+let pollingActive = false;
 
-  // Intentar parsear datos directamente
-  let notificationData = null;
+async function startBackgroundPolling() {
+  if (pollingActive) return;
+  pollingActive = true;
 
-  if (event.data) {
-    try {
-      notificationData = event.data.json();
-    } catch (e) {
-      try {
-        // Intentar como texto plano
-        const text = event.data.text();
-        if (text && text.length > 0) {
-          notificationData = { body: text };
-        }
-      } catch (e2) { }
-    }
+  if (!API_URL_POLLING) {
+    API_URL_POLLING = await getPersistentValue('pollingUrl');
+  }
+  if (!USER_ID_POLLING) {
+    USER_ID_POLLING = await getPersistentValue('pollingUserId');
   }
 
-  if (notificationData && notificationData.title) {
-    // Push completo
-    event.waitUntil(
-      self.registration.showNotification(notificationData.title, {
-        body: notificationData.body || 'Nueva notificación',
-        icon: notificationData.icon || '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        vibrate: [200, 100, 200],
-        data: { url: notificationData.url || './', timestamp: Date.now() }
-      })
-    );
-  } else {
-    // Push vacío (tickle iOS) - obtener del servidor
-    event.waitUntil(
-      fetchLatestNotification().then(notif => {
-        if (notif) {
-          return self.registration.showNotification(notif.title || 'PandaDash', {
-            body: notif.body || 'Nuevo mensaje',
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            vibrate: [200, 100, 200],
-            data: { url: notif.url || './' }
-          });
+  console.log('[SW] Iniciando ciclo de polling en segundo plano...');
+
+  setInterval(async () => {
+    await checkNotifications();
+  }, 60000);
+
+  await checkNotifications();
+}
+
+async function checkNotifications() {
+  const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
+
+  if (!url) {
+    console.log('[SW Polling] Sin URL configurada, abortando check.');
+    return;
+  }
+
+  try {
+    const lastTs = (await getPersistentValue('lastNotifTs')) || 0;
+    // ⭐ r1 usa action=get-latest-notification vía GET
+    const fetchUrl = `${url}?action=get-latest-notification&_cb=${Date.now()}`;
+
+    console.log('[SW Polling] Consultando servidor r1...');
+    const res = await fetch(fetchUrl);
+    const data = await res.json();
+
+    if (data.success && data.notification) {
+      const notif = data.notification;
+      const ts = parseInt(notif.timestamp) || 0;
+
+      if (ts > lastTs) {
+        console.log('[SW Polling] ¡Nueva notificación recibida de r1!');
+        await setPersistentValue('lastNotifTs', ts);
+
+        self.registration.showNotification(notif.title || 'PandaDash', {
+          body: notif.body || 'Nuevo aviso del sistema',
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          tag: 'panda-notif',
+          vibrate: [200, 100, 200],
+          data: { url: './' }
+        });
+      } else {
+        console.log('[SW Polling] Sin cambios (TS no ha incrementado)');
+      }
+    }
+  } catch (e) {
+    console.warn('[SW Polling] Error de conexión:', e.message);
+  }
+}
+
+// Push real — compatible con r1 (payload directo en Android, tickle vacío en iOS)
+const R1_GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
+
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push real recibido');
+
+  const getPayload = new Promise((resolve, reject) => {
+    // Intentar leer payload directo (Android/Chrome)
+    if (event.data) {
+      try {
+        const json = event.data.json();
+        if (json && json.title) {
+          console.log('[SW] Datos recibidos en payload directo');
+          resolve(json);
+          return;
         }
-      }).catch(() => {
-        // Fallback silencioso
+      } catch (e) {
+        console.log('[SW] Payload no es JSON válido');
+      }
+    }
+
+    // Sin payload (iOS tickle) → fetch desde r1
+    console.log('[SW] Sin payload, obteniendo de r1...');
+    const cacheBuster = '&t=' + Date.now();
+    fetch(R1_GAS_URL + '?action=get-latest-notification' + cacheBuster)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.notification) {
+          resolve(data.notification);
+        } else {
+          reject('No hay notificaciones recientes');
+        }
+      })
+      .catch(err => reject(err));
+  });
+
+  event.waitUntil(
+    getPayload
+      .then(payload => {
+        const title = payload.title || 'PandaDash';
+        const options = {
+          body: payload.body || 'Tienes un mensaje nuevo',
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'push-notif',
+          data: { url: payload.url || './', timestamp: Date.now() }
+        };
+        return self.registration.showNotification(title, options);
+      })
+      .catch(err => {
+        console.error('[SW] Error procesando push:', err);
         return self.registration.showNotification('PandaDash', {
-          body: 'Tienes un nuevo mensaje',
-          icon: '/icons/icon-192.png'
+          body: 'Abre la app para ver el mensaje',
+          icon: './icons/icon-192.png',
+          data: { url: './' }
         });
       })
-    );
-  }
+  );
 });
 
 // Click en notificación
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = (event.notification.data && event.notification.data.url) || './';
+  const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : './';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
         for (let client of windowClients) {
-          if (client.url.includes(urlToOpen) && 'focus' in client) {
+          if (client.url === urlToOpen && 'focus' in client) {
             return client.focus();
           }
         }
@@ -206,90 +362,7 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-// ============================================
-// FUNCIONES DE POLLING OPTIMIZADAS
-// ============================================
+console.log('[SW] Service Worker cargado - Versión:', CACHE_NAME);
 
-async function startPolling() {
-  if (pollingTimer) clearInterval(pollingTimer);
-
-  // Cargar valores persistentes si no están
-  if (!API_URL_POLLING) {
-    API_URL_POLLING = await getPersistentValue('pollingUrl');
-  }
-
-  if (!API_URL_POLLING) {
-    console.log('[SW] No hay URL de polling');
-    return;
-  }
-
-  // Cargar último timestamp
-  lastNotifTimestamp = (await getPersistentValue('lastNotifTs')) || 0;
-
-  console.log('[SW] Iniciando polling cada', POLLING_INTERVAL / 1000, 'segundos');
-
-  // Ejecutar inmediatamente
-  checkNotifications();
-
-  // Configurar intervalo
-  pollingTimer = setInterval(checkNotifications, POLLING_INTERVAL);
-}
-
-async function checkNotifications() {
-  if (!API_URL_POLLING) return;
-
-  try {
-    const fetchUrl = `${API_URL_POLLING}?action=get-latest-notification&_cb=${Date.now()}`;
-
-    const res = await fetch(fetchUrl, {
-      cache: 'no-store',
-      timeout: 5000 // Timeout implícito
-    });
-
-    const data = await res.json();
-
-    if (data.success && data.notification) {
-      const ts = parseInt(data.notification.timestamp) || 0;
-
-      if (ts > lastNotifTimestamp) {
-        console.log('[SW] Nueva notificación por polling');
-        lastNotifTimestamp = ts;
-        setPersistentValue('lastNotifTs', ts);
-
-        // Mostrar notificación
-        self.registration.showNotification(
-          data.notification.title || 'PandaDash',
-          {
-            body: data.notification.body || 'Nuevo mensaje',
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            vibrate: [200, 100, 200],
-            data: { url: data.notification.url || './', polling: true }
-          }
-        );
-      }
-    }
-  } catch (e) {
-    // Silencioso - no loguear errores comunes
-    if (!e.message.includes('timeout') && !e.message.includes('network')) {
-      console.warn('[SW] Polling error:', e.message);
-    }
-  }
-}
-
-async function fetchLatestNotification() {
-  if (!API_URL_POLLING) return null;
-
-  try {
-    const res = await fetch(API_URL_POLLING + '?action=get-latest-notification&_cb=' + Date.now(), {
-      cache: 'no-store',
-      timeout: 3000
-    });
-    const data = await res.json();
-    return data.success ? data.notification : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-console.log('[SW] Service Worker v9.6 Optimizado');
+// INICIO AUTOMÁTICO
+startBackgroundPolling();
