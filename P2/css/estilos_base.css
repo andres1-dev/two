@@ -63,30 +63,30 @@ body {
   align-items: flex-start;
   min-height: 100vh;
   font-family: var(--font-main);
-  background-color: #f1f5f9;
-  /* Color de fondo exterior suave */
+  background-color: #ffffff;
+  /* Fondo blanco limpio */
   color: var(--text-main);
   overflow-x: hidden;
 }
 
-/* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
+/* MARCO PRINCIPAL - FULL SCREEN */
 #app-frame {
   width: 100%;
   max-width: var(--app-width);
   background-color: white;
   position: relative;
   overflow: hidden;
-  /* Asegurar que el contenido respete los bordes redondeados */
+  /* Asegurar que el contenido respete los bordes */
   display: flex;
   flex-direction: column;
-  min-height: 96vh;
-  /* Reducido un poco para ver los bordes arriba y abajo */
-  margin: 2vh auto;
-  /* Centrado vertical y horizontal */
-  border-radius: 20px;
-  /* Bordes redondeados profesionales */
-  border: 2px solid var(--primary);
-  box-shadow: 0 10px 40px rgba(37, 99, 235, 0.2);
+  min-height: 100vh;
+  /* Full height */
+  margin: 0 auto;
+  /* Centrado horizontal */
+  border-radius: 0;
+  /* Sin bordes redondeados */
+  border: none;
+  box-shadow: none;
 }
 
 /* Contenido SCROLLABLE */

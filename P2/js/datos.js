@@ -66,12 +66,12 @@ function handleDataLoadSuccess(serverData) {
             
             <div style="background: var(--surface); border-radius: 16px; padding: 20px; margin: 25px 0; border: 1px solid var(--border);">
                 <p style="font-size: 13px; color: var(--text-main); margin: 0 0 12px; font-weight: 600;">
-                    <i class="fas fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i> Sistema listo para escanear
+                    <i class="fas fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i> Sistema listo
                 </p>
                 <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">Escanea un código QR para comenzar</p>
             </div>
             
-            <div style="margin-top: 40px; padding-top: 25px; border-top: 1px solid var(--border);">
+            <div style="margin-top: 40px; padding-top: 2px; border-top: 1px solid var(--border);">
                 <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.4;">
                     Developed by <strong style="color: var(--text-main); font-weight: 600;">Andrés Mendoza</strong><br>
                     © 2026 · Supported by GrupoTDM
