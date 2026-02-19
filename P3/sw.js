@@ -1,5 +1,6 @@
 // Service Worker para PandaDash - Versión optimizada para PWA
-const CACHE_NAME = 'pandadash-v9.5'; // Incrementar versión
+// CORREGIDO: Eliminadas notificaciones duplicadas
+const CACHE_NAME = 'pandadash-v9.6'; // Incrementar versión
 
 const BASE = (new URL('.', self.location)).href;
 
@@ -55,6 +56,13 @@ const ASSETS_TO_CACHE = [
 let API_URL_POLLING = null;
 let USER_ID_POLLING = null;
 
+// ============================================
+// VARIABLES ANTI-DUPLICADOS
+// ============================================
+let lastProcessedNotificationId = null;
+let processingNotification = false;
+const PROCESSING_LOCK_TIMEOUT = 5000; // 5 segundos de timeout para el lock
+
 const DB_NAME = 'PandaDashNotifications';
 const DB_VERSION = 1;
 
@@ -93,7 +101,22 @@ async function getPersistentValue(key) {
   });
 }
 
-// Instalación
+// ============================================
+// FUNCIÓN PARA CREAR ID ÚNICO DE NOTIFICACIÓN
+// ============================================
+function createNotificationId(notif) {
+  if (!notif) return null;
+  // Usar timestamp, título y cuerpo para crear un ID único
+  // Si el servidor enviara un ID real, sería mejor
+  const ts = notif.timestamp || Date.now();
+  const title = notif.title || '';
+  const body = notif.body || '';
+  return `${ts}-${title}-${body}`.replace(/\s+/g, '_');
+}
+
+// ============================================
+// INSTALACIÓN
+// ============================================
 self.addEventListener('install', (event) => {
   console.log('[SW] 🔧 Instalando Service Worker...');
   event.waitUntil(
@@ -125,7 +148,9 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activación
+// ============================================
+// ACTIVACIÓN
+// ============================================
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activando Service Worker...');
   event.waitUntil(
@@ -145,7 +170,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch strategy
+// ============================================
+// FETCH STRATEGY
+// ============================================
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
@@ -176,7 +203,9 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Mensajes del cliente
+// ============================================
+// MENSAJES DEL CLIENTE
+// ============================================
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -208,10 +237,19 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CHECK_NOW') {
     checkNotifications();
   }
+
+  // Resetear el ID de última notificación (útil para pruebas)
+  if (event.data && event.data.type === 'RESET_NOTIFICATION_ID') {
+    lastProcessedNotificationId = null;
+    console.log('[SW] ID de última notificación reseteado');
+  }
 });
 
 let pollingActive = false;
 
+// ============================================
+// POLLING CORREGIDO - SIN DUPLICADOS
+// ============================================
 async function startBackgroundPolling() {
   if (pollingActive) return;
   pollingActive = true;
@@ -223,29 +261,44 @@ async function startBackgroundPolling() {
     USER_ID_POLLING = await getPersistentValue('pollingUserId');
   }
 
-  console.log('[SW] Iniciando ciclo de polling en segundo plano...');
+  console.log('[SW] Iniciando ciclo de polling en segundo plano (cada 2 minutos)...');
 
+  // Aumentado a 2 minutos para reducir verificaciones
   setInterval(async () => {
     await checkNotifications();
-  }, 60000);
+  }, 120000); // 2 minutos
 
+  // Verificación inicial
   await checkNotifications();
 }
 
 async function checkNotifications() {
-  const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
-
-  if (!url) {
-    console.log('[SW Polling] Sin URL configurada, abortando check.');
+  // Evitar ejecuciones concurrentes
+  if (processingNotification) {
+    console.log('[SW Polling] Ya hay una verificación en curso, omitiendo...');
     return;
   }
 
+  // Timeout de seguridad para el lock
+  const lockTimeout = setTimeout(() => {
+    processingNotification = false;
+    console.log('[SW Polling] Timeout de lock liberado');
+  }, PROCESSING_LOCK_TIMEOUT);
+
+  const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
+  if (!url) {
+    console.log('[SW Polling] Sin URL configurada, abortando check.');
+    clearTimeout(lockTimeout);
+    return;
+  }
+
+  processingNotification = true;
+
   try {
     const lastTs = (await getPersistentValue('lastNotifTs')) || 0;
-    // ⭐ r1 usa action=get-latest-notification vía GET
     const fetchUrl = `${url}?action=get-latest-notification&_cb=${Date.now()}`;
 
-    console.log('[SW Polling] Consultando servidor r1...');
+    console.log('[SW Polling] Consultando servidor...');
     const res = await fetch(fetchUrl);
     const data = await res.json();
 
@@ -253,32 +306,70 @@ async function checkNotifications() {
       const notif = data.notification;
       const ts = parseInt(notif.timestamp) || 0;
 
-      if (ts > lastTs) {
-        console.log('[SW Polling] ¡Nueva notificación recibida de r1!');
+      // Crear un ID único para esta notificación
+      const notificationId = createNotificationId(notif);
+
+      // Solo mostrar si:
+      // 1. El timestamp es más reciente Y
+      // 2. No es la misma notificación que ya procesamos
+      if (ts > lastTs && notificationId !== lastProcessedNotificationId) {
+        console.log('[SW Polling] ¡Nueva notificación detectada!');
+
+        // Guardar el ID de esta notificación
+        lastProcessedNotificationId = notificationId;
+
+        // Actualizar el timestamp solo después de procesar
         await setPersistentValue('lastNotifTs', ts);
 
-        self.registration.showNotification(notif.title || 'PandaDash', {
+        await self.registration.showNotification(notif.title || 'PandaDash', {
           body: notif.body || 'Nuevo aviso del sistema',
           icon: './icons/icon-192.png',
           badge: './icons/icon-192.png',
           tag: 'panda-notif',
           vibrate: [200, 100, 200],
-          data: { url: './' }
+          data: { url: './', timestamp: ts }
         });
+
+        console.log('[SW Polling] Notificación mostrada correctamente');
       } else {
-        console.log('[SW Polling] Sin cambios (TS no ha incrementado)');
+        console.log('[SW Polling] Sin cambios o notificación ya mostrada', {
+          tsMayor: ts > lastTs,
+          idDistinto: notificationId !== lastProcessedNotificationId,
+          lastTs,
+          currentTs: ts,
+          lastId: lastProcessedNotificationId,
+          currentId: notificationId
+        });
       }
     }
   } catch (e) {
     console.warn('[SW Polling] Error de conexión:', e.message);
+  } finally {
+    clearTimeout(lockTimeout);
+    processingNotification = false;
   }
 }
 
-// Push real — compatible con r1 (payload directo en Android, tickle vacío en iOS)
+// ============================================
+// PUSH REAL CORREGIDO - SIN DUPLICADOS
+// ============================================
 const R1_GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfMVu1cwKMsnUhfD1BZO18qFBa9CFcWd50VzBDKwDMKCubYhg5Cg/exec';
 
 self.addEventListener('push', (event) => {
   console.log('[SW] Push real recibido');
+
+  // Si ya estamos procesando, ignorar este push
+  if (processingNotification) {
+    console.log('[SW Push] Ya procesando una notificación, ignorando push...');
+    event.waitUntil(Promise.resolve());
+    return;
+  }
+
+  // Timeout de seguridad
+  const lockTimeout = setTimeout(() => {
+    processingNotification = false;
+    console.log('[SW Push] Timeout de lock liberado');
+  }, PROCESSING_LOCK_TIMEOUT);
 
   const getPayload = new Promise((resolve, reject) => {
     // Intentar leer payload directo (Android/Chrome)
@@ -312,7 +403,30 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     getPayload
-      .then(payload => {
+      .then(async payload => {
+        const ts = payload.timestamp || Date.now();
+        const notificationId = createNotificationId(payload);
+
+        // Verificar si esta notificación ya fue procesada por polling
+        const lastTs = await getPersistentValue('lastNotifTs') || 0;
+
+        // Evitar duplicados si:
+        // 1. Ya tiene el mismo ID que la última procesada
+        // 2. El timestamp no es más reciente que el último guardado
+        if (notificationId === lastProcessedNotificationId || ts <= lastTs) {
+          console.log('[SW Push] Notificación ya procesada anteriormente, ignorando', {
+            motivo: notificationId === lastProcessedNotificationId ? 'mismo ID' : 'timestamp antiguo',
+            lastTs,
+            currentTs: ts
+          });
+          return;
+        }
+
+        // Marcar como procesada
+        lastProcessedNotificationId = notificationId;
+        await setPersistentValue('lastNotifTs', ts);
+        processingNotification = true;
+
         const title = payload.title || 'PandaDash';
         const options = {
           body: payload.body || 'Tienes un mensaje nuevo',
@@ -320,22 +434,37 @@ self.addEventListener('push', (event) => {
           badge: './icons/icon-192.png',
           vibrate: [200, 100, 200],
           tag: 'push-notif',
-          data: { url: payload.url || './', timestamp: Date.now() }
+          data: {
+            url: payload.url || './',
+            timestamp: ts,
+            id: notificationId
+          }
         };
+
+        console.log('[SW Push] Mostrando notificación:', title);
         return self.registration.showNotification(title, options);
       })
       .catch(err => {
         console.error('[SW] Error procesando push:', err);
-        return self.registration.showNotification('PandaDash', {
-          body: 'Abre la app para ver el mensaje',
-          icon: './icons/icon-192.png',
-          data: { url: './' }
-        });
+        // Solo mostrar notificación genérica si es un error real
+        if (err !== 'No hay notificaciones recientes') {
+          return self.registration.showNotification('PandaDash', {
+            body: 'Abre la app para ver el mensaje',
+            icon: './icons/icon-192.png',
+            data: { url: './' }
+          });
+        }
+      })
+      .finally(() => {
+        clearTimeout(lockTimeout);
+        processingNotification = false;
       })
   );
 });
 
-// Click en notificación
+// ============================================
+// CLICK EN NOTIFICACIÓN
+// ============================================
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : './';
@@ -355,12 +484,25 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Periodic Sync
+// ============================================
+// PERIODIC SYNC
+// ============================================
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'check-notif') {
     event.waitUntil(checkNotifications());
   }
 });
+
+// ============================================
+// LIMPIEZA PERIÓDICA DEL ID (OPCIONAL)
+// ============================================
+// Cada hora, limpiar el ID para permitir notificaciones repetidas si es necesario
+setInterval(() => {
+  if (!processingNotification) {
+    console.log('[SW] Limpiando ID de última notificación (timeout 5m)');
+    lastProcessedNotificationId = null;
+  }
+}, 300000); // 5 minutos
 
 console.log('[SW] Service Worker cargado - Versión:', CACHE_NAME);
 
