@@ -232,6 +232,10 @@ async function startBackgroundPolling() {
   await checkNotifications();
 }
 
+// ============================================
+// sw.js (Fragmento modificado)
+// ============================================
+
 async function checkNotifications() {
   const url = API_URL_POLLING || await getPersistentValue('pollingUrl');
 
@@ -252,6 +256,22 @@ async function checkNotifications() {
     if (data.success && data.notification) {
       const notif = data.notification;
       const ts = parseInt(notif.timestamp) || 0;
+
+      // --- INICIO DE LA MODIFICACIÓN ---
+      // Obtener la hora actual en milisegundos
+      const now = Date.now();
+
+      // Calcular la diferencia de tiempo (timestamp de la notificación vs ahora)
+      // El timestamp de la notificación podría ser más antiguo, pero la diferencia será pequeña.
+      const timeDiff = now - ts;
+
+      // Si la notificación es MUY reciente (menos de 5 segundos/5000 ms), la ignoramos.
+      // Esto evita que el polling muestre la notificación que acaba de ser enviada por el push real.
+      if (timeDiff < 5000) {
+        console.log('[SW Polling] Notificación reciente ignorada para evitar duplicado. Diferencia de tiempo:', timeDiff, 'ms');
+        return;
+      }
+      // --- FIN DE LA MODIFICACIÓN ---
 
       if (ts > lastTs) {
         console.log('[SW Polling] ¡Nueva notificación recibida de r1!');
@@ -280,68 +300,59 @@ const R1_GAS_URL = 'https://script.google.com/macros/s/AKfycbwreGMo-ZITm8PUkGJfM
 self.addEventListener('push', (event) => {
   console.log('[SW] Push real recibido');
 
-  const processPush = async () => {
-    let payload = null;
-
-    // 1. Intentar obtener payload directo
+  const getPayload = new Promise((resolve, reject) => {
+    // Intentar leer payload directo (Android/Chrome)
     if (event.data) {
       try {
         const json = event.data.json();
         if (json && json.title) {
-          payload = json;
+          console.log('[SW] Datos recibidos en payload directo');
+          resolve(json);
+          return;
         }
       } catch (e) {
         console.log('[SW] Payload no es JSON válido');
       }
     }
 
-    // 2. Si no hay payload, buscar en servidor (fallback/iOS)
-    if (!payload) {
-      try {
-        const cacheBuster = '&t=' + Date.now();
-        const res = await fetch(R1_GAS_URL + '?action=get-latest-notification' + cacheBuster);
-        const data = await res.json();
+    // Sin payload (iOS tickle) → fetch desde r1
+    console.log('[SW] Sin payload, obteniendo de r1...');
+    const cacheBuster = '&t=' + Date.now();
+    fetch(R1_GAS_URL + '?action=get-latest-notification' + cacheBuster)
+      .then(res => res.json())
+      .then(data => {
         if (data.success && data.notification) {
-          payload = data.notification;
+          resolve(data.notification);
+        } else {
+          reject('No hay notificaciones recientes');
         }
-      } catch (e) {
-        console.warn('Error fetching notification data', e);
-      }
-    }
+      })
+      .catch(err => reject(err));
+  });
 
-    if (!payload) throw new Error('No notification data available');
-
-    // 3. DEDUPLICACIÓN: Verificar timestamp
-    const lastTs = (await getPersistentValue('lastNotifTs')) || 0;
-    const currentTs = parseInt(payload.timestamp) || Date.now(); // Usar Date.now() si no hay TS es riesgoso para deduplicar, pero mejor que nada. Lo ideal es que el servidor mande TS.
-
-    // Si la notificación tiene un timestamp explícito y es menor o igual al último visto, IGNORAR.
-    if (payload.timestamp && parseInt(payload.timestamp) <= lastTs) {
-      console.log(`[SW] Push ignorado: Timestamp ${currentTs} <= Last ${lastTs}`);
-      return;
-    }
-
-    // Actualizar timestamp
-    await setPersistentValue('lastNotifTs', currentTs);
-
-    // 4. Mostrar Notificación
-    const title = payload.title || 'PandaDash';
-    const options = {
-      body: payload.body || 'Nuevo mensaje',
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      vibrate: [200, 100, 200],
-      tag: 'pandadash-notif', // Tag fijo para reemplazar existentes si se acumulan
-      data: {
-        url: payload.url || './',
-        timestamp: currentTs
-      }
-    };
-
-    return self.registration.showNotification(title, options);
-  };
-
-  event.waitUntil(processPush());
+  event.waitUntil(
+    getPayload
+      .then(payload => {
+        const title = payload.title || 'PandaDash';
+        const options = {
+          body: payload.body || 'Tienes un mensaje nuevo',
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'push-notif',
+          data: { url: payload.url || './', timestamp: Date.now() }
+        };
+        return self.registration.showNotification(title, options);
+      })
+      .catch(err => {
+        console.error('[SW] Error procesando push:', err);
+        return self.registration.showNotification('PandaDash', {
+          body: 'Abre la app para ver el mensaje',
+          icon: './icons/icon-192.png',
+          data: { url: './' }
+        });
+      })
+  );
 });
 
 // Click en notificación
