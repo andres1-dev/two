@@ -1,0 +1,795 @@
+const SPREADSHEET_ID = '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw';
+const SHEET_NAME = 'SOPORTES';
+const FOLDER_ID = '1uaC605ZYOJKbdNJinVrvGAAo5tLAQRtO';
+
+// --- UTILIDADES ---
+function getFormattedDateTime(date = new Date()) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
+// --- SEGURIDAD RESET PASSWORD ---
+
+function generarPasswordTemporal() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let pass = '';
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
+
+
+function generarTokenSeguro() {
+  return Utilities.getUuid().replace(/-/g, "") + Date.now();
+}
+
+function guardarTokenReset(userId, token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  tokens.push({
+    token: token,
+    userId: userId,
+    expires: Date.now() + (5 * 60 * 1000), // 5 minutos
+    used: false
+  });
+
+  PropertiesService.getScriptProperties()
+    .setProperty("RESET_TOKENS", JSON.stringify(tokens));
+}
+
+function validarToken(token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  const data = tokens.find(t => t.token === token);
+
+  if (!data)
+    return { valid: false, message: "Token inválido" };
+
+  if (data.used)
+    return { valid: false, message: "Token ya utilizado" };
+
+  if (Date.now() > data.expires)
+    return { valid: false, message: "Token expirado" };
+
+  return { valid: true, userId: data.userId };
+}
+
+
+function invalidarToken(token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  const index = tokens.findIndex(t => t.token === token);
+
+  if (index !== -1) {
+    tokens[index].used = true;
+
+    PropertiesService.getScriptProperties()
+      .setProperty("RESET_TOKENS", JSON.stringify(tokens));
+  }
+}
+
+// --- MAIN GET HANDLER (Para Polling) ---
+function doGet(e) {
+  try {
+
+    // VISTA RESET PASSWORD
+    if (e.parameter.view === 'reset' && e.parameter.token) {
+      return HtmlService.createHtmlOutput(`
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial; padding:20px; text-align:center;}
+            input { padding:10px; width:80%; margin:10px 0;}
+            button { padding:10px 20px; background:#2563EB; color:white; border:none; border-radius:8px;}
+          </style>
+        </head>
+        <body>
+          <h2>Cambiar contraseña</h2>
+          <input type="password" id="newPass" placeholder="Nueva contraseña">
+          <br>
+          <button onclick="save()">Guardar</button>
+
+          <script>
+            function save(){
+              const newPass = document.getElementById("newPass").value;
+              fetch("?action=resetPassword&token=${e.parameter.token}&newPassword=" + encodeURIComponent(newPass), {method:"POST"})
+                .then(r=>r.json())
+                .then(d=>alert(d.message));
+            }
+          </script>
+        </body>
+        </html>
+      `);
+    }
+
+    const action = e.parameter.action;
+    
+
+    return ContentService.createTextOutput("PandaDash API Active")
+      .setMimeType(ContentService.MimeType.TEXT);
+
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.message)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+// --- MAIN POST HANDLER ---
+function doPost(e) {
+  try {
+    if (!e || !e.parameter) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'No se recibieron datos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const action = e.parameter.action;
+    const params = e.parameter;
+
+if (e.parameter.action === "resetPassword") {
+  return cambiarPassword(
+    e.parameter.token,
+    e.parameter.newPassword
+  );
+}
+
+
+
+
+    // --- ACCIONES DE USUARIO ---
+    if (action === 'login') {
+       return verificarCredenciales(params.id, params.password);
+    } 
+    else if (action === 'recover') {
+       return recuperarContrasena(params.id, params.method);
+    }
+    else if (action === 'getUsers') {
+       return listarUsuarios();
+    }
+    else if (action === 'saveUser') {
+       return guardarUsuario(params.userData);
+    }
+    else if (action === 'deleteUser') {
+       return eliminarUsuario(params.id);
+    }
+    
+    // --- ACCIONES DE DATOS ---
+    else if (action === 'delete') {
+       return eliminarRegistro(params.factura);
+    }
+    
+    else if (action === 'resetPassword') {
+      return cambiarPassword(params.token, params.newPassword);
+    }
+    
+
+    
+    // Guardar datos (Acción por defecto si no es ninguna de las anteriores)
+    const datos = {
+        documento: params.documento || '',
+        lote: params.lote || '',
+        referencia: params.referencia || '',
+        cantidad: params.cantidad || 0,
+        factura: params.factura || '',
+        nit: params.nit || '',
+        usuario: params.usuario || 'Desconocido',
+        fotoUrl: ''
+    };
+    
+    if (params.fotoBase64 && params.fotoNombre && params.fotoTipo) {
+      try {
+        const fotoUrl = guardarImagenEnDrive(
+          params.fotoBase64,
+          params.fotoNombre,
+          params.fotoTipo
+        );
+        datos.fotoUrl = fotoUrl;
+      } catch (imgError) {
+        Logger.log('Error al procesar la imagen: ' + imgError.message);
+      }
+    }
+    
+    const resultado = guardarDatosAlInicio(datos);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: resultado
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error en doPost: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+// --- GESTIÓN DE USUARIOS ---
+
+function getUsers() {
+  const usersJson = PropertiesService.getScriptProperties().getProperty('USERS');
+  if (!usersJson) return [];
+  return JSON.parse(usersJson);
+}
+
+function saveUsers(users) {
+  PropertiesService.getScriptProperties().setProperty('USERS', JSON.stringify(users));
+}
+
+function listarUsuarios() {
+  const users = getUsers();
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    users: users
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function guardarUsuario(userDataJson) {
+  try {
+    const newUser = JSON.parse(userDataJson);
+    if (!newUser.id || !newUser.nombre || !newUser.password) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Datos incompletos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    let users = getUsers();
+    const existingIndex = users.findIndex(u => u.id === newUser.id);
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = newUser;
+    } else {
+      users.push(newUser);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario guardado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al guardar usuario: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function eliminarUsuario(id) {
+  try {
+    let users = getUsers();
+    const initialLength = users.length;
+    users = users.filter(u => u.id !== id);
+
+    if (users.length === initialLength) {
+       return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Usuario no encontrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario eliminado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al eliminar: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function verificarCredenciales(id, password) {
+  if (!id || !password) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Credenciales incompletas'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const users = getUsers();
+    const userFound = users.find(u => u.id === String(id).trim() && u.password === String(password).trim());
+
+    if (userFound) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        user: {
+          id: userFound.id,
+          nombre: userFound.nombre,
+          rol: userFound.rol
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'ID o contraseña incorrectos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Error en el servidor: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/*
+function recuperarContrasena(id, method) {
+  if (!id) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Se requiere ID'})).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const users = getUsers();
+    const user = users.find(u => u.id === String(id).trim());
+    
+    if (!user) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Usuario no encontrado'})).setMimeType(ContentService.MimeType.JSON);
+
+    if (user.email) {
+        MailApp.sendEmail({
+          to: user.email,
+          subject: "Recuperación de Contraseña - PandaDash",
+            htmlBody: `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Recuperación de Contraseña - PandaDash</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7fb;">
+
+                <!-- CONTENEDOR PRINCIPAL -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fb;">
+                    <tr>
+                        <td style="padding: 40px 20px;">
+
+                            <!-- TARJETA PRINCIPAL -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);">
+
+                                <!-- HEADER: Fondo sólido para compatibilidad + Logo PNG -->
+                                <tr>
+                                    <td style="background-color: #ffffff; padding: 36px 40px 28px; text-align: center; border-radius: 24px 24px 0 0;">
+                                        <!-- Logo PNG (100% compatible) -->
+                                        <div style="margin: 0 auto 16px; width: 88px; height: 88px; background-color: #ffffff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15); padding: 12px;">
+                                            <img src="https://lh3.googleusercontent.com/d/1RyuX2h2gPve2mk1kI5dbDDHvVhLMWcGs" alt="PandaDash" width="62" height="62" style="display: block; border: 0; width: 62px; height: 62px;">
+                                        </div>
+                                        <h1 style="margin: 0; color: rgb(37, 99, 235); font-size: 28px; font-weight: 600; letter-spacing: -0.3px;">PandaDash</h1>
+                                        <p style="margin: 8px 0 0; color: rgba(37, 99, 235, 0.85); font-size: 14px; font-weight: 400;">Plataforma de Gestión Inteligente</p>
+                                    </td>
+                                </tr>
+
+                                <!-- CUERPO DEL MENSAJE (sin cambios, funciona perfecto) -->
+                                <tr>
+                                    <td style="padding: 40px 40px 20px;">
+                                        <h2 style="margin: 0 0 8px; color: #1e293b; font-size: 22px; font-weight: 600;">Recuperación de acceso</h2>
+                                        <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.5;">
+                                            Hola <strong style="color: #2563EB; font-weight: 600;">${user.nombre}</strong>, hemos generado una nueva contraseña temporal para tu cuenta en PandaDash.
+                                        </p>
+
+                                        <!-- CARD DE CONTRASEÑA TEMPORAL -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc; border-radius: 20px; border: 1px solid #e2e8f0; margin: 24px 0 28px;">
+                                            <tr>
+                                                <td style="padding: 24px 24px 20px; text-align: center;">
+                                                    <p style="margin: 0 0 8px; color: #64748b; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Contraseña temporal</p>
+                                                    <div style="background-color: #ffffff; border: 2px solid #3B82F6; border-radius: 16px; padding: 14px 24px; display: inline-block;">
+                                                        <code style="color: #1e293b; font-size: 22px; font-weight: 600; font-family: 'Courier New', monospace; letter-spacing: 1.5px;">${user.password}</code>
+                                                    </div>
+                                                    <p style="margin: 16px 0 0; color: #3B82F6; font-size: 13px;">
+                                                        ⚠️ Esta contraseña es de un solo uso.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- BOTÓN DE ACCIÓN PRINCIPAL -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0;">
+                                            <tr>
+                                                <td style="text-align: center;">
+                                                    <a href="TU_URL_DE_LOGIN" style="display: inline-block; background-color: #2563EB; color: #ffffff; text-decoration: none; padding: 16px 42px; border-radius: 60px; font-size: 16px; font-weight: 500;">Iniciar sesión en PandaDash →</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- RECOMENDACIONES DE SEGURIDAD -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f0f9ff; border-radius: 16px; margin: 20px 0 10px;">
+                                            <tr>
+                                                <td style="padding: 20px 24px;">
+                                                    <p style="margin: 0 0 10px; color: #1e4a6b; font-size: 15px; font-weight: 600;">🔒 Recomendaciones importantes</p>
+                                                    <ul style="margin: 0; padding-left: 20px; color: #2c3e50; font-size: 14px; line-height: 1.6;">
+                                                        <li style="margin-bottom: 8px;">Cambia esta contraseña temporal en tu primer inicio de sesión.</li>
+                                                        <li style="margin-bottom: 8px;">Utiliza una contraseña segura y única para PandaDash.</li>
+                                                        <li style="margin-bottom: 0;">Si no solicitaste este cambio, contacta a <a href="mailto:soporte@pandadash.com" style="color: #2563EB; text-decoration: none; font-weight: 500;">soporte@pandadash.com</a>.</li>
+                                                    </ul>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <p style="margin: 28px 0 0; color: #64748b; font-size: 14px; line-height: 1.5; text-align: center;">
+                                            ¿Tienes problemas? Escríbenos a <a href="mailto:soporte@pandadash.com" style="color: #3B82F6; text-decoration: underline; font-weight: 500;">soporte@pandadash.com</a>
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                <!-- FOOTER -->
+                                <tr>
+                                    <td style="background-color: #f8fafc; padding: 24px 40px; border-radius: 0 0 24px 24px; border-top: 1px solid #e2e8f0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="text-align: center; color: #94a3b8; font-size: 12px;">
+                                                    <p style="margin: 0 0 10px;">
+                                                        Este es un mensaje automático de <strong>PandaDash</strong>. Por favor, no respondas a este correo.
+                                                    </p>
+                                                    <p style="margin: 0;">
+                                                        © 2024 PandaDash. Todos los derechos reservados.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- ENLACE PARA VER EN NAVEGADOR -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; margin: 20px auto 0;">
+                                <tr>
+                                    <td style="text-align: center; padding: 0 20px;">
+                                        <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                                            ¿No puedes ver el correo correctamente? <a href="#" style="color: #3B82F6; text-decoration: underline;">Ver en el navegador</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+                </table>
+
+            </body>
+            </html>
+            `
+
+        });
+        return ContentService.createTextOutput(JSON.stringify({success: true, message: `Contraseña enviada a ${user.email}`})).setMimeType(ContentService.MimeType.JSON);
+    } else {
+       return ContentService.createTextOutput(JSON.stringify({success: false, message: 'El usuario no tiene email registrado'})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Error: ' + error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+*/
+
+function recuperarContrasena(id, method) {
+
+  if (!id)
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Se requiere ID'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+
+    const users = getUsers();
+    const user = users.find(u => u.id === String(id).trim());
+
+    if (!user)
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'Usuario no encontrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    if (!user.email)
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'El usuario no tiene email registrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    // 🔐 SOLO GENERAMOS TOKEN — NO CAMBIAMOS PASSWORD
+    const token = generarTokenSeguro();
+    guardarTokenReset(user.id, token);
+
+    const baseUrl = ScriptApp.getService().getUrl();
+    const resetUrl = "http://andres1-dev.github.io/two/PandaDash/reset.html?token=" 
+      + encodeURIComponent(token);
+
+    MailApp.sendEmail({
+      to: user.email,
+      subject: "Restablecimiento de contraseña - PandaDash",
+      htmlBody: `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablece tu contraseña - PandaDash</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7fb;">
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fb;">
+        <tr>
+            <td style="padding: 40px 20px;">
+
+                <!-- TARJETA PRINCIPAL -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);">
+
+                    <!-- HEADER: Fondo sólido para compatibilidad + Logo PNG -->
+                    <tr>
+                        <td style="background-color: #ffffff; padding: 36px 40px 28px; text-align: center; border-radius: 24px 24px 0 0;">
+                            <!-- Logo PNG (100% compatible) -->
+                            <div style="margin: 0 auto 16px; width: 88px; height: 88px; background-color: #ffffff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15); padding: 12px;">
+                                <img src="https://lh3.googleusercontent.com/d/1RyuX2h2gPve2mk1kI5dbDDHvVhLMWcGs" alt="PandaDash" width="62" height="62" style="display: block; border: 0; width: 62px; height: 62px;">
+                            </div>
+                            <h1 style="margin: 0; color: rgb(37, 99, 235); font-size: 28px; font-weight: 600; letter-spacing: -0.3px;">PandaDash</h1>
+                            <p style="margin: 8px 0 0; color: rgba(37, 99, 235, 0.85); font-size: 14px; font-weight: 400;">Plataforma de Gestión Inteligente</p>
+                        </td>
+                    </tr>
+
+                    <!-- CUERPO DEL MENSAJE (ACTUALIZADO CON NUEVA INFORMACIÓN) -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px;">
+                            <!-- Saludo personalizado -->
+                            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 22px; font-weight: 600;">Hola ${user.nombre}</h2>
+                            
+                            <!-- Texto de introducción -->
+                            <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.5;">
+                                Haz clic en el botón para restablecer tu contraseña.
+                            </p>
+
+                            <!-- BOTÓN DE ACCIÓN PRINCIPAL (restablecer contraseña) -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0 20px;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="${resetUrl}" style="display: inline-block; background: #2563EB; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 500; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);">Restablecer contraseña</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Información de expiración (5 minutos) -->
+                            <p style="margin: 0 0 28px; color: #64748b; font-size: 15px; text-align: center;">
+                                ⏳ Este enlace expira en <strong style="color: #2563EB;">5 minutos</strong>.
+                            </p>
+
+                            <!-- RECOMENDACIONES DE SEGURIDAD (actualizadas ligeramente para el contexto de restablecimiento) -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f0f9ff; border-radius: 16px; margin: 20px 0 10px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 10px; color: #1e4a6b; font-size: 15px; font-weight: 600;">🔒 Recomendaciones importantes</p>
+                                        <ul style="margin: 0; padding-left: 20px; color: #2c3e50; font-size: 14px; line-height: 1.6;">
+                                            <li style="margin-bottom: 8px;">Elige una contraseña segura que no hayas usado antes.</li>
+                                            <li style="margin-bottom: 8px;">La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números.</li>
+                                            <li style="margin-bottom: 0;">Si no solicitaste restablecer tu contraseña, contacta a <a href="mailto:soporte@pandadash.com" style="color: #2563EB; text-decoration: none; font-weight: 500;">soporte@pandadash.com</a>.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Soporte adicional -->
+                            <p style="margin: 28px 0 0; color: #64748b; font-size: 14px; line-height: 1.5; text-align: center;">
+                                ¿Tienes problemas? Escríbenos a <a href="mailto:soporte@pandadash.com" style="color: #3B82F6; text-decoration: underline; font-weight: 500;">soporte@pandadash.com</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style="background-color: #f8fafc; padding: 24px 40px; border-radius: 0 0 24px 24px; border-top: 1px solid #e2e8f0;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; color: #94a3b8; font-size: 12px;">
+                                        <p style="margin: 0 0 10px;">
+                                            Este es un mensaje automático de <strong>PandaDash</strong>. Por favor, no respondas a este correo.
+                                        </p>
+                                        <p style="margin: 0;">
+                                            © 2024 PandaDash. Todos los derechos reservados.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ENLACE PARA VER EN NAVEGADOR -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; margin: 20px auto 0;">
+                    <tr>
+                        <td style="text-align: center; padding: 0 20px;">
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+                                ¿No puedes ver el correo correctamente? <a href="#" style="color: #3B82F6; text-decoration: underline;">Ver en el navegador</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
+      `
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: `Enlace enviado a ${user.email}`
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+
+// --- FUNCIÓN PARA ELIMINAR REGISTRO (CON ELIMINACIÓN DE IMAGEN) ---
+function eliminarRegistro(facturaEliminar) {
+  if (!facturaEliminar) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No hay factura'})).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    
+    if (!allDataResponse.values || allDataResponse.values.length === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Hoja vacía'})).setMimeType(ContentService.MimeType.JSON);
+    
+    let values = allDataResponse.values;
+    const headers = values[0];
+    let colFactura = -1, colIdImagen = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toString().toUpperCase().includes('FACTURA')) colFactura = i;
+        if (headers[i].toString().toUpperCase().includes('ID IMAGEN')) colIdImagen = i;
+    }
+    if (colFactura === -1) colFactura = 5;
+    if (colIdImagen === -1) colIdImagen = 7;
+    
+    const newValues = [headers];
+    let deletedCount = 0;
+    
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      if (row[colFactura].toString() !== facturaEliminar.toString()) {
+        newValues.push(row);
+      } else {
+        deletedCount++;
+        // Eliminar la imagen de Drive si existe
+        if (colIdImagen !== -1 && row[colIdImagen] && row[colIdImagen] !== 'Sin ID') {
+          try { 
+            DriveApp.getFileById(row[colIdImagen]).setTrashed(true); 
+          } catch(e) {
+            Logger.log('Error al eliminar imagen: ' + e.message);
+          }
+        }
+      }
+    }
+    
+    if (deletedCount === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No se encontró factura'})).setMimeType(ContentService.MimeType.JSON);
+    
+    Sheets.Spreadsheets.Values.clear({}, SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    Sheets.Spreadsheets.Values.update({ values: newValues }, SPREADSHEET_ID, `${SHEET_NAME}!A1`, { valueInputOption: 'USER_ENTERED' });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true, 
+      message: `Registro ${facturaEliminar} eliminado correctamente`
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+     return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Error al eliminar: ' + error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function guardarImagenEnDrive(base64Data, fileName, mimeType) {
+  const decodedData = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(decodedData, mimeType, fileName);
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const file = folder.createFile(blob);
+  file.setName(fileName);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
+
+function guardarDatosAlInicio(datos) { 
+  try {
+    const fechaHora = getFormattedDateTime();
+    let fileId = null, imageLink = '';
+    if (datos.fotoUrl) {
+      const match = datos.fotoUrl.match(/\/d\/([^/]+)\//);
+      if (match && match[1]) {
+        fileId = match[1];
+        imageLink = `https://lh3.googleusercontent.com/d/${fileId}`;
+      }
+    }
+
+    const nuevaFila = [
+      fechaHora, datos.documento, datos.lote, datos.referencia, 
+      datos.cantidad, datos.factura, datos.nit, fileId || 'Sin ID', imageLink, datos.usuario
+    ];
+
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    let allData = [];
+    
+    if (allDataResponse.values && allDataResponse.values.length > 0) {
+      allData.push(allDataResponse.values[0]); // Mantener encabezados
+      allData.push(nuevaFila); // Insertar nueva fila después de encabezados
+      
+      // Agregar el resto de los datos (excepto encabezados que ya agregamos)
+      for (let i = 1; i < allDataResponse.values.length; i++) {
+        allData.push(allDataResponse.values[i]);
+      }
+    } else {
+      allData.push(['Fecha y Hora', 'Documento', 'Lote', 'Referencia', 'Cantidad', 'Factura', 'NIT', 'ID Imagen', 'Link Imagen', 'Usuario']);
+      allData.push(nuevaFila);
+    }
+    
+    sheets.update({ values: allData }, SPREADSHEET_ID, `${SHEET_NAME}!A:J`, { valueInputOption: 'USER_ENTERED' });
+    return "¡Datos guardados correctamente!";
+
+  } catch (error) {
+    throw new Error('No se pudieron guardar los datos: ' + error.message);
+  }
+}
+
+
+function cambiarPassword(token, newPassword) {
+
+  if (!token || !newPassword)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message:'Datos incompletos'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  const validacion = validarToken(token);
+
+  if (!validacion.valid)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message: validacion.message
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  let users = getUsers();
+  const index = users.findIndex(u => u.id === validacion.userId);
+
+  if (index === -1)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message:'Usuario no encontrado'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  users[index].password = newPassword;
+  saveUsers(users);
+
+  invalidarToken(token);
+
+  return ContentService.createTextOutput(JSON.stringify({
+    success:true,
+    message:'Contraseña actualizada correctamente'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
