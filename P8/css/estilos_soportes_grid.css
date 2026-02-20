@@ -1404,7 +1404,7 @@
   border-bottom: 1px solid #f1f5f9;
   color: #0f172a;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   text-align: center !important;
   vertical-align: middle;
 }
@@ -1415,7 +1415,6 @@
 
 /* Columna de factura destacada */
 #kpiPendingTable tbody td:first-child {
-  font-weight: 800;
   color: #2563eb;
 }
 

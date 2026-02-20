@@ -57,8 +57,8 @@ const SoportesGrid = {
 
     this.bindEvents();
 
-    // Carga inicial (opcional, se hará al abrir)
-    // await this.cargarDatos(); 
+    // Carga inicial - Ahora se hace de inmediato para que esté listo al abrir
+    this.cargarDatos();
     this.initInfiniteScroll();
   },
 
@@ -202,8 +202,10 @@ const SoportesGrid = {
     if (this.modal) this.modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
-    // Cargar datos si es necesario
-    this.cargarDatos();
+    // Si no hay datos o están vacíos, cargar
+    if (this.entregas.length === 0) {
+      this.cargarDatos();
+    }
   },
 
   toggleFilterModal: function (show) {
@@ -220,6 +222,7 @@ const SoportesGrid = {
 
   // Cargar datos desde Google Sheets
   cargarDatos: async function () {
+    if (this.isLoading && this.entregas.length > 0) return; // Ya está cargando
     this.showLoading();
 
     try {
@@ -954,6 +957,7 @@ const SoportesGrid = {
         this.loadMore();
       }
     }, {
+      root: document.getElementById('gridScrollArea'),
       threshold: 0.1,
       rootMargin: '200px' // Cargar antes de llegar al final
     });
