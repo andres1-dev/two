@@ -508,37 +508,66 @@
       </div>
 
       <div class="app-header">
-        <div class="header-top">
-          <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: flex-end;">
-            <div style="display: flex; gap: 12px;">
-              <button id="openDailyReportBtn" class="icon-btn" title="Resumen Diario">
-                <i class="fas fa-chart-pie"></i>
+        <div class="header-main-row"
+          style="display: flex; gap: 12px; align-items: center; width: 100%; margin-bottom: 8px;">
+          <div class="barcode-input-container" style="flex: 1; margin-bottom: 0;">
+            <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
+            <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric">
+          </div>
+
+          <div class="header-menu-container">
+            <button id="mainMenuToggleBtn" class="icon-btn main-menu-toggle" onclick="toggleHeaderMenu()"
+              title="Opciones">
+              <i class="fas fa-ellipsis-v"></i>
+              <span class="global-menu-badge" id="globalMenuBadge" style="display: none;"></span>
+            </button>
+
+            <div id="headerDropdownMenu" class="header-dropdown-menu">
+              <button id="openDailyReportBtn" class="dropdown-item" title="Resumen Diario">
+                <i class="fas fa-chart-pie"></i> <span>Resumen Diario</span>
               </button>
-              <button id="mobileQueueBtn" class="icon-btn" title="Cola de carga"
+              <button id="mobileQueueBtn" class="dropdown-item" title="Cola de carga"
                 onclick="if(window.toggleQueue) window.toggleQueue();">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <span class="mobile-queue-badge" style="display: none;">0</span>
+                <i class="fas fa-cloud-upload-alt"></i> <span>Cola de Carga</span>
+                <span class="mobile-queue-badge dropdown-badge" style="display: none;">0</span>
               </button>
-              <button id="openSoportesGridBtn" class="icon-btn" title="Entregas">
-                <i class="fas fa-images"></i>
-                <span class="notification-badge" id="soportesNotification" style="display: none;">•</span>
+              <button id="openSoportesGridBtn" class="dropdown-item" title="Entregas">
+                <i class="fas fa-images"></i> <span>Entregas</span>
+                <span class="notification-badge dropdown-badge" id="soportesNotification"
+                  style="display: none;">•</span>
               </button>
-              <button id="refreshDataBtn" class="icon-btn" onclick="loadDataFromServer()" title="Actualizar">
-                <i class="fas fa-sync-alt"></i>
+              <button id="refreshDataBtn" class="dropdown-item" onclick="loadDataFromServer()" title="Actualizar">
+                <i class="fas fa-sync-alt"></i> <span>Actualizar Datos</span>
               </button>
-              <button id="openUserAdminBtn" class="icon-btn" onclick="openUserAdmin()" title="Administrar Usuarios"
+              <div class="dropdown-divider" id="adminDivider" style="display: none;"></div>
+              <button id="openUserAdminBtn" class="dropdown-item" onclick="openUserAdmin()" title="Administrar Usuarios"
                 style="display: none;">
-                <i class="fas fa-users-cog"></i>
+                <i class="fas fa-users-cog"></i> <span>Usuarios</span>
               </button>
-              <button id="openSettingsBtn" class="icon-btn" title="Configuración">
-                <i class="fas fa-cog"></i>
+              <button id="openSettingsBtn" class="dropdown-item" title="Configuración">
+                <i class="fas fa-cog"></i> <span>Configuración</span>
               </button>
             </div>
           </div>
-        </div>
-        <div class="barcode-input-container">
-          <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
-          <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric">
+
+          <script>
+            function toggleHeaderMenu() {
+              const menu = document.getElementById('headerDropdownMenu');
+              menu.classList.toggle('active');
+            }
+
+            // Cerrar menú al tocar opciones
+            document.addEventListener('click', function (e) {
+              const container = document.querySelector('.header-menu-container');
+              const menu = document.getElementById('headerDropdownMenu');
+              if (container && !container.contains(e.target) && menu && menu.classList.contains('active')) {
+                menu.classList.remove('active');
+              } else if (e.target.closest('.dropdown-item') && menu) {
+                // Cerrar menú on click item (opcional pero recomendable)
+                menu.classList.remove('active');
+              }
+            });
+          </script>
         </div>
         <div class="system-status-bar">
           <div id="status">Sistema Listo</div>

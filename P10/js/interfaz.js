@@ -368,8 +368,14 @@ function initUIListeners() {
                 }
 
                 if (btnAdminHeader) {
-                    if (currentUser.rol === 'ADMIN') btnAdminHeader.style.display = 'flex';
-                    else btnAdminHeader.style.display = 'none';
+                    const adminDivider = document.getElementById('adminDivider');
+                    if (currentUser.rol === 'ADMIN') {
+                        btnAdminHeader.style.display = 'flex';
+                        if (adminDivider) adminDivider.style.display = 'block';
+                    } else {
+                        btnAdminHeader.style.display = 'none';
+                        if (adminDivider) adminDivider.style.display = 'none';
+                    }
                 }
             }
 
