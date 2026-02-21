@@ -549,9 +549,9 @@
                 <i class="fas fa-chart-pie" style="color: #2563eb;"></i>
               </div>
               <div>
-                <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #0f172a;">Resumen de Métricas</h4>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 600;">Haz clic para
-                  expandir/colapsar estadísticas</p>
+                <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #0f172a;">Resumen General</h4>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 600;">Key Performance Indicators
+                </p>
               </div>
             </div>
             <div class="kpi-toggle-indicator collapsed" id="kpiToggleIcon">
@@ -563,75 +563,79 @@
           <div class="kpi-collapsible-content collapsed" id="kpiCollapsibleArea">
             <div class="soportes-kpi-container" id="soportesKpiContainer">
               <!-- Tarjeta 1: ENTREGADO -->
-              <div class="kpi-card premium-card entregado" id="cardEntregado">
-                <div class="kpi-header">
-                  <div class="kpi-icon" style="color: #10b981; background: #ecfdf5;"><i class="fas fa-check-circle"></i>
+              <div class="kpi-card compact entregado" id="cardEntregado">
+                <div class="kpi-header-mini">
+                  <div class="kpi-title-row">
+                    <span class="kpi-icon-flat"><i class="fas fa-check-circle"></i></span>
+                    <span class="kpi-title-text">ENTREGADO</span>
                   </div>
-                  <div class="kpi-title-small">ENTREGADO</div>
-                  <div class="kpi-badge">Óptimo</div>
+                  <div class="kpi-badge-pill success">Óptimo</div>
                 </div>
-                <div class="kpi-main-value" id="kpiEntregadoFacturas" style="color: #10b981;">0</div>
-                <div class="kpi-subtitle">Facturas de <span id="kpiTotalFacturasCard1"
-                    style="font-weight: 800; color: #0f172a;">0</span></div>
-                <div class="kpi-stats-divider"></div>
-                <div class="kpi-stats-grid" style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-                  <div class="kpi-stat-item">
-                    <span class="kpi-stat-label">Unidades Entregadas</span>
-                    <span class="kpi-stat-value"><span id="kpiEntregadoUnidades">0</span> <span
-                        style="color: #94a3b8; font-weight: 500;">/ <span
-                          id="kpiTotalUnidadesCard1">0</span></span></span>
+
+                <div class="kpi-content-main">
+                  <div class="kpi-prime">
+                    <span class="kpi-main-num" id="kpiEntregadoFacturas">0</span>
+                    <span class="kpi-main-total">/ <span id="kpiTotalFacturasCard1">0</span></span>
                   </div>
-                  <div class="kpi-stat-item">
-                    <span class="kpi-stat-label">Valor Entregado</span>
-                    <span class="kpi-stat-value" id="kpiEntregadoValor">$0</span>
+                  <div class="kpi-side-val">
+                    <span id="kpiEntregadoPct">0%</span>
                   </div>
                 </div>
-                <div class="kpi-progress-section" style="margin-top: 15px;">
-                  <div class="kpi-progress-label"
-                    style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px;">
-                    <span>Cumplimiento General</span>
-                    <span id="kpiEntregadoPct" style="font-weight: 800; color: #10b981;">0%</span>
-                  </div>
-                  <div class="kpi-progress"
-                    style="height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden;">
-                    <div class="kpi-progress-bar bg-success" id="kpiEntregadoBar" style="width: 0%; height: 100%;">
+
+                <div class="kpi-bar-mini">
+                  <div class="kpi-bar-inner" id="kpiEntregadoBar" style="width: 0%;"></div>
+                </div>
+
+                <div class="kpi-grid-details">
+                  <div class="kpi-detail">
+                    <label>UNIDADES</label>
+                    <div class="kpi-detail-val">
+                      <span id="kpiEntregadoUnidades">0</span>
+                      <small>/ <span id="kpiTotalUnidadesCard1">0</span></small>
                     </div>
+                  </div>
+                  <div class="kpi-detail">
+                    <label>VALOR BRUTO</label>
+                    <div class="kpi-detail-val highlight" id="kpiEntregadoValor">$0</div>
                   </div>
                 </div>
               </div>
 
               <!-- Tarjeta 2: PENDIENTE -->
-              <div class="kpi-card premium-card pendiente" id="cardPendiente">
-                <div class="kpi-header">
-                  <div class="kpi-icon" style="color: #ef4444; background: #fef2f2;"><i class="fas fa-clock"></i></div>
-                  <div class="kpi-title-small">PENDIENTE</div>
-                  <div class="kpi-badge danger" id="kpiGeneralBadge">Alerta</div>
-                </div>
-                <div class="kpi-main-value" id="kpiPendienteFacturas" style="color: #ef4444;">0</div>
-                <div class="kpi-subtitle">Facturas de <span id="kpiTotalFacturasCard2"
-                    style="font-weight: 800; color: #0f172a;">0</span></div>
-                <div class="kpi-stats-divider"></div>
-                <div class="kpi-stats-grid" style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-                  <div class="kpi-stat-item">
-                    <span class="kpi-stat-label">Unidades Pendientes</span>
-                    <span class="kpi-stat-value"><span id="kpiPendienteUnidades">0</span> <span
-                        style="color: #94a3b8; font-weight: 500;">/ <span
-                          id="kpiTotalUnidadesCard2">0</span></span></span>
+              <div class="kpi-card compact pendiente" id="cardPendiente">
+                <div class="kpi-header-mini">
+                  <div class="kpi-title-row">
+                    <span class="kpi-icon-flat"><i class="fas fa-clock"></i></span>
+                    <span class="kpi-title-text">PENDIENTE</span>
                   </div>
-                  <div class="kpi-stat-item">
-                    <span class="kpi-stat-label">Valor Pendiente</span>
-                    <span class="kpi-stat-value" id="kpiPendienteValor">$0</span>
+                  <div class="kpi-badge-pill danger" id="kpiGeneralBadge">Alerta</div>
+                </div>
+
+                <div class="kpi-content-main">
+                  <div class="kpi-prime">
+                    <span class="kpi-main-num" id="kpiPendienteFacturas">0</span>
+                    <span class="kpi-main-total">/ <span id="kpiTotalFacturasCard2">0</span></span>
+                  </div>
+                  <div class="kpi-side-val warning">
+                    <span id="kpiPendientePct">0%</span>
                   </div>
                 </div>
-                <div class="kpi-progress-section" style="margin-top: 15px;">
-                  <div class="kpi-progress-label"
-                    style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 5px;">
-                    <span>Faltante General</span>
-                    <span id="kpiPendientePct" style="font-weight: 800; color: #ef4444;">0%</span>
+
+                <div class="kpi-bar-mini">
+                  <div class="kpi-bar-inner danger" id="kpiPendienteBar" style="width: 0%;"></div>
+                </div>
+
+                <div class="kpi-grid-details">
+                  <div class="kpi-detail">
+                    <label>UNIDADES</label>
+                    <div class="kpi-detail-val">
+                      <span id="kpiPendienteUnidades">0</span>
+                      <small>/ <span id="kpiTotalUnidadesCard2">0</span></small>
+                    </div>
                   </div>
-                  <div class="kpi-progress"
-                    style="height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden;">
-                    <div class="kpi-progress-bar bg-danger" id="kpiPendienteBar" style="width: 0%; height: 100%;"></div>
+                  <div class="kpi-detail">
+                    <label>VALOR PENDIENTE</label>
+                    <div class="kpi-detail-val highlight danger" id="kpiPendienteValor">$0</div>
                   </div>
                 </div>
               </div>
