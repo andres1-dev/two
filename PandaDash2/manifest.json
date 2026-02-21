@@ -3,12 +3,12 @@
   "short_name": "PandaDash",
   "description": "Logística e Inventarios Inteligentes",
   "id": "/",
-  "start_url": ".",
+  "start_url": "./index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
   "lang": "es-CO",
   "categories": [
     "business",
@@ -21,12 +21,6 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     }
   ],
   "related_applications": [],
