@@ -1,6 +1,7 @@
 // principal.js - Datos con Factura Optimizado
 // Configuración de Sheets
-const API_KEY = 'AIzaSyC7hjbRc0TGLgImv8gVZg8tsOeYWgXlPcM';
+// Configuración de Sheets - Obtenida dinámicamente tras login
+const API_KEY = localStorage.getItem('pandaDashApiKey') || '';
 
 // Fuentes de datos
 const SOURCE_SPREADSHEET_ID_DATA2 = "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI";
@@ -57,21 +58,64 @@ async function obtenerDatosFacturados() {
 function combinarDatosFacturados(datosData2, datosSiesa, datosSoportes, datosRec) {
     const datosCombinados = [];
     const lotesProcesados = new Set();
+    const facturasProcesadasSiesa = new Set();
 
-    // Paso 1: Procesar DATA2 (fuente principal)
-    const resultadosData2 = procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesados);
+    console.log("🔄 Combinando datos...");
+    console.log(`📦 DATA2: ${datosData2.length} registros`);
+    console.log(`📦 REC: ${datosRec.length} registros`);
+    console.log(`✅ Soportes: ${Object.keys(datosSoportes).length} facturas entregadas`);
+
+    // Paso 1: Procesar DATA2
+    const resultadosData2 = procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesados, facturasProcesadasSiesa);
     datosCombinados.push(...resultadosData2);
 
-    // Paso 2: Procesar REC (fuente complementaria)
-    const resultadosREC = procesarFuenteREC(datosRec, datosSiesa, datosSoportes, lotesProcesados);
+    // Paso 2: Procesar REC
+    const resultadosREC = procesarFuenteREC(datosRec, datosSiesa, datosSoportes, lotesProcesados, facturasProcesadasSiesa);
     datosCombinados.push(...resultadosREC);
+
+    // Paso 3: Identificar facturas de SIESA huérfanas (con error en lote, string con texto, sin origen en DATA2/REC, etc.)
+    const huerfanasSiesa = [];
+    datosSiesa.forEach(filaSiesa => {
+        const factura = filaSiesa[1];
+        if (factura && !facturasProcesadasSiesa.has(factura)) {
+            const loteSiesa = filaSiesa[3];
+            const objFactura = construirObjetoFactura(
+                filaSiesa,
+                "SIN_DOC", // documento
+                loteSiesa, // loteDoc 
+                "SIN_REF", // referenciaDoc
+                datosSoportes
+            );
+
+            huerfanasSiesa.push({
+                documento: "SIN_DOC",
+                referencia: objFactura.referencia || "SIN_REF",
+                lote: loteSiesa || "",
+                fuente: "SIESA (Sin origen/Lote inválido)",
+                datosSiesa: [objFactura]
+            });
+            facturasProcesadasSiesa.add(factura);
+        }
+    });
+
+    datosCombinados.push(...huerfanasSiesa);
 
     // Estadísticas
     const totalFacturas = datosCombinados.reduce((sum, item) =>
         sum + (item.datosSiesa?.length || 0), 0);
 
+    const entregadas = datosCombinados.reduce((sum, item) =>
+        sum + (item.datosSiesa?.filter(f => f.confirmacion === "ENTREGADO").length || 0), 0);
+
     const desdeDATA2 = resultadosData2.length;
     const desdeREC = resultadosREC.length;
+    const desdeHuerfanas = huerfanasSiesa.length;
+
+    console.log("📊 Estadísticas finales:");
+    console.log(`   - Documentos: ${datosCombinados.length} (DATA2: ${desdeDATA2}, REC: ${desdeREC}, HUÉRFANAS: ${desdeHuerfanas})`);
+    console.log(`   - Facturas: ${totalFacturas}`);
+    console.log(`   - Entregadas: ${entregadas}`);
+    console.log(`   - Pendientes: ${totalFacturas - entregadas}`);
 
     return {
         success: true,
@@ -80,16 +124,19 @@ function combinarDatosFacturados(datosData2, datosSiesa, datosSoportes, datosRec
         count: datosCombinados.length,
         metadata: {
             totalFacturas: totalFacturas,
+            entregadas: entregadas,
+            pendientes: totalFacturas - entregadas,
             documentosDesdeDATA2: desdeDATA2,
             documentosDesdeREC: desdeREC,
+            documentosHuerfanos: desdeHuerfanas,
             lotesProcesados: lotesProcesados.size,
-            estadisticas: `Documentos: ${datosCombinados.length} (${desdeDATA2} de DATA2, ${desdeREC} de REC) | Facturas: ${totalFacturas}`
+            estadisticas: `Documentos: ${datosCombinados.length} | Facturas: ${totalFacturas} | Entregadas: ${entregadas}`
         }
     };
 }
 
 // Procesar fuente DATA2
-function procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesados) {
+function procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesados, facturasProcesadasSiesa) {
     const resultados = [];
 
     datosData2.forEach(item => {
@@ -105,9 +152,18 @@ function procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesa
         if (facturasSiesa.length > 0) {
             lotesProcesados.add(loteKey);
 
-            const datosRelacionados = facturasSiesa.map(factura =>
-                construirObjetoFactura(factura, documento, lote, referencia, datosSoportes)
-            );
+            const datosRelacionados = facturasSiesa.map(factura => {
+                const numFactura = factura[1];
+                if (facturasProcesadasSiesa && numFactura) facturasProcesadasSiesa.add(numFactura);
+
+                return construirObjetoFactura(
+                    factura,                    // Fila de SIESA
+                    documento,                   // Documento REC
+                    lote,                        // Lote del documento
+                    referencia,                   // Referencia del documento
+                    datosSoportes                  // Mapa de soportes (POR FACTURA)
+                );
+            });
 
             resultados.push({
                 documento: documento,
@@ -123,7 +179,7 @@ function procesarFuenteDATA2(datosData2, datosSiesa, datosSoportes, lotesProcesa
 }
 
 // Procesar fuente REC
-function procesarFuenteREC(datosRec, datosSiesa, datosSoportes, lotesProcesados) {
+function procesarFuenteREC(datosRec, datosSiesa, datosSoportes, lotesProcesados, facturasProcesadasSiesa) {
     const resultados = [];
 
     datosRec.forEach(item => {
@@ -139,9 +195,18 @@ function procesarFuenteREC(datosRec, datosSiesa, datosSoportes, lotesProcesados)
         if (facturasSiesa.length > 0) {
             lotesProcesados.add(loteKey);
 
-            const datosRelacionados = facturasSiesa.map(factura =>
-                construirObjetoFactura(factura, documento, lote, referencia, datosSoportes)
-            );
+            const datosRelacionados = facturasSiesa.map(factura => {
+                const numFactura = factura[1];
+                if (facturasProcesadasSiesa && numFactura) facturasProcesadasSiesa.add(numFactura);
+
+                return construirObjetoFactura(
+                    factura,
+                    documento,
+                    lote,
+                    referencia,
+                    datosSoportes
+                );
+            });
 
             resultados.push({
                 documento: documento,
@@ -165,41 +230,115 @@ function buscarFacturasPorLote(datosSiesa, loteBuscado) {
 }
 
 // Construir objeto de factura completo
-function construirObjetoFactura(filaSiesa, documento, lote, referencia, datosSoportes) {
+function construirObjetoFactura(filaSiesa, documento, loteDoc, referenciaDoc, datosSoportes) {
+    // ===========================================
+    // 1. EXTRACCIÓN DE DATOS DE SIESA
+    // ===========================================
     const codProveedor = Number(filaSiesa[4]);
     let nombreProveedor = filaSiesa[4];
 
+    // Mapeo de códigos de proveedor
     if (codProveedor === 5) {
         nombreProveedor = "TEXTILES Y CREACIONES EL UNIVERSO SAS";
     } else if (codProveedor === 3) {
         nombreProveedor = "TEXTILES Y CREACIONES LOS ANGELES SAS";
     }
 
+    // Datos básicos
+    const factura = filaSiesa[1];                    // ← IDENTIFICADOR PRINCIPAL
+    const fechaFactura = filaSiesa[2];
+    const loteSiesa = filaSiesa[3];
+    const cliente = filaSiesa[5];
     const nitCliente = filaSiesa[9] || '';
-    const referenciaItem = filaSiesa[7] || referencia;
-    const cantidadItem = String(filaSiesa[8] || '');
-    const { confirmacion, ih3 } = obtenerConfirmacionIh3(
-        datosSoportes,
-        documento,
-        lote,
-        referenciaItem,
-        cantidadItem,
-        nitCliente
-    );
 
+    // ===========================================
+    // 2. DATOS AGREGADOS (de SIESA_V2)
+    // ===========================================
+    // NOTA: filaSiesa[7] ahora es un ARRAY de referencias
+    const referenciasArray = Array.isArray(filaSiesa[7]) ? filaSiesa[7] : [];
+    const cantidadTotal = filaSiesa[8] || 0;
+    const valorBruto = filaSiesa[6] || 0;
+
+    // Determinar la referencia FINAL
+    let referenciaFinal;
+    if (referenciasArray.length === 1) {
+        referenciaFinal = referenciasArray[0]; // Una sola referencia
+    } else if (referenciasArray.length > 1) {
+        referenciaFinal = "RefVar"; // Múltiples referencias
+    } else {
+        referenciaFinal = referenciaDoc; // Fallback al documento
+    }
+
+    // ===========================================
+    // 3. VERIFICACIÓN DE SOPORTE (POR FACTURA)
+    // ===========================================
+    let confirmacion = "";
+    let ih3 = "";
+    let fechaEntrega = "";
+
+    if (factura && datosSoportes && datosSoportes[factura]) {
+        const soporte = datosSoportes[factura];
+        confirmacion = "ENTREGADO";
+
+        if (soporte.imageId) {
+            ih3 = BASE_IMAGE_URL + soporte.imageId;
+        }
+
+        fechaEntrega = soporte.fechaEntrega || "";
+
+        // ===========================================
+        // 4. VALIDACIONES (solo warnings, no bloquean)
+        // ===========================================
+        if (soporte.cantidad && String(soporte.cantidad) !== String(cantidadTotal)) {
+            console.warn(`⚠️ Discrepancia cantidad en factura ${factura}:`, {
+                siesa: cantidadTotal,
+                soporte: soporte.cantidad
+            });
+        }
+
+        // Solo validar referencia si NO es RefVar
+        if (referenciaFinal !== "RefVar" &&
+            soporte.referencia &&
+            soporte.referencia !== referenciaFinal) {
+            console.warn(`⚠️ Discrepancia referencia en factura ${factura}:`, {
+                siesa: referenciaFinal,
+                soporte: soporte.referencia
+            });
+        }
+
+        // Validar NIT (opcional)
+        if (soporte.nit && soporte.nit !== nitCliente) {
+            console.warn(`⚠️ Discrepancia NIT en factura ${factura}:`, {
+                siesa: nitCliente,
+                soporte: soporte.nit
+            });
+        }
+    }
+
+    // ===========================================
+    // 5. CONSTRUCCIÓN DEL OBJETO FINAL
+    // ===========================================
     return {
+        // Datos SIESA
         estado: filaSiesa[0],
-        factura: filaSiesa[1],
-        fecha: filaSiesa[2],
-        lote: filaSiesa[3],
+        factura: factura,                    // ← LLAVE PRINCIPAL
+        fecha: fechaFactura,
+        fechaEntrega: fechaEntrega,
+
+        // Datos del producto
+        lote: loteSiesa || loteDoc,
         proovedor: nombreProveedor,
-        cliente: filaSiesa[5],
-        valorBruto: filaSiesa[6],
-        referencia: referenciaItem,
-        cantidad: cantidadItem,
+        cliente: cliente,
         nit: nitCliente,
+
+        // Datos agregados
+        valorBruto: valorBruto,
+        referencia: referenciaFinal,          // ← Puede ser "RefVar"
+        cantidad: cantidadTotal,
+
+        // Datos de confirmación
         confirmacion: confirmacion,
-        Ih3: ih3
+        Ih3: ih3,
     };
 }
 
@@ -279,7 +418,6 @@ async function obtenerDatosRecFiltrados() {
     }
 }
 
-// Obtener datos de SOPORTES
 async function obtenerDatosSoportes() {
     try {
         const rangeSoportes = `${SOPORTES_SHEET_NAME}!A:H`;
@@ -289,34 +427,51 @@ async function obtenerDatosSoportes() {
             return {};
         }
 
-        return allValuesSoportes.slice(1).reduce((map, row) => {
+        // Mapa principal: POR FACTURA (NO por clave compuesta)
+        const mapaSoportes = {};
+
+        allValuesSoportes.slice(1).forEach((row, index) => {
             if (row.length >= 7) {
-                const documento = String(row[1] || '').trim();
-                const lote = String(row[2] || '').trim();
-                const referencia = String(row[3] || '').trim();
-                const cantidad = String(row[4] || '').trim();
-                const factura = row[5] || '';
-                const nit = String(row[6] || '').trim();
-                const imageId = row.length >= 8 ? String(row[7] || '').trim() : '';
+                const fechaEntrega = row[0] || '';                // Columna A: Timestamp
+                const documento = String(row[1] || '').trim();    // Columna B: Documento
+                const lote = String(row[2] || '').trim();         // Columna C: Lote
+                const referencia = String(row[3] || '').trim();   // Columna D: Referencia
+                const cantidad = String(row[4] || '').trim();     // Columna E: Cantidad
+                const factura = String(row[5] || '').trim();      // Columna F: FACTURA (¡IDENTIFICADOR PRINCIPAL!)
+                const nit = String(row[6] || '').trim();          // Columna G: NIT
+                const imageId = row.length >= 8 ? String(row[7] || '').trim() : ''; // Columna H: ImageId
 
-                if (documento && lote && referencia && cantidad && nit) {
-                    const fechaEntrega = row[0] || ''; // Columna A es Timestamp
-                    const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`;
-                    map[clave] = { factura, imageId, fechaEntrega };
-
-                    // Mapa auxiliar por factura para búsqueda rápida en reporte
-                    if (factura && factura.trim() !== '') {
-                        if (!map['BY_FACTURA_' + factura.trim()]) {
-                            map['BY_FACTURA_' + factura.trim()] = { fechaEntrega, imageId, estado: 'ENTREGADO' };
-                        }
+                // Validación: DEBE tener factura (es lo único realmente obligatorio)
+                if (factura) {
+                    // Si ya existe una factura duplicada, loguear warning
+                    if (mapaSoportes[factura]) {
+                        console.warn(`⚠️ Factura duplicada en soportes: ${factura} (fila ${index + 2})`);
                     }
+
+                    // Guardar por FACTURA (con metadata adicional útil)
+                    mapaSoportes[factura] = {
+                        fechaEntrega,
+                        imageId,
+                        estado: 'ENTREGADO',
+                        // Metadata adicional (útil para validaciones)
+                        documento,
+                        lote,
+                        referencia,
+                        cantidad,
+                        nit,
+                        // Para debugging
+                        _fila: index + 2,
+                        _timestamp: new Date().toISOString()
+                    };
                 }
             }
-            return map;
-        }, {});
+        });
+
+        console.log(`📊 Soportes cargados: ${Object.keys(mapaSoportes).length} facturas entregadas`);
+        return mapaSoportes;
 
     } catch (error) {
-        console.error("Error en obtenerDatosSoportes:", error);
+        console.error("❌ Error en obtenerDatosSoportes:", error);
         return {};
     }
 }
@@ -329,18 +484,24 @@ async function obtenerDatosSiesa() {
             obtenerDatosDeSheet(SOURCE_SPREADSHEET_ID_SIESA, `${SOURCE_SHEET_NAME_SIESA_2}!A:D`)
         ]);
 
-        // Procesar agregaciones de SIESA_V2
+        // ===========================================
+        // 1. PROCESAR AGREGACIONES DE SIESA_V2
+        // ===========================================
         const agregaciones = {};
         siesaV2Data.forEach(row => {
             if (row.length >= 3) {
-                const key = row[0] || '';
-                const valor1 = parseFloat(row[1]) || 0;
-                const valor2 = row[2] || '';
-                const valor3 = parseFloat(row[3]) || 0;
+                const key = String(row[0] || '').trim();      // Columna A: Número de factura
+                const valor1 = parseFloat(row[1]) || 0;        // Columna B: Valor acumulado
+                const valor2 = String(row[2] || '').trim();    // Columna C: Referencia (o "RefVar")
+                const valor3 = parseFloat(row[3]) || 0;        // Columna D: Cantidad acumulada
 
                 if (key) {
                     if (!agregaciones[key]) {
-                        agregaciones[key] = { sumValor1: valor1, itemsValor2: [valor2], sumValor3: valor3 };
+                        agregaciones[key] = {
+                            sumValor1: valor1,
+                            itemsValor2: [valor2],
+                            sumValor3: valor3
+                        };
                     } else {
                         agregaciones[key].sumValor1 += valor1;
                         agregaciones[key].itemsValor2.push(valor2);
@@ -350,12 +511,13 @@ async function obtenerDatosSiesa() {
             }
         });
 
-        // Configuración de filtros
+        // ===========================================
+        // 2. CONFIGURACIÓN DE FILTROS
+        // ===========================================
         const estadosExcluir = ["Anuladas", "En elaboración"];
         const prefijosFactura = ["017", "FEV", "029", "FVE"];
 
-        // Mapeo de clientes a NIT
-        // Usar la constante global definida en configuracion.js
+        // Mapa de clientes (desde configuracion.js)
         const mapaClientes = typeof CLIENTS_MAP !== 'undefined' ? CLIENTS_MAP : {
             "INVERSIONES URBANA SAS": "901920844",
             "EL TEMPLO DE LA MODA FRESCA SAS": "900047252",
@@ -366,9 +528,11 @@ async function obtenerDatosSiesa() {
             "ZULUAGA GOMEZ RUBEN ESTEBAN": "1007348825",
             "SON Y LIMON SAS": "900355664"
         };
-
         const clientesPermitidos = new Set(Object.keys(mapaClientes));
 
+        // ===========================================
+        // 3. FILTRAR Y MAPEAR SIESA
+        // ===========================================
         return siesaData
             .filter(row => row.length >= 4)
             .filter(row => {
@@ -395,29 +559,31 @@ async function obtenerDatosSiesa() {
                     codProveedor === "3" ? (row[5] || '') : '';
 
                 const factura = row[1] || '';
-                const agregacion = agregaciones[factura] || { sumValor1: 0, itemsValor2: [], sumValor3: 0 };
 
-                const referencia = agregacion.itemsValor2.length === 1 ?
-                    agregacion.itemsValor2[0] :
-                    (agregacion.itemsValor2.length > 1 ? "RefVar" : "");
+                // Obtener agregaciones para esta factura
+                const agregacion = agregaciones[factura] || {
+                    sumValor1: 0,
+                    itemsValor2: [],
+                    sumValor3: 0
+                };
 
                 return [
-                    row[0],
-                    factura,
-                    formatearFecha(row[2]),
-                    lote,
-                    codProveedor,
-                    clienteNormalizado,
-                    agregacion.sumValor1,
-                    referencia,
-                    agregacion.sumValor3,
-                    mapaClientes[clienteNormalizado] || ""
+                    row[0],                    // Estado
+                    factura,                    // Factura
+                    formatearFecha(row[2]),     // Fecha formateada
+                    lote,                        // Lote
+                    codProveedor,                // Código proveedor
+                    clienteNormalizado,           // Cliente normalizado
+                    agregacion.sumValor1,         // ← VALOR AGREGADO
+                    agregacion.itemsValor2,       // ← ARRAY DE REFERENCIAS (¡NO string!)
+                    agregacion.sumValor3,         // ← CANTIDAD AGREGADA
+                    mapaClientes[clienteNormalizado] || "" // NIT
                 ];
             })
             .filter(row => row !== null);
 
     } catch (error) {
-        console.error("Error en obtenerDatosSiesa:", error);
+        console.error("❌ Error en obtenerDatosSiesa:", error);
         return [];
     }
 }
@@ -433,14 +599,14 @@ function obtenerConfirmacionIh3(soportesMap, documento, lote, referencia, cantid
     const clave = `${documento}_${lote}_${referencia}_${cantidad}_${nit}`.trim();
 
     if (!soportesMap[clave]) {
-        return { confirmacion: "", ih3: "" };
+        return { confirmacion: "", ih3: "", fechaEntrega: "" };
     }
 
     const soporte = soportesMap[clave];
     const confirmacion = soporte.factura ? "ENTREGADO" : "ENTREGADO, PENDIENTE FACTURA";
     const ih3 = soporte.imageId ? BASE_IMAGE_URL + soporte.imageId : "";
 
-    return { confirmacion, ih3 };
+    return { confirmacion, ih3, fechaEntrega: soporte.fechaEntrega || "" };
 }
 
 // Función para exportar datos

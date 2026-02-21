@@ -97,10 +97,10 @@ function displayFullResult(item, qrParts) {
               
               <div class="card-header-actions">
                  ${isProcessing ?
-                    `<div class="status-icon-only processing"><i class="fas fa-sync fa-spin"></i></div>` :
+                    `<div class="status-icon-only processing contextual" data-factura="${siesa.factura}"><div class="premium-spinner"></div></div>` :
                     estadoConf === "ENTREGADO" ?
                         `<div class="status-actions" data-factura="${siesa.factura}">
-                            <button class="action-btn-mini btn-delete" style="display: ${(typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none'}" onclick="event.stopPropagation(); eliminarEntrega('${siesa.factura}')" title="Eliminar entrega">
+                            <button class="action-btn-mini btn-delete contextual" style="display: ${(typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN') ? 'flex' : 'none'}; background: transparent; box-shadow: none;" onclick="event.stopPropagation(); eliminarEntrega('${siesa.factura}')" title="Eliminar entrega">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                             <div class="status-icon-only success"><i class="fas fa-check-circle"></i></div>
@@ -162,9 +162,9 @@ function displayFullResult(item, qrParts) {
                 let thumbnailUrl;
                 // Si es URL de Google Drive
                 if (siesa.Ih3.includes('googleusercontent.com/d/')) {
-                     const imageId = siesa.Ih3.split('/').pop();
-                     thumbnailUrl = `https://lh3.googleusercontent.com/d/${imageId}=s200`;
-                } 
+                    const imageId = siesa.Ih3.split('/').pop();
+                    thumbnailUrl = `https://lh3.googleusercontent.com/d/${imageId}=s200`;
+                }
                 // Si es Blob o Data URL (Local) o URL directa
                 else {
                     thumbnailUrl = siesa.Ih3;

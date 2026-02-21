@@ -8,7 +8,7 @@ let isUploadProcessing = false;
 
 // INICIALIZAR (Llamado cuando se cambia a esta vista)
 function initUploadSiesa() {
-    console.log('🚀 iLogistics Pro Upload Module iniciado');
+    console.log('Upload Module iniciado');
     setupUploadEventListeners();
     setupUploadDragAndDrop();
     testUploadConnection();
@@ -25,7 +25,7 @@ function setupUploadEventListeners() {
         // Use onclick to avoid multiple event listeners scaling up
         btnSelect.onclick = function (e) {
             e.preventDefault();
-            console.log("👆 Button Select Files clicked");
+            console.log("Button Select Files clicked");
             fileInput.click();
         };
 
@@ -37,7 +37,7 @@ function setupUploadEventListeners() {
         uploadArea.onclick = function (e) {
             // Trigger if not clicking button or input
             if (e.target !== btnSelect && !btnSelect.contains(e.target) && e.target !== fileInput) {
-                console.log("👆 Upload Area clicked");
+                console.log("Upload Area clicked");
                 fileInput.click();
             }
         };
@@ -97,20 +97,20 @@ async function testUploadConnection() {
             // Conexión exitosa
             statusCard.className = 'status-card connected fade-in';
             if (statusIcon) statusIcon.className = 'fas fa-check-circle text-success'; // Using FontAwesome classes
-            if (statusTitle) statusTitle.textContent = '✅ Conectado al servidor';
+            if (statusTitle) statusTitle.textContent = 'Conectado al servidor';
             if (statusMessage) statusMessage.textContent = 'API lista para recibir archivos';
 
-            console.log('✅ Conexión establecida con API de Carga');
+            console.log('Conexión establecida con API de Carga');
         } else {
             throw new Error(data.message || 'Error en la respuesta');
         }
 
     } catch (error) {
-        console.error('❌ Error de conexión:', error);
+        console.error('Error de conexión:', error);
 
         if (statusCard) statusCard.className = 'status-card disconnected fade-in';
         if (statusIcon) statusIcon.className = 'fas fa-times-circle text-danger';
-        if (statusTitle) statusTitle.textContent = '❌ Error de conexión';
+        if (statusTitle) statusTitle.textContent = 'Error de conexión';
         if (statusMessage) statusMessage.textContent = 'No se pudo conectar con el servidor';
     }
 }
@@ -123,7 +123,7 @@ function handleUploadFileSelect(e) {
 
 function handleUploadDroppedFiles(fileList) {
     const files = Array.from(fileList);
-    console.log(`📁 ${files.length} archivo(s) seleccionado(s)`);
+    console.log(`${files.length} archivo(s) seleccionado(s)`);
 
     files.forEach(file => {
         // Validar tipo
@@ -301,7 +301,7 @@ async function processUploadFiles() {
     if (resultsSection) resultsSection.style.display = 'none';
 
     try {
-        console.log('⚙️ Iniciando procesamiento de archivos...');
+        console.log('Iniciando procesamiento de archivos...');
 
         // 1. Leer contenido de archivos
         const filesData = [];
@@ -337,7 +337,7 @@ async function processUploadFiles() {
         }
 
         // 2. Enviar a API (USANDO FormData como SIESA.html)
-        console.log(`📤 Enviando ${filesData.length} archivo(s) al servidor...`);
+        console.log(`Enviando ${filesData.length} archivo(s) al servidor...`);
         const formData = new FormData();
         formData.append('action', 'uploadFiles');
         formData.append('datos', JSON.stringify(filesData));
@@ -353,7 +353,7 @@ async function processUploadFiles() {
         }
 
         const result = await response.json();
-        console.log('📥 Respuesta del servidor:', result);
+        console.log('Respuesta del servidor:', result);
 
         if (result.success) {
             // Update individual file statuses based on server response
@@ -376,7 +376,7 @@ async function processUploadFiles() {
         }
 
     } catch (error) {
-        console.error('❌ Error en procesamiento:', error);
+        console.error('Error en procesamiento:', error);
 
         // Marcar error en los que se estaban procesando
         selectedUploadFiles.forEach(f => {

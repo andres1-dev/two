@@ -26,7 +26,7 @@
 
   --border: #e2e8f0;
   --border-light: #f1f5f9;
-  
+
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 8px;
@@ -46,39 +46,47 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-    /* Estilos para bloquear zoom y escalado */
-    html {
-      touch-action: manipulation;
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-      overflow-x: hidden;
-    }
+/* Estilos para bloquear zoom y escalado */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+}
 
 /* MOBILE-FIRST ABSOLUTO */
 body {
-  max-width: 450px; /* Tamaño móvil estándar */
   margin: 0;
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-main);
-  background-color: #ffffff;
-  color: var(--text-main);
+  padding: 0;
+  display: flex;
   justify-content: center;
   align-items: flex-start;
+  min-height: 100vh;
+  font-family: var(--font-main);
+  background-color: #ffffff;
+  /* Fondo blanco limpio */
+  color: var(--text-main);
+  overflow-x: hidden;
 }
 
-/* MARCO PRINCIPAL - ANCHO FIJO MÓVIL */
+/* MARCO PRINCIPAL - FULL SCREEN */
 #app-frame {
   width: 100%;
   max-width: var(--app-width);
   background-color: white;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  /* Asegurar que el contenido respete los bordes */
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
   min-height: 100vh;
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  /* Full height */
+  margin: 0 auto;
+  /* Centrado horizontal */
+  border-radius: 0;
+  /* Sin bordes redondeados */
+  border: none;
+  box-shadow: none;
 }
 
 /* Contenido SCROLLABLE */

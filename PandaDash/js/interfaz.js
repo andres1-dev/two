@@ -128,8 +128,139 @@ function initUIListeners() {
     // Inicializar Modos de Interacción (PDA, Manual, Cámara)
     initPDAModes();
 
-    // Inicializar UI de Configuracion
-    initSettingsUI();
+    try {
+        // Inicializar UI de Configuracion
+        initSettingsUI();
+
+        // --- Reporte Detallado e Inicialización de Flatpickr ---
+        const rDateInput = document.getElementById('reportDateRange');
+
+        // Helper para rango por defecto (Hoy y un mes atrás)
+        const getReportDefaultRange = () => {
+            const end = new Date();
+            const start = new Date();
+            start.setMonth(start.getMonth() - 1);
+            return [start, end];
+        };
+
+        if (rDateInput && typeof flatpickr !== 'undefined') {
+            console.log("Initializing Flatpickr for Report");
+
+            // Buscar la fecha más reciente para el valor predeterminado
+            const latest = getLatestDeliveryDateVal() || new Date();
+
+            window.reportDatePicker = flatpickr(rDateInput, {
+                mode: "range",
+                dateFormat: "d/m/Y",
+                locale: "es",
+                maxDate: "today",
+                defaultDate: [latest, latest],
+                onClose: function (selectedDates) {
+                    // Si el usuario selecciona manualmente, cambiamos al icono de "semana" (rango personalizado)
+                    const rDateIcon = document.querySelector('.report-date-selector i');
+                    if (rDateIcon) {
+                        rDateIcon.className = 'fas fa-calendar-week';
+                        rDateIcon.title = "Rango personalizado";
+                    }
+
+                    if (selectedDates.length === 2) {
+                        showDetailedReport(selectedDates);
+                    } else if (selectedDates.length === 1) {
+                        showDetailedReport(selectedDates[0]);
+                    }
+                }
+            });
+
+            // --- CICLO RÁPIDO DE FECHAS (DÍA / MES / AÑO) ---
+            const rDateSelector = document.querySelector('.report-date-selector');
+            const rDateIcon = rDateSelector?.querySelector('i');
+            if (rDateIcon && window.reportDatePicker) {
+                let cycleState = 0; // 0: DÍA, 1: MES, 2: AÑO
+                rDateIcon.style.cursor = 'pointer';
+                rDateIcon.title = "Filtro rápido: Día";
+                rDateIcon.className = 'fas fa-calendar-day'; // Inicializar con el icono de día
+
+                rDateIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const today = new Date();
+                    let start, end;
+
+                    // Asegurar que si el icono es "calendar-week" (manual), el siguiente sea DÍA (0)
+                    if (rDateIcon.classList.contains('fa-calendar-week')) {
+                        cycleState = -1; // Al sumar 1 abajo, será 0 (DÍA)
+                    }
+
+                    cycleState = (cycleState + 1) % 3;
+
+                    if (cycleState === 0) { // DÍA
+                        rDateIcon.className = 'fas fa-calendar-day';
+                        const latestVal = getLatestDeliveryDateVal() || today;
+                        start = latestVal;
+                        end = latestVal;
+                        console.log("Filtro rápido: DÍA");
+                    } else if (cycleState === 1) { // MES
+                        rDateIcon.className = 'fas fa-calendar-days';
+                        start = new Date(today.getFullYear(), today.getMonth(), 1);
+                        end = today;
+                        console.log("Filtro rápido: MES");
+                    } else { // AÑO
+                        rDateIcon.className = 'fas fa-calendar';
+                        start = new Date(today.getFullYear(), 0, 1);
+                        end = today;
+                        console.log("Filtro rápido: AÑO");
+                    }
+
+                    showDetailedReport([start, end]);
+                });
+            }
+        }
+
+        // Listener para el botón manual del reporte
+        const reportBtn = document.getElementById('openDailyReportBtn');
+        if (reportBtn) {
+            console.log("Report button found, attaching listener");
+            reportBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                // Abrir con la última fecha con datos por defecto
+                const latestDate = getLatestDeliveryDateVal() || new Date();
+                showDetailedReport(latestDate);
+            });
+        }
+
+        // Detector de reporte (desde notificación)
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportDateReq = urlParams.get('showReport');
+        if (reportDateReq) {
+            const checkDataInterval = setInterval(() => {
+                if (window.dataLoaded && typeof showDetailedReport === 'function') {
+                    clearInterval(checkDataInterval);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    showDetailedReport(parseInt(reportDateReq));
+                }
+            }, 800);
+        }
+
+        // --- LÓGICA DE PESTAÑAS DEL REPORTE ---
+        const tabBtns = document.querySelectorAll('.report-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                window.activeReportTab = tab;
+
+                // Actualizar UI de botones
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Recargar reporte con la misma fecha, saltando la actualización de red
+                if (window.lastReportTarget) {
+                    showDetailedReport(window.lastReportTarget, true);
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error initializing UI Listeners:", err);
+    }
 
     // Detector para deshabilitar el teclado virtual en dispositivos móviles
     document.addEventListener('touchstart', function (e) {
@@ -147,6 +278,8 @@ function initUIListeners() {
     window.APP_MODE = 'PDA'; // 'PDA', 'MANUAL', 'CAMERA'
 
     function initPDAModes() {
+        let focusTimer = null; // Timer para control de foco
+
         // Selectors for new modal cards
         const btnCamera = document.querySelector('.mode-option-card.btn-camera');
         const btnManual = document.querySelector('.mode-option-card.btn-keyboard');
@@ -227,9 +360,22 @@ function initUIListeners() {
 
                 // Admin Nav Item Visibility - MOBILE VERSION
                 const navAdmin = document.getElementById('navAdminItem');
+                const btnAdminHeader = document.getElementById('openUserAdminBtn');
+
                 if (navAdmin) {
                     if (currentUser.rol === 'ADMIN') navAdmin.style.display = 'flex';
                     else navAdmin.style.display = 'none';
+                }
+
+                if (btnAdminHeader) {
+                    const adminDivider = document.getElementById('adminDivider');
+                    if (currentUser.rol === 'ADMIN') {
+                        btnAdminHeader.style.display = 'flex';
+                        if (adminDivider) adminDivider.style.display = 'block';
+                    } else {
+                        btnAdminHeader.style.display = 'none';
+                        if (adminDivider) adminDivider.style.display = 'none';
+                    }
                 }
             }
 
@@ -344,7 +490,7 @@ function initUIListeners() {
                     inputIcon.className = "fas fa-keyboard";
                     inputIcon.title = "Tocar para abrir teclado";
                 }
-                if (statusDiv) statusDiv.textContent = `Modo Manual: ${USER_SETTINGS.selectedClient.substring(0, 15)}...`;
+                if (statusDiv) statusDiv.textContent = `${USER_SETTINGS.selectedClient.substring(0, 200)}`;
 
             } else if (mode === 'CAMERA') {
                 if (btnCamera) btnCamera.classList.add('active');
@@ -538,28 +684,81 @@ function initUIListeners() {
         );
         resetInactivityTimer();
 
-        // Persistent Focus Logic (Only for PDA Mode)
+        // Persistent Focus Logic (Only for PDA Mode) - EXTREMADAMENTE INSISTENTE
         function enforceFocusLoop() {
+            clearTimeout(focusTimer);
+
             if (window.APP_MODE !== 'PDA') return;
             if (typeof USER_SETTINGS !== 'undefined' && !USER_SETTINGS.persistentFocus) return;
 
+            const barcodeInput = document.getElementById('barcode');
+            if (!barcodeInput) return;
+
             const activeElement = document.activeElement;
             const isInput = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
+
+            // Check for ANY open modal or overlay view
             const cameraModal = document.getElementById('cameraModal');
             const settingsModal = document.getElementById('settingsModal');
             const virtualKeypad = document.getElementById('virtualKeypadModal');
+            const soportesModal = document.getElementById('soportesGridModal');
+            const historyView = document.getElementById('historyView');
+            const uploadSiesaView = document.getElementById('uploadSiesaView');
+            const qrScannerModal = document.getElementById('qrScannerModal');
+            const ih3Modal = document.getElementById('ih3Modal');
+            const queueModal = document.getElementById('queueModal');
+            const loginScreen = document.getElementById('login-screen');
 
-            const isModalOpen = (cameraModal && cameraModal.style.display === 'flex') ||
-                (settingsModal && settingsModal.style.display !== 'none') ||
-                (virtualKeypad && virtualKeypad.style.display !== 'none');
+            // Determine if flow is blocked by UI
+            const isOverlayOpen =
+                (cameraModal && getComputedStyle(cameraModal).display !== 'none') ||
+                (settingsModal && getComputedStyle(settingsModal).display !== 'none') ||
+                (virtualKeypad && getComputedStyle(virtualKeypad).display !== 'none') ||
+                (soportesModal && getComputedStyle(soportesModal).display !== 'none') ||
+                (historyView && getComputedStyle(historyView).display !== 'none') ||
+                (uploadSiesaView && getComputedStyle(uploadSiesaView).display !== 'none') ||
+                (qrScannerModal && getComputedStyle(qrScannerModal).display !== 'none') ||
+                (ih3Modal && getComputedStyle(ih3Modal).display !== 'none') ||
+                (queueModal && getComputedStyle(queueModal).display !== 'none') ||
+                (loginScreen && getComputedStyle(loginScreen).display !== 'none');
 
-            if (!isModalOpen && activeElement !== barcodeInput && !isInput) {
-                if (barcodeInput) barcodeInput.focus();
+            if (!isOverlayOpen) {
+                // If main screen active and focus lost, FORCE IT BACK
+                if (activeElement !== barcodeInput) {
+                    barcodeInput.focus();
+                }
             }
 
+            // Extremely fast loop (100ms) for high responsiveness with Laser Scanners
             if (window.APP_MODE === 'PDA') {
-                setTimeout(enforceFocusLoop, 500);
+                focusTimer = setTimeout(enforceFocusLoop, 100);
             }
+        }
+
+        // Immediate refocus on blur (Aggressive)
+        if (barcodeInput) {
+            barcodeInput.addEventListener('blur', (e) => {
+                if (window.APP_MODE === 'PDA' && USER_SETTINGS.persistentFocus) {
+                    // Wait slightly to allow legitimate clicks (like buttons)
+                    setTimeout(() => {
+                        // Check again if we should refocus by calling the smart loop
+                        enforceFocusLoop();
+                    }, 50);
+                }
+            });
+
+            // Re-focus on click outside
+            document.addEventListener('click', (e) => {
+                if (window.APP_MODE === 'PDA' && USER_SETTINGS.persistentFocus) {
+                    const target = e.target;
+                    const isButton = target.tagName === 'BUTTON' || target.closest('button') || target.tagName === 'A';
+                    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+                    if (!isButton && !isInput) {
+                        setTimeout(() => enforceFocusLoop(), 10);
+                    }
+                }
+            });
         }
 
         // Input Handling
@@ -693,41 +892,6 @@ function initSettingsUI() {
         if (clientContainer) {
             clientContainer.style.display = USER_SETTINGS.filterEnabled ? 'block' : 'none';
         }
-
-        // Admin Button Logic (Mobile)
-        const settingsBody = document.querySelector('.settings-body');
-        let adminSection = document.getElementById('adminSection');
-
-        if (typeof currentUser !== 'undefined' && currentUser && currentUser.rol === 'ADMIN') {
-            if (!adminSection) {
-                adminSection = document.createElement('div');
-                adminSection.id = 'adminSection';
-                adminSection.className = 'setting-item';
-                adminSection.style.borderTop = '1px solid var(--border)';
-                adminSection.style.marginTop = '20px';
-                adminSection.style.paddingTop = '20px';
-
-                adminSection.innerHTML = `
-                    <div class="setting-info" style="margin-bottom: 12px;">
-                        <span class="setting-title" style="color: var(--text-main);"><i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 8px;"></i>Administración</span>
-                        <span class="setting-desc">Panel de control de usuarios</span>
-                    </div>
-                    <button id="adminUsersBtn" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 12px; font-weight: 600;">
-                        <i class="fas fa-users-cog"></i> Gestionar Usuarios
-                    </button>
-                `;
-                settingsBody.appendChild(adminSection);
-
-                document.getElementById('adminUsersBtn').addEventListener('click', () => {
-                    closeModal();
-                    if (typeof openUserAdmin === 'function') openUserAdmin();
-                    else alert("Módulo de administración no cargado");
-                });
-            }
-            adminSection.style.display = 'block';
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
-        }
     }
 
     // Expose for refresh
@@ -791,4 +955,464 @@ function initSettingsUI() {
     }
 
     if (clientSelect) clientSelect.addEventListener('change', updateSettings);
+}
+
+// Función global para manejar el colapsable
+window.toggleClientReport = function (id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById('icon-' + id);
+    if (!el || !icon) return;
+
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+        el.parentElement.classList.add('active');
+    } else {
+        el.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+        el.parentElement.classList.remove('active');
+    }
+};
+
+/**
+ * Obtiene la fecha más reciente que contiene entregas confirmadas
+ */
+function getLatestDeliveryDateVal() {
+    try {
+        const db = window.database || (typeof database !== 'undefined' ? database : null);
+        if (!db || !Array.isArray(db)) return null;
+        let maxDate = null;
+
+        const robustParse = (str) => {
+            if (!str) return null;
+            if (str instanceof Date) return str;
+            const s = String(str).trim();
+            // Formato DD/MM/YYYY o DD-MM-YYYY
+            const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
+        db.forEach(item => {
+            if (!item) return;
+            const subs = item.datosSiesa || (item.factura ? [item] : []);
+            subs.forEach(f => {
+                const conf = String(f.confirmacion || f.estado || f.estadoEntrega || "").toUpperCase();
+                // Ser muy inclusivo con lo que se considera entregado
+                if (conf.includes('ENTREGADO') || conf.includes('CONFIRMADO') || conf.includes('✅')) {
+                    const d = robustParse(f.fechaEntrega || f.fecha);
+                    if (d) {
+                        if (!maxDate || d > maxDate) maxDate = d;
+                    }
+                }
+            });
+        });
+        return maxDate;
+    } catch (e) {
+        console.warn("Error in getLatestDeliveryDateVal:", e);
+        return null;
+    }
+}
+
+/**
+ * Muestra el Reporte Detallado (Modal Premium)
+ * @param {number|Date|Array} target - Fecha YYYYMMDD, Objeto Date o Rango [Start, End]
+ */
+async function showDetailedReport(target, skipUpdate = false) {
+    const modal = document.getElementById('reportDetailedModal');
+    const contentArea = document.getElementById('reportContentArea');
+
+    // Guardar el último target y asegurar tab por defecto
+    window.lastReportTarget = target;
+    if (!window.activeReportTab) window.activeReportTab = 'delivery';
+
+    // Sincronizar UI de pestañas
+    const tabBtns = document.querySelectorAll('.report-tab-btn');
+    tabBtns.forEach(btn => {
+        if (btn.getAttribute('data-tab') === window.activeReportTab) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const reportTitle = document.querySelector('#reportDetailedModal .report-title h2');
+    const reportSubtitle = document.querySelector('#reportDetailedModal .report-title p');
+
+    console.log("ShowDetailedReport iniciado:", target, "skipUpdate:", skipUpdate);
+
+    if (!modal || !contentArea) return;
+
+    // Detectar si el modal ya estaba abierto para evitar re-sincronizar datos de red
+    const modalAlreadyOpen = modal.style.display === 'flex';
+
+    modal.style.display = 'flex';
+
+    // Sincronizar el DatePicker (Flatpickr)
+    const syncPicker = (val) => {
+        if (!window.reportDatePicker || !val) return;
+        let pDate = [];
+        if (typeof val === 'number') {
+            const yr = Math.floor(val / 10000), mo = Math.floor((val % 10000) / 100) - 1, dy = val % 100;
+            const d = new Date(yr, mo, dy);
+            pDate = [d, d];
+        } else if (val instanceof Date) {
+            pDate = [val, val];
+        } else if (Array.isArray(val)) {
+            if (val.length === 1) pDate = [val[0], val[0]];
+            else if (val.length === 2) pDate = [val[0], val[1]];
+        }
+
+        // Normalizar fechas y asegurar que FLAT PICKR reciba un array de 2 elementos para el modo range
+        const normalizedDates = pDate.map((d, i) => {
+            const date = new Date(d);
+            if (i === 0) date.setHours(0, 0, 0, 0);
+            else date.setHours(23, 59, 59, 999);
+            return date;
+        });
+
+        // Forzar actualización visual del input
+        window.reportDatePicker.setDate(normalizedDates, false);
+
+        // Manualmente disparar el refresco del texto del input para asegurar visibilidad del rango
+        const formatted = normalizedDates.map(d => window.reportDatePicker.formatDate(d, "d/m/Y")).join(" - ");
+        if (window.reportDatePicker.input) {
+            // Comparar solo fechas (sin horas) para saber si es un solo día
+            const isSingleDay = normalizedDates[0].toLocaleDateString() === normalizedDates[1].toLocaleDateString();
+            window.reportDatePicker.input.value = isSingleDay
+                ? window.reportDatePicker.formatDate(normalizedDates[0], "d/m/Y")
+                : formatted;
+        }
+    };
+    syncPicker(target);
+
+    // LÓGICA DE ACTUALIZACIÓN:
+    // Solo sincronizar con el servidor si: 
+    // 1. NO se pide saltar explícitamente (skipUpdate)
+    // 2. Es la PRIMERA vez que se abre el modal (!modalAlreadyOpen)
+    if (!skipUpdate && !modalAlreadyOpen) {
+        contentArea.innerHTML = `
+            <div class="report-loading-container">
+                <div class="loader-premium">
+                    <div class="loader-ring"></div>
+                    <i class="fas fa-database"></i>
+                </div>
+                <h3 class="loading-text-premium">Sincronizando registros</h3>
+                <p class="loading-subtext-premium">Estamos procesando y analizando los últimos movimientos en tiempo real para generar su informe detallado.</p>
+            </div>`;
+
+        if (typeof silentReloadData === 'function') {
+            try {
+                await silentReloadData();
+            } catch (e) {
+                console.error("Error actualizando datos para reporte:", e);
+            }
+        }
+    } else {
+        // Feedback visual rápido para cambio de filtros/pestañas
+        contentArea.innerHTML = `<div style="text-align:center; padding:100px; color:var(--text-tertiary);"><i class="fas fa-sync fa-spin fa-2x"></i><p style="margin-top:15px; font-weight:600;">Analizando datos...</p></div>`;
+    }
+
+    const db = window.database || (typeof database !== 'undefined' ? database : null);
+
+    if (!db || !Array.isArray(db) || db.length === 0) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-database" style="font-size:3rem; margin-bottom:15px;"></i><p>Base de datos vacía o no disponible.</p></div>`;
+        return;
+    }
+
+    // 1. Normalizar fechas de búsqueda con extremada precaución
+    let startDate = null;
+    let endDate = null;
+    let dateDisplayString = "";
+
+    try {
+        if (Array.isArray(target) && target.length === 2) {
+            startDate = new Date(target[0]); startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(target[1]); endDate.setHours(23, 59, 59, 999);
+            dateDisplayString = `${startDate.toLocaleDateString('es-CO')} - ${endDate.toLocaleDateString('es-CO')}`;
+        } else if (target instanceof Date) {
+            startDate = new Date(target); startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(target); endDate.setHours(23, 59, 59, 999);
+            dateDisplayString = startDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } else if (typeof target === 'number') {
+            const yr = Math.floor(target / 10000);
+            const mo = Math.floor((target % 10000) / 100) - 1;
+            const dy = target % 100;
+            startDate = new Date(yr, mo, dy, 0, 0, 0);
+            endDate = new Date(yr, mo, dy, 23, 59, 59, 999);
+            dateDisplayString = startDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } else {
+            throw new Error("Formato de fecha desconocido");
+        }
+    } catch (e) {
+        if (contentArea) contentArea.innerHTML = `<div style="text-align:center; padding:20px; color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Error en formato de fecha para el reporte.</div>`;
+        return;
+    }
+
+    if (reportTitle) reportTitle.textContent = "Resumen Diario";
+    if (reportSubtitle) reportSubtitle.textContent = dateDisplayString;
+
+    // Sincronizar icono visual si el rango es de un solo día (resetear a 'day')
+    const rDateIcon = document.querySelector('.report-date-selector i');
+    if (rDateIcon && startDate && endDate && startDate.getTime() === endDate.getTime()) {
+        rDateIcon.className = 'fas fa-calendar-day';
+        rDateIcon.title = "Filtro: Día";
+    }
+
+    // Lógica de botón Admin para enviar informe
+    const adminActions = document.getElementById('reportAdminActions');
+    if (adminActions) {
+        adminActions.innerHTML = '';
+        const user = typeof currentUser !== 'undefined' ? currentUser : (window.auth && window.auth.user);
+        if (user && user.rol === 'ADMIN') {
+            const sendBtn = document.createElement('button');
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            sendBtn.className = 'btn-report-send';
+            sendBtn.title = "Enviar informe a grupos";
+
+            // Estilos mejorados para estar al lado del flatpickr
+            sendBtn.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border: none;
+                border-radius: 12px;
+                background: #059669;
+                color: white;
+                font-size: 1.1rem;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+            `;
+
+            sendBtn.onmouseover = () => {
+                sendBtn.style.transform = 'translateY(-2px) scale(1.05)';
+                sendBtn.style.background = '#047857';
+            };
+            sendBtn.onmouseout = () => {
+                sendBtn.style.transform = 'translateY(0) scale(1)';
+                sendBtn.style.background = '#059669';
+            };
+
+            sendBtn.onclick = async (e) => {
+                e.preventDefault();
+                if (window.notificationManager && startDate && !sendBtn.disabled) {
+                    const originalHTML = sendBtn.innerHTML;
+                    const originalBg = sendBtn.style.background;
+
+                    try {
+                        // Estado: Cargando
+                        sendBtn.disabled = true;
+                        sendBtn.style.background = '#64748b'; // Color neutro mientras carga
+                        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        sendBtn.style.transform = 'scale(0.95)';
+
+                        const yyyy = startDate.getFullYear();
+                        const mm = String(startDate.getMonth() + 1).padStart(2, '0');
+                        const dd = String(startDate.getDate()).padStart(2, '0');
+                        const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                        console.log("Sending summary for:", dateStr);
+
+                        // Llamar al manager y esperar resultado
+                        const result = await window.notificationManager.sendDailySummary(dateStr);
+
+                        // Estado: Éxito
+                        sendBtn.style.background = '#10b981';
+                        sendBtn.innerHTML = '<i class="fas fa-check"></i>';
+
+                        setTimeout(() => {
+                            sendBtn.disabled = false;
+                            sendBtn.innerHTML = originalHTML;
+                            sendBtn.style.background = originalBg;
+                            sendBtn.style.transform = 'scale(1)';
+                        }, 3000);
+
+                    } catch (err) {
+                        console.error("Error enviando reporte:", err);
+                        sendBtn.style.background = '#ef4444'; // Error
+                        sendBtn.innerHTML = '<i class="fas fa-times"></i>';
+
+                        setTimeout(() => {
+                            sendBtn.disabled = false;
+                            sendBtn.innerHTML = originalHTML;
+                            sendBtn.style.background = originalBg;
+                        }, 3000);
+                    }
+                }
+            };
+            adminActions.appendChild(sendBtn);
+        }
+    }
+
+    // Si no es la pestaña de Delivery, mostrar contenido vacío/pendiente
+    if (window.activeReportTab !== 'delivery') {
+        const tabName = window.activeReportTab.charAt(0).toUpperCase() + window.activeReportTab.slice(1);
+        contentArea.innerHTML = `
+            <div style="text-align:center; padding:60px; color:var(--text-tertiary);">
+                <i class="fas fa-hammer" style="font-size:3rem; margin-bottom:20px; opacity:0.3;"></i>
+                <h3 style="color:var(--text-main); margin-bottom:10px;">Módulo ${tabName}</h3>
+                <p>Esta sección está en desarrollo y estará disponible próximamente.</p>
+                <div style="margin-top:20px; display:inline-block; padding:8px 16px; background:var(--primary-soft); color:var(--primary); border-radius:12px; font-weight:700; font-size:0.75rem;">
+                    PRÓXIMAMENTE
+                </div>
+            </div>`;
+        return;
+    }
+
+    const robustParse = (str) => {
+        if (!str) return null;
+        if (str instanceof Date) return str;
+        const m = String(str).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        if (m) {
+            return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]), parseInt(m[4] || 0), parseInt(m[5] || 0));
+        }
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    // 2. Filtrar deliveries en el rango
+    const filteredDeliveries = [];
+    db.forEach(item => {
+        if (!item) return;
+        const subs = item.datosSiesa || (item.factura ? [item] : []);
+        subs.forEach(f => {
+            if (!f) return;
+            const conf = String(f.confirmacion || f.estado || f.estadoEntrega || "").toUpperCase();
+            if (conf.includes('ENTREGADO') || conf.includes('CONFIRMADO') || conf.includes('✅')) {
+                const dateObj = robustParse(f.fechaEntrega || f.fecha);
+                // Comparar solo fechas (sin horas) para evitar errores de zona horaria
+                if (dateObj) {
+                    const dTime = new Date(dateObj).setHours(0, 0, 0, 0);
+                    const sTime = new Date(startDate).setHours(0, 0, 0, 0);
+                    const eTime = new Date(endDate).setHours(23, 59, 59, 999);
+                    if (dTime >= sTime && dTime <= eTime) {
+                        filteredDeliveries.push({ ...f, dateObj });
+                    }
+                }
+            }
+        });
+    });
+
+    if (filteredDeliveries.length === 0) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-calendar-times" style="font-size:3rem; margin-bottom:15px;"></i><p>No se encontraron entregas en este periodo.</p></div>`;
+        return;
+    }
+
+    // 3. Consolidar
+    const clientGroups = {};
+    let totalUnidades = 0;
+    let totalValor = 0;
+    const facturasUnicas = new Set();
+
+    filteredDeliveries.forEach(d => {
+        const client = d.cliente || "CLIENTE NO IDENTIFICADO";
+        if (!clientGroups[client]) clientGroups[client] = [];
+        clientGroups[client].push(d);
+        facturasUnicas.add(d.factura);
+        totalUnidades += parseFloat(d.cantidad) || 0;
+        totalValor += parseFloat(d.valorBruto) || 0;
+    });
+
+    const formatCur = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
+
+    let clientsHtml = "";
+    Object.keys(clientGroups).sort().forEach(clientName => {
+        const deliveries = clientGroups[clientName];
+        deliveries.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+        let clientTotalUnidades = 0;
+        let clientTotalValor = 0;
+        const clientFacturasUnicas = new Set();
+
+        deliveries.forEach(d => {
+            clientTotalUnidades += parseFloat(d.cantidad) || 0;
+            clientTotalValor += parseFloat(d.valorBruto) || 0;
+            clientFacturasUnicas.add(d.factura);
+        });
+
+        const sessions = [];
+        let currentSess = null;
+
+        deliveries.forEach(d => {
+            if (!currentSess || (d.dateObj.getTime() - currentSess.last.getTime() > 3600 * 1000)) {
+                currentSess = { start: d.dateObj, last: d.dateObj, unidades: 0, facturas: new Set(), valor: 0 };
+                sessions.push(currentSess);
+            }
+            currentSess.last = d.dateObj;
+            currentSess.unidades += parseFloat(d.cantidad) || 0;
+            currentSess.facturas.add(d.factura);
+            currentSess.valor += parseFloat(d.valorBruto) || 0;
+        });
+
+        let sessionsHtml = "";
+        sessions.forEach(s => {
+            const startStr = s.start.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const endStr = s.last.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const dateStr = s.start.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' });
+
+            // Calcular duración
+            const diffMs = s.last.getTime() - s.start.getTime();
+            const mins = Math.floor(diffMs / 60000);
+            let durationStr = "";
+            if (mins > 0) {
+                const hrs = Math.floor(mins / 60);
+                const rm = mins % 60;
+                durationStr = hrs > 0 ? `${hrs}h ${rm}m` : `${mins} min`;
+            }
+
+            const timeDisplay = startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+            const durationBadge = durationStr ? `<span style="background:var(--primary-soft); color:var(--primary); padding:2px 8px; border-radius:8px; font-size:0.65rem; margin-left:8px; font-weight:700;">${durationStr}</span>` : "";
+
+            sessionsHtml += `
+                <div class="session-item">
+                    <div class="session-time">
+                        <i class="far fa-clock"></i> ${timeDisplay} ${durationBadge}
+                        <span style="font-size:0.7rem; color:var(--text-tertiary); margin-left:5px;">(${dateStr})</span>
+                    </div>
+                    <div class="session-details">
+                        <div class="sess-stat"><span class="v">${s.facturas.size}</span><span class="l">Facturas</span></div>
+                        <div class="sess-stat"><span class="v">${s.unidades.toLocaleString('es-CO')}</span><span class="l">Unidades</span></div>
+                        <div class="sess-stat"><span class="v">${formatCur(s.valor)}</span><span class="l">Valor</span></div>
+                    </div>
+                </div>`;
+        });
+
+        // Generar ID único para el colapsable
+        const clientId = `client-${clientName.replace(/\s+/g, '-').toLowerCase()}`;
+
+        clientsHtml += `
+            <div class="client-report-card">
+                <div class="client-header" onclick="toggleClientReport('${clientId}')">
+                    <div class="client-info">
+                        <div class="client-name"><i class="fas fa-building"></i> <span>${clientName}</span></div>
+                        <div class="client-summary-row">
+                            <span><i class="fas fa-file-invoice"></i> ${clientFacturasUnicas.size} Facs</span>
+                            <span><i class="fas fa-boxes-stacked"></i> ${clientTotalUnidades.toLocaleString('es-CO')} Unds</span>
+                            <span><i class="fas fa-hand-holding-dollar"></i> ${formatCur(clientTotalValor)}</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down toggle-icon" id="icon-${clientId}"></i>
+                </div>
+                <div class="client-sessions" id="${clientId}" style="display: none;">
+                    ${sessionsHtml}
+                </div>
+            </div>`;
+    });
+
+    contentArea.innerHTML = `
+        <div class="report-stats-grid">
+            <div class="report-stat-card"><i class="fas fa-file-invoice"></i><span class="val">${facturasUnicas.size}</span><span class="lab">Facturas</span></div>
+            <div class="report-stat-card"><i class="fas fa-boxes-stacked"></i><span class="val">${totalUnidades.toLocaleString('es-CO')}</span><span class="lab">Unidades</span></div>
+            <div class="report-stat-card"><i class="fas fa-hand-holding-dollar"></i><span class="val">${formatCur(totalValor)}</span><span class="lab">Valor Total</span></div>
+        </div>
+        <div class="report-section-title"><i class="fas fa-list-ul"></i> Detalle por Clientes</div>
+        <div class="clients-list">${clientsHtml}</div>
+        <div style="margin-top: 30px; padding: 20px; text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">
+            <i class="fas fa-info-circle"></i> Las entregas se agrupan automáticamente si tienen más de 1 hora de diferencia.
+        </div>
+    `;
 }
