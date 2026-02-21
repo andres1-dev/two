@@ -6,18 +6,11 @@ function loadDataFromServer() {
 
     // Usar el sistema de prioridad dinámica para el estado principal
     if (typeof window.updateStatusDisplay === 'function') {
-        window.updateStatusDisplay("ACTUALIZANDO...", "loading");
-    }
-
-    // Activar barra de progreso global (Hairline loader)
-    const progressBar = document.getElementById('global-progress-bar');
-    if (progressBar) {
-        progressBar.style.width = '30%';
-        progressBar.style.opacity = '1';
+        window.updateStatusDisplay("SINCRONIZANDO CON SERVIDOR...", "loading");
     }
 
     if (dataStats) {
-        dataStats.innerHTML = '<i class="fas fa-satellite-dish"></i> Sincronizando...';
+        dataStats.innerHTML = '<i class="fas fa-sync fa-spin"></i> Actualizando base de datos...';
     }
 
     // Usamos la función de main.js en lugar del fetch
@@ -44,24 +37,11 @@ function handleDataLoadSuccess(serverData) {
 
         // Actualizar UI de estado
         if (typeof window.updateStatusDisplay === 'function') {
-            window.updateStatusDisplay("SISTEMA AL DÍA");
+            window.updateStatusDisplay("SISTEMA ACTUALIZADO");
         }
-
-        // Finalizar barra de progreso global
-        const progressBar = document.getElementById('global-progress-bar');
-        if (progressBar) {
-            progressBar.style.width = '100%';
-            setTimeout(() => {
-                progressBar.style.opacity = '0';
-                setTimeout(() => progressBar.style.width = '0%', 400);
-            }, 500);
-        }
-
         if (dataStats) {
-            dataStats.innerHTML = `
-        <i class="fas fa-database"></i> ${database.length} | 
-        <i class="fas fa-clock"></i> ${new Date().toLocaleTimeString()}
-    `;
+            const timeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} | ${timeStr}`;
         }
 
         // Mostrar contenido principal SOLO si NO hay resultados activos (background friendly)
@@ -122,7 +102,7 @@ function handleDataLoadError(error) {
         if (typeof window.updateStatusDisplay === 'function') {
             window.updateStatusDisplay("SISTEMA LISTO (DATOS CACHEADOS)", "ready");
         }
-        if (dataStats) dataStats.innerHTML = `${database.length} Reg | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
+        if (dataStats) dataStats.innerHTML = `${database.length} | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
 
         // En handleDataLoadError, dentro del else (caché)
         if (resultsDiv) {
@@ -263,7 +243,7 @@ async function silentReloadData() {
             const dataStats = document.getElementById('data-stats');
             if (dataStats) {
                 const timeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-                dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} reg | ${timeStr}`;
+                dataStats.innerHTML = `<i class="fas fa-database"></i> ${database.length} | ${timeStr}`;
             }
 
             return true;

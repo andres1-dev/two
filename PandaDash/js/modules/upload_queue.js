@@ -206,7 +206,7 @@ class UploadQueue {
       queueItemsList.innerHTML = `
       <div class="queue-empty-state">
         <i class="fas fa-check-circle"></i>
-        <p>Sin elementos pendientes</p>
+        <p>Cola de carga despejada</p>
       </div>
     `;
       return;
@@ -219,60 +219,59 @@ class UploadQueue {
 
       let statusClass = '';
       let statusIcon = '';
+      let statusText = '';
 
       if (item.status === 'processing') {
         statusClass = 'processing';
-        statusIcon = '<i class="fas fa-sync-alt fa-spin"></i>';
+        statusIcon = '<div class="queue-spinner"></div>';
+        statusText = 'Procesando...';
       } else if (item.retries >= MAX_RETRIES) {
         statusClass = 'error';
-        statusIcon = '<i class="fas fa-exclamation-circle"></i>';
+        statusIcon = '<i class="fas fa-exclamation-triangle"></i>';
+        statusText = 'Error crítico';
       } else if (item.status === 'retrying') {
         statusClass = 'retrying';
-        statusIcon = `<i class="fas fa-redo"></i><span>${item.retries}/${MAX_RETRIES}</span>`;
+        statusIcon = '<i class="fas fa-redo-alt"></i>';
+        statusText = `Reintentando (${item.retries}/${MAX_RETRIES})`;
       } else {
         statusClass = 'pending';
         statusIcon = '<i class="fas fa-clock"></i>';
+        statusText = 'En espera';
       }
 
       itemElement.className = `queue-item-card ${statusClass}`;
 
-      // Determinar miniatura o icono
-      let thumbnailHtml = '';
-      if (item.type === 'photo' && item.data && item.data.fotoBase64) {
-        thumbnailHtml = `
-          <div class="queue-item-thumb">
-            <img src="data:${item.data.fotoTipo || 'image/jpeg'};base64,${item.data.fotoBase64}" alt="Thumb">
-            <div class="queue-item-status-mini ${statusClass}">
-              ${statusIcon}
-            </div>
-          </div>
-        `;
+      let previewHtml = '';
+      if (item.type === 'photo' && item.data.fotoBase64) {
+        previewHtml = `<div class="queue-item-thumb">
+          <img src="data:image/jpeg;base64,${item.data.fotoBase64}" alt="Thumb">
+        </div>`;
       } else {
-        thumbnailHtml = `
-          <div class="queue-item-thumb">
-            <div class="queue-item-thumbnail-placeholder">
-              <i class="fas ${item.type === 'photo' ? 'fa-camera' : 'fa-file-alt'}"></i>
-            </div>
-            <div class="queue-item-status-mini ${statusClass}">
-              ${statusIcon}
-            </div>
-          </div>
-        `;
+        previewHtml = `<div class="queue-item-thumb empty">
+          <i class="fas fa-${item.type === 'photo' ? 'camera' : 'file-alt'}"></i>
+        </div>`;
       }
 
-      const title = item.type === 'photo' ? (item.factura || 'Sin factura') : (item.data.documento || 'Documento');
+      const titleText = item.factura || (item.data && item.data.documento) || 'Elemento sin ID';
+      const detailText = item.type === 'photo' ? 'Soporte fotográfico' : 'Documento de datos';
 
       itemElement.innerHTML = `
-      <div class="queue-item-main">
-        ${thumbnailHtml}
-        <div class="queue-item-content">
-          <div class="queue-item-title">${title}</div>
-          <div class="queue-item-time" style="display: flex; align-items: center; gap: 4px;">
-            <i class="far fa-clock" style="font-size: 0.9em;"></i> ${item.addedAt}
+        <div class="queue-item-main">
+          ${previewHtml}
+          <div class="queue-item-content">
+            <div class="queue-item-title-row">
+              <span class="queue-item-title">${titleText}</span>
+              <span class="queue-item-badge">${statusText}</span>
+            </div>
+            <div class="queue-item-info">
+              <span class="queue-item-type">${detailText}</span>
+              <span class="queue-item-dot">•</span>
+              <span class="queue-item-time">${item.addedAt}</span>
+            </div>
           </div>
+          <div class="queue-item-status-icon">${statusIcon}</div>
         </div>
-      </div>
-    `;
+      `;
 
       queueItemsList.appendChild(itemElement);
     });

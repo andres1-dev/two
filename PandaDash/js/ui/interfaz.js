@@ -45,16 +45,6 @@ function hideLoadingScreen() {
     if (loadingScreen) {
         loadingScreen.style.opacity = '0';
 
-        // Feedback visual de entrada (Hairline loader)
-        const progressBar = document.getElementById('global-progress-bar');
-        if (progressBar) {
-            progressBar.style.width = '100%';
-            setTimeout(() => {
-                progressBar.style.opacity = '0';
-                setTimeout(() => progressBar.style.width = '0%', 400);
-            }, 500);
-        }
-
         setTimeout(() => {
             loadingScreen.style.display = 'none';
             if (barcodeInput) {
