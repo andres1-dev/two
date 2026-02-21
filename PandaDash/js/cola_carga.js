@@ -12,6 +12,16 @@ class UploadQueue {
     const queueCounter = document.getElementById('queueCounter');
     if (queueCounter) queueCounter.addEventListener('click', this.toggleQueueModal.bind(this));
 
+    // Nuevo contador en la barra de estado
+    const statusCounter = document.getElementById('upload-status-counter');
+    if (statusCounter) {
+      statusCounter.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleQueueModal();
+      });
+    }
+
 
 
     const closeQueueModal = document.getElementById('closeQueueModal');
@@ -27,12 +37,15 @@ class UploadQueue {
     document.addEventListener('click', (e) => {
       const modal = document.getElementById('queueModal');
       const counter = document.getElementById('queueCounter');
+      const statusCounter = document.getElementById('upload-status-counter');
 
       if (modal && modal.style.display === 'block' &&
         e.target !== modal &&
         !modal.contains(e.target) &&
         counter && e.target !== counter &&
-        !counter.contains(e.target)) {
+        !counter.contains(e.target) &&
+        statusCounter && e.target !== statusCounter &&
+        !statusCounter.contains(e.target)) {
         this.hideQueueModal();
       }
 
@@ -83,46 +96,77 @@ class UploadQueue {
     this.updateQueueUI();
     this.processQueue();
 
-    // Mostrar notificación toast
-    this.showNotification('Elemento agregado a la cola', 'info');
+    // Notificación eliminada por petición del usuario para no saturar UI
+    // this.showNotification('Elemento agregado a la cola', 'info');
   }
 
   initEventListeners() {
     window.addEventListener('online', () => {
       if (this.queue.length > 0) {
         this.processQueue();
-        this.showNotification('Conexión restablecida, procesando cola...', 'success');
+        // this.showNotification('Conexión restablecida, procesando cola...', 'success');
       }
     });
 
     window.addEventListener('offline', () => {
-      this.showNotification('Sin conexión, los elementos se guardarán en cola', 'warning');
+      // this.showNotification('Sin conexión, los elementos se guardarán en cola', 'warning');
     });
   }
 
   updateQueueUI() {
     const counter = document.getElementById('queueCounter');
-    if (!counter) return;
+    const statusCounter = document.getElementById('upload-status-counter');
+    const statusCountText = document.getElementById('upload-count');
 
-    const badge = counter.querySelector('.queue-counter-badge');
-    const icon = counter.querySelector('i'); // Cambiado porque ya no hay .queue-counter-icon
-    const statusBadge = document.querySelector('.queue-status-text'); // Cambiado de .queue-status-badge
+    const badge = counter ? counter.querySelector('.queue-counter-badge') : null;
+    const icon = counter ? counter.querySelector('i') : null;
+    const statusBadge = document.querySelector('.queue-status-text');
     const pendingStat = document.querySelector('.stat-item:nth-child(1) .stat-value');
     const processingStat = document.querySelector('.stat-item:nth-child(2) .stat-value');
     const completedStat = document.querySelector('.stat-item:nth-child(3) .stat-value');
 
-    // Verifica si los elementos existen (opcional, continuaremos para atender el movil)
-    if ((!counter || !badge) && !document.getElementById('mobileQueueBtn')) {
-      // Solo retornamos si ambos (PC y Movil) faltan
-      console.warn('Elementos de UI de cola no encontrados');
-      return;
-    }
-
-    // Actualizar contador FLOTANTE (PC)
     const pendingJobs = this.queue.filter(job => job.status === 'pending').length;
     const processingJobs = this.queue.filter(job => job.status === 'processing').length;
     const totalActive = pendingJobs + processingJobs;
 
+    // Actualizar Nuevo Contador en Barra de Estado (Prioritario para paridad con PC)
+    if (statusCounter && statusCountText) {
+      if (totalActive > 0) {
+        statusCounter.style.display = 'flex';
+        statusCountText.textContent = totalActive;
+        if (this.isProcessing) {
+          statusCounter.classList.add('processing');
+        } else {
+          statusCounter.classList.remove('processing');
+        }
+      } else {
+        statusCounter.style.display = 'none';
+      }
+    }
+
+    // Actualizar también el botón del menú móvil para consistencia
+    const mobileBtn = document.getElementById('mobileQueueBtn');
+    if (mobileBtn) {
+      const mobileBadge = mobileBtn.querySelector('.mobile-queue-badge');
+      if (mobileBadge) {
+        mobileBadge.textContent = totalActive;
+        mobileBadge.style.display = totalActive > 0 ? 'flex' : 'none';
+
+        // Cambiar color/icono si está procesando
+        const mobileIcon = mobileBtn.querySelector('i');
+        if (mobileIcon) {
+          if (this.isProcessing) {
+            mobileIcon.className = 'fas fa-sync-alt fa-spin';
+            mobileIcon.style.color = 'var(--primary)';
+          } else {
+            mobileIcon.className = 'fas fa-cloud-upload-alt';
+            mobileIcon.style.color = '';
+          }
+        }
+      }
+    }
+
+    // Actualizar contador flotante antiguo (si aún existe y es visible)
     if (counter && badge && statusBadge) {
       badge.textContent = totalActive;
 
@@ -131,47 +175,16 @@ class UploadQueue {
         counter.classList.remove('processing');
         if (icon) icon.style.color = '';
         statusBadge.textContent = 'Sin actividad';
-        statusBadge.style.color = 'var(--text-tertiary)';
       } else {
         counter.classList.remove('empty');
         if (this.isProcessing) {
           counter.classList.add('processing');
           if (icon) icon.style.color = 'var(--primary)';
           statusBadge.textContent = 'Procesando';
-          statusBadge.style.color = 'var(--primary)';
         } else {
           counter.classList.remove('processing');
           if (icon) icon.style.color = '';
           statusBadge.textContent = `${pendingJobs} pendientes`;
-          statusBadge.style.color = 'var(--text-tertiary)';
-        }
-      }
-    }
-
-    // Actualizar botón HEADER (MÓVIL)
-    const mobileBtn = document.getElementById('mobileQueueBtn');
-    if (mobileBtn) {
-      const mobileBadge = mobileBtn.querySelector('.mobile-queue-badge');
-      const mobileIcon = mobileBtn.querySelector('i');
-
-      if (mobileBadge) {
-        mobileBadge.textContent = totalActive;
-        mobileBadge.style.display = totalActive > 0 ? 'flex' : 'none';
-        // Color badge based on state
-        if (this.isProcessing) {
-          mobileBadge.style.background = 'var(--primary)';
-        } else {
-          mobileBadge.style.background = 'var(--danger)';
-        }
-      }
-
-      if (mobileIcon) {
-        if (this.isProcessing) {
-          mobileIcon.className = 'fas fa-sync-alt fa-spin';
-          mobileIcon.style.color = 'var(--primary)';
-        } else {
-          mobileIcon.className = 'fas fa-cloud-upload-alt';
-          mobileIcon.style.color = totalActive > 0 ? 'var(--text-main)' : 'var(--text-secondary)';
         }
       }
     }
@@ -246,11 +259,17 @@ class UploadQueue {
   }
 
   toggleQueueModal() {
-    // Exponer globalmente si no se llama desde la instancia
+    console.log('toggleQueueModal called');
     const modal = document.getElementById('queueModal');
-    if (!modal) return;
+    if (!modal) {
+      console.error('queueModal not found');
+      return;
+    }
 
-    if (modal.style.display === 'block') {
+    const isVisible = modal.style.display === 'block' || getComputedStyle(modal).display === 'block';
+    console.log('Modal visibility:', isVisible);
+
+    if (isVisible) {
       this.hideQueueModal();
     } else {
       this.showQueueModal();
@@ -328,9 +347,8 @@ class UploadQueue {
         this.completedCount++;
         this.saveQueue();
 
-        // Mostrar notificación de éxito
-        this.showNotification(`Carga completada: ${job.factura || 'Elemento'}`, 'success');
-
+        // Notificación de éxito individual silenciada
+        // this.showNotification(`Carga completada: ${job.factura || 'Elemento'}`, 'success');
       } catch (error) {
         console.error("Error al procesar trabajo:", error);
 
@@ -365,7 +383,7 @@ class UploadQueue {
     this.updateQueueUI();
 
     if (this.queue.length === 0) {
-      this.showNotification('Todas las cargas completadas', 'success');
+      // this.showNotification('Todas las cargas completadas', 'success');
     }
   }
 

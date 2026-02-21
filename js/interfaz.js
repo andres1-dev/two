@@ -864,7 +864,6 @@ function initSettingsUI() {
     // Toggles
     const focusToggle = document.getElementById('persistentFocusToggle');
     const filterToggle = document.getElementById('clientFilterToggle');
-    const audioToggle = document.getElementById('audioFeedbackToggle');
     const clientContainer = document.getElementById('clientSelectContainer');
 
     if (!minBtn || !modal) return;
@@ -888,7 +887,6 @@ function initSettingsUI() {
             if (focusToggle.parentElement) focusToggle.parentElement.style.opacity = "1";
         }
         if (filterToggle) filterToggle.checked = USER_SETTINGS.filterEnabled;
-        if (audioToggle) audioToggle.checked = USER_SETTINGS.audioFeedback;
         if (clientSelect) clientSelect.value = USER_SETTINGS.selectedClient;
 
         if (clientContainer) {
@@ -930,7 +928,6 @@ function initSettingsUI() {
     // Auto-guardado
     const updateSettings = () => {
         USER_SETTINGS.persistentFocus = focusToggle.checked;
-        USER_SETTINGS.audioFeedback = audioToggle.checked;
         USER_SETTINGS.filterEnabled = filterToggle.checked;
         USER_SETTINGS.selectedClient = clientSelect.value;
 
@@ -949,7 +946,6 @@ function initSettingsUI() {
     };
 
     if (focusToggle) focusToggle.addEventListener('change', updateSettings);
-    if (audioToggle) audioToggle.addEventListener('change', updateSettings);
 
     if (filterToggle) {
         filterToggle.addEventListener('change', (e) => {
@@ -1091,6 +1087,40 @@ async function showDetailedReport(target, skipUpdate = false) {
     };
     syncPicker(target);
 
+    // LÓGICA DE ACTUALIZACIÓN:
+    // Solo sincronizar con el servidor si: 
+    // 1. NO se pide saltar explícitamente (skipUpdate)
+    // 2. Es la PRIMERA vez que se abre el modal (!modalAlreadyOpen)
+    if (!skipUpdate && !modalAlreadyOpen) {
+        contentArea.innerHTML = `
+            <div class="report-loading-container">
+                <div class="loader-premium">
+                    <div class="loader-ring"></div>
+                    <i class="fas fa-database"></i>
+                </div>
+                <h3 class="loading-text-premium">Sincronizando registros</h3>
+                <p class="loading-subtext-premium">Estamos procesando y analizando los últimos movimientos en tiempo real para generar su informe detallado.</p>
+            </div>`;
+
+        if (typeof silentReloadData === 'function') {
+            try {
+                await silentReloadData();
+            } catch (e) {
+                console.error("Error actualizando datos para reporte:", e);
+            }
+        }
+    } else {
+        // Feedback visual rápido para cambio de filtros/pestañas
+        contentArea.innerHTML = `<div style="text-align:center; padding:100px; color:var(--text-tertiary);"><i class="fas fa-sync fa-spin fa-2x"></i><p style="margin-top:15px; font-weight:600;">Analizando datos...</p></div>`;
+    }
+
+    const db = window.database || (typeof database !== 'undefined' ? database : null);
+
+    if (!db || !Array.isArray(db) || db.length === 0) {
+        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-database" style="font-size:3rem; margin-bottom:15px;"></i><p>Base de datos vacía o no disponible.</p></div>`;
+        return;
+    }
+
     // 1. Normalizar fechas de búsqueda con extremada precaución
     let startDate = null;
     let endDate = null;
@@ -1120,67 +1150,8 @@ async function showDetailedReport(target, skipUpdate = false) {
         return;
     }
 
-    // LÓGICA DE ACTUALIZACIÓN ASÍNCRONA:
-    const dbExisting = window.database || (typeof database !== 'undefined' ? database : null);
-    const hasData = dbExisting && Array.isArray(dbExisting) && dbExisting.length > 0;
-
-    if (!skipUpdate && !modalAlreadyOpen) {
-        if (!hasData) {
-            // Si no hay datos, mostramos el loader premium y bloqueamos
-            contentArea.innerHTML = `
-                <div class="report-loading-container">
-                    <div class="loader-premium">
-                        <div class="loader-ring"></div>
-                        <i class="fas fa-database"></i>
-                    </div>
-                    <h3 class="loading-text-premium">Sincronizando registros</h3>
-                    <p class="loading-subtext-premium">Estamos procesando y analizando los últimos movimientos en tiempo real para generar su informe detallado.</p>
-                </div>`;
-
-            if (typeof silentReloadData === 'function') {
-                try {
-                    await silentReloadData();
-                } catch (e) {
-                    console.error("Error actualizando datos para reporte:", e);
-                }
-            }
-        } else {
-            // Si ya hay datos, cargamos en segundo plano para no bloquear
-            if (typeof silentReloadData === 'function') {
-                silentReloadData().then(() => {
-                    // Solo refrescar si sigue abierto el mismo reporte/target
-                    if (window.lastReportTarget === target) {
-                        showDetailedReport(target, true);
-                    }
-                });
-            }
-        }
-    } else if (!skipUpdate && modalAlreadyOpen) {
-        // Si el modal ya está abierto y se cambia la fecha, mostramos un feedback ligero
-        // pero cargamos los nuevos datos del servidor para asegurar exactitud
-        contentArea.innerHTML = `<div style="text-align:center; padding:100px; color:var(--text-tertiary);"><i class="fas fa-sync fa-spin fa-2x"></i><p style="margin-top:15px; font-weight:600;">Sincronizando nuevos datos...</p></div>`;
-        if (typeof silentReloadData === 'function') {
-            await silentReloadData();
-        }
-    }
-
-    const db = window.database || (typeof database !== 'undefined' ? database : null);
-
-    if (!db || !Array.isArray(db) || db.length === 0) {
-        contentArea.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-tertiary);"><i class="fas fa-database" style="font-size:3rem; margin-bottom:15px;"></i><p>Base de datos vacía o no disponible.</p></div>`;
-        return;
-    }
-
     if (reportTitle) reportTitle.textContent = "Resumen Diario";
-
-    // Actualizar subtítulo con indicador de carga si aplica
-    if (reportSubtitle) {
-        if (!skipUpdate && !modalAlreadyOpen && hasData) {
-            reportSubtitle.innerHTML = `${dateDisplayString} <span style="font-size:0.75rem; color:var(--primary); margin-left:12px; font-weight:700;"><i class="fas fa-sync fa-spin"></i> Sincronizando...</span>`;
-        } else {
-            reportSubtitle.textContent = dateDisplayString;
-        }
-    }
+    if (reportSubtitle) reportSubtitle.textContent = dateDisplayString;
 
     // Sincronizar icono visual si el rango es de un solo día (resetear a 'day')
     const rDateIcon = document.querySelector('.report-date-selector i');
@@ -1200,38 +1171,30 @@ async function showDetailedReport(target, skipUpdate = false) {
             sendBtn.className = 'btn-report-send';
             sendBtn.title = "Enviar informe a grupos";
 
-            // Estilos premium consistentes con el sistema
+            // Estilos mejorados para estar al lado del flatpickr
             sendBtn.style.cssText = `
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 44px;
-                height: 44px;
+                width: 40px;
+                height: 40px;
                 border: none;
-                border-radius: 14px;
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                border-radius: 12px;
+                background: #059669;
                 color: white;
-                font-size: 1.2rem;
+                font-size: 1.1rem;
                 cursor: pointer;
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-                position: relative;
-                overflow: hidden;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
             `;
-
-            // Transición para el icono interno
-            const icon = sendBtn.querySelector('i');
-            if (icon) icon.style.transition = 'all 0.3s ease';
 
             sendBtn.onmouseover = () => {
                 sendBtn.style.transform = 'translateY(-2px) scale(1.05)';
-                sendBtn.style.boxShadow = '0 6px 15px rgba(16, 185, 129, 0.35)';
-                if (icon) icon.style.transform = 'rotate(-10deg) scale(1.1)';
+                sendBtn.style.background = '#047857';
             };
             sendBtn.onmouseout = () => {
                 sendBtn.style.transform = 'translateY(0) scale(1)';
-                sendBtn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.25)';
-                if (icon) icon.style.transform = 'rotate(0) scale(1)';
+                sendBtn.style.background = '#059669';
             };
 
             sendBtn.onclick = async (e) => {
@@ -1453,20 +1416,3 @@ async function showDetailedReport(target, skipUpdate = false) {
         </div>
     `;
 }
-
-// --- LÓGICA DEL MENÚ DE ENCABEZADO ---
-function toggleHeaderMenu() {
-    const menu = document.getElementById('headerDropdownMenu');
-    if (menu) menu.classList.toggle('active');
-}
-
-// Listener global para cerrar el menú al hacer clic fuera
-document.addEventListener('click', function (e) {
-    const container = document.querySelector('.header-menu-container');
-    const menu = document.getElementById('headerDropdownMenu');
-    if (container && !container.contains(e.target) && menu && menu.classList.contains('active')) {
-        menu.classList.remove('active');
-    } else if (e.target.closest('.dropdown-item') && menu) {
-        menu.classList.remove('active');
-    }
-});

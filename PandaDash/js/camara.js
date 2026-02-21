@@ -805,12 +805,14 @@ async function eliminarEntrega(factura) {
             }
         });
 
-        // Notificar éxito
+        // Notificación de éxito silenciada por petición del usuario
+        /*
         if (window.uploadQueue && typeof window.uploadQueue.showNotification === 'function') {
             window.uploadQueue.showNotification('Registro eliminado correctamente', 'success');
         } else {
             alert('Registro eliminado correctamente');
         }
+        */
 
     } catch (error) {
         console.error("Error al eliminar entrega:", error);

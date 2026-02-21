@@ -21,7 +21,6 @@ const CLIENTS_MAP = {
 // Configuración de Usuario (con persistencia)
 const DEFAULT_SETTINGS = {
     persistentFocus: true,
-    audioFeedback: true,
     filterEnabled: false,
     selectedClient: ""
 };

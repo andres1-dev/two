@@ -134,6 +134,76 @@
   padding-right: 4px;
 }
 
+.upload-status-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: white;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.upload-status-counter:hover {
+  background: var(--primary-dark);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.upload-status-counter.processing {
+  animation: pulse-glow 2s infinite;
+  background: #2563eb;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 15px 4px rgba(37, 99, 235, 0.3);
+    transform: scale(1.05);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 380px) {
+  .system-status-bar {
+    gap: 8px;
+    padding: 4px 6px;
+  }
+
+  #status {
+    font-size: 8px;
+    padding: 2px 6px;
+  }
+
+  .data-stats {
+    font-size: 0.6rem;
+  }
+
+  .upload-status-counter {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 0.65rem;
+  }
+}
+
 /* --- MAIN HEADER MENU (DROPDOWN) --- */
 .header-menu-container {
   position: relative;
@@ -1612,6 +1682,13 @@ input:checked+.slider:before {
   flex: 1;
 }
 
+.report-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
 .report-title h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -1625,17 +1702,7 @@ input:checked+.slider:before {
   color: var(--text-secondary);
 }
 
-.report-date-selector {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--background);
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  width: fit-content;
-}
+/* Estilos consolidados abajo en línea 2042 */
 
 .report-date-selector i {
   color: var(--primary);
@@ -1970,7 +2037,7 @@ input:checked+.slider:before {
 }
 
 .report-date-selector {
-  margin-top: 10px;
+  margin-top: 0;
   display: flex;
   align-items: center;
   gap: 10px;

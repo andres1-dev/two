@@ -1,6 +1,5 @@
 // Funciones para sonidos de feedback
 function playSuccessSound() {
-    if (typeof USER_SETTINGS !== 'undefined' && !USER_SETTINGS.audioFeedback) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -18,7 +17,6 @@ function playSuccessSound() {
 }
 
 function playErrorSound() {
-    if (typeof USER_SETTINGS !== 'undefined' && !USER_SETTINGS.audioFeedback) return;
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();

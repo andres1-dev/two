@@ -214,9 +214,10 @@ const SoportesGrid = {
     if (this.modal) this.modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
-    // Disparar carga de datos de inmediato al entrar
-    // Si ya hay datos, se cargan en segundo plano de forma async
-    this.cargarDatos(true);
+    // Si no hay datos o están vacíos, cargar
+    if (this.entregas.length === 0) {
+      this.cargarDatos();
+    }
   },
 
   toggleFilterModal: function (show) {
@@ -232,22 +233,9 @@ const SoportesGrid = {
   },
 
   // Cargar datos desde Google Sheets
-  cargarDatos: async function (background = false) {
-    if (this.isLoading && this.entregas.length > 0 && !background) return;
-
-    // Si es una carga de fondo y ya está procesando una, omitir
-    if (this.isLoading && background) return;
-
-    // Solo mostramos el loader principal si no hay datos previos
-    if (this.entregas.length === 0) {
-      this.showLoading();
-    }
-
-    this.isLoading = true;
-    this.updateStats(); // Reflejar estado de carga de inmediato
-
-    // Forzar limpieza de cache de KPIs para traer lo más reciente
-    this.datosFacturadosCache = null;
+  cargarDatos: async function () {
+    if (this.isLoading && this.entregas.length > 0) return; // Ya está cargando
+    this.showLoading();
 
     try {
       if (typeof obtenerDatosSoportes !== 'function') {
@@ -1260,15 +1248,9 @@ const SoportesGrid = {
 
     const badge = document.getElementById('soportesGridBadge');
     if (badge) {
-      if (this.isLoading) {
-        badge.innerHTML = `<i class="fas fa-sync-alt fa-spin"></i> Actualizando...`;
-        badge.style.opacity = "0.7";
-      } else {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-        badge.innerHTML = `<i class="fas fa-check-circle"></i> ${timeStr}`;
-        badge.style.opacity = "1";
-      }
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      badge.innerHTML = `<i class="fas fa-check-circle"></i> ${timeStr}`;
     }
   },
 
