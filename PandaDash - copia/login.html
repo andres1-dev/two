@@ -11,13 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-
     <!-- CSS Base de la app -->
-    <link rel="stylesheet" href="css/core/base.css">
-    <link rel="stylesheet" href="css/core/layout.css">
+    <link rel="stylesheet" href="css/estilos_base.css">
+    <link rel="stylesheet" href="css/estilos_interfaz.css">
 
     <style>
         /* Estilos específicos para la página de login independiente para asegurar paridad con el diseño original */
@@ -236,8 +232,7 @@
                     <label for="userId">Identificación</label>
                     <div class="input-wrapper">
                         <i class="fas fa-id-card"></i>
-                        <input type="text" id="userId" placeholder="Ingresa tu ID" required autocomplete="username"
-                            inputmode="text">
+                        <input type="text" id="userId" placeholder="Ingresa tu ID" required autocomplete="username">
                     </div>
                 </div>
 
@@ -255,13 +250,6 @@
                     <span id="btnText">Entrar</span>
                     <div class="spinner" id="spinner"></div>
                 </button>
-
-                <!-- Botón de Biometría -->
-                <button type="button" id="biometricBtn" class="btn-login"
-                    style="margin-top: 12px; background: white; color: #2563eb; border: 1px solid #e2e8f0; display: none;">
-                    <i class="fas fa-fingerprint"></i>
-                    <span>Acceder con Biometría</span>
-                </button>
             </form>
 
             <div class="login-footer-compact">
@@ -271,24 +259,16 @@
     </div>
 
     <script>
+        // URL real de GAS
         const API_URL = "https://script.google.com/macros/s/AKfycbyOwBp1er4nu9Uth2nS5rY2tYfvY-NMdWJkA3dIjmuaVUTLvnUyKtJIG62ACK22RpNWRQ/exec";
 
         const loginForm = document.getElementById('loginForm');
         const submitBtn = document.getElementById('submitBtn');
-        const biometricBtn = document.getElementById('biometricBtn');
         const btnText = document.getElementById('btnText');
         const spinner = document.getElementById('spinner');
         const errorDiv = document.getElementById('errorMessage');
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
-        const userIdInput = document.getElementById('userId');
-
-        // --- SOLUCIÓN TECLADO INTRUSIVO ---
-        // Evitamos el foco automático al cargar para permitir que el gestor de contraseñas funcione mejor
-        window.addEventListener('load', () => {
-            // No hacemos foco en nada
-            console.log("Login loaded. Waiting for user interaction to avoid keyboard popup.");
-        });
 
         // Toggle Password
         togglePassword.addEventListener('click', () => {
@@ -298,67 +278,27 @@
             togglePassword.classList.toggle('fa-eye-slash');
         });
 
-        // --- LÓGICA DE BIOMETRÍA (WEB AUTH) ---
-        async function checkBiometricSupport() {
-            const isSupported = window.PublicKeyCredential &&
-                await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            if (isSupported && localStorage.getItem('pandaDashBiometricId')) {
-                biometricBtn.style.display = 'flex';
+        // Recuperación de Contraseña
+        document.getElementById('recoverLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            const idInput = document.getElementById('userId');
+            const id = idInput.value.trim();
+
+            if (!id) {
+                showError('Por favor, ingresa tu número de identificación primero para recuperarla.');
+                idInput.focus();
+                return;
             }
-        }
-        checkBiometricSupport();
-
-        biometricBtn.addEventListener('click', async () => {
-            try {
-                const credentialIdB64 = localStorage.getItem('pandaDashBiometricId');
-                if (!credentialIdB64) return;
-
-                errorDiv.style.display = 'none';
-                biometricBtn.disabled = true;
-
-                // Reto aleatorio (en prod debería venir del servidor)
-                const challenge = new Uint8Array(32);
-                window.crypto.getRandomValues(challenge);
-
-                const credentialId = Uint8Array.from(atob(credentialIdB64), c => c.charCodeAt(0));
-
-                const assertion = await navigator.credentials.get({
-                    publicKey: {
-                        challenge: challenge,
-                        allowCredentials: [{
-                            id: credentialId,
-                            type: 'public-key',
-                            transports: ['internal'],
-                        }],
-                        userVerification: 'required',
-                        timeout: 60000,
-                    }
-                });
-
-                if (assertion) {
-                    // Enviar autenticación al servidor
-                    // Por simplicidad en GAS, enviaremos el ID del usuario asociado previamente
-                    const savedId = localStorage.getItem('pandaDashUserIdForBiometrics');
-                    if (savedId) {
-                        performBiometricAutoLogin(savedId);
-                    }
-                }
-            } catch (err) {
-                console.error("Biometric Login Error:", err);
-                showError("No se pudo autenticar con biometría");
-                biometricBtn.disabled = false;
-            }
-        });
-
-        async function performBiometricAutoLogin(userId) {
-            submitBtn.disabled = true;
-            btnText.style.display = 'none';
-            spinner.style.display = 'block';
 
             try {
+                // Feedback visual de carga
+                const originalText = document.getElementById('recoverLink').innerText;
+                document.getElementById('recoverLink').innerText = 'Enviando...';
+
                 const formData = new FormData();
-                formData.append('action', 'biometricLogin');
-                formData.append('id', userId);
+                formData.append('action', 'recover');
+                formData.append('id', id);
 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -366,31 +306,15 @@
                 });
 
                 const result = await response.json();
-                if (result.success) {
-                    processLogin(result);
-                } else {
-                    showError(result.message);
-                }
+                alert(result.message);
+                document.getElementById('recoverLink').innerText = originalText;
             } catch (error) {
-                showError("Error de conexión");
-            } finally {
-                submitBtn.disabled = false;
-                btnText.style.display = 'block';
-                spinner.style.display = 'none';
+                console.error('Recover error:', error);
+                alert('Error al conectar con el servidor para la recuperación.');
+                document.getElementById('recoverLink').innerText = '¿Olvidaste tu contraseña?';
             }
-        }
-
-        function processLogin(result) {
-            localStorage.setItem('pandaDashUser', JSON.stringify(result.user));
-            if (result.token) sessionStorage.setItem('pandaDashToken', result.token);
-            if (result.apiKey) localStorage.setItem('pandaDashApiKey', result.apiKey);
-
-            // Si el usuario no tiene biometría configurada pero el dispositivo la soporta,
-            // podríamos preguntar aquí. Por ahora solo guardamos el ID para habilitar el botón después.
-            window.location.href = 'index.html';
-        }
-
-        // Handle Login Normal
+        });
+        // Handle Login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -399,7 +323,7 @@
             btnText.style.display = 'none';
             spinner.style.display = 'block';
 
-            const id = userIdInput.value.trim();
+            const id = document.getElementById('userId').value.trim();
             const password = passwordInput.value.trim();
 
             try {
@@ -413,14 +337,16 @@
                     body: formData
                 });
 
+                if (!response.ok) throw new Error('Error en la respuesta del servidor');
+
                 const result = await response.json();
 
                 if (result.success) {
-                    // El login fue exitoso, vamos a ver si podemos ofrecer biometría
-                    if (window.PublicKeyCredential) {
-                        localStorage.setItem('pandaDashUserIdForBiometrics', result.user.id);
-                    }
-                    processLogin(result);
+                    localStorage.setItem('pandaDashUser', JSON.stringify(result.user));
+                    if (result.token) sessionStorage.setItem('pandaDashToken', result.token);
+                    if (result.apiKey) localStorage.setItem('pandaDashApiKey', result.apiKey);
+
+                    window.location.href = 'index.html';
                 } else {
                     showError(result.message || 'Credenciales inválidas');
                 }
@@ -434,43 +360,16 @@
             }
         });
 
-        // Recuperación
-        document.getElementById('recoverLink').addEventListener('click', async (e) => {
-            e.preventDefault();
-            const id = userIdInput.value.trim();
-            if (!id) {
-                showError('Ingresa tu identificación primero.');
-                userIdInput.focus();
-                return;
-            }
-
-            const originalText = document.getElementById('recoverLink').innerText;
-            document.getElementById('recoverLink').innerText = 'Enviando...';
-
-            try {
-                const formData = new FormData();
-                formData.append('action', 'recover');
-                formData.append('id', id);
-                const response = await fetch(API_URL, { method: 'POST', body: formData });
-                const result = await response.json();
-                alert(result.message);
-            } catch (error) {
-                alert('Error de conexión');
-            } finally {
-                document.getElementById('recoverLink').innerText = originalText;
-            }
-        });
-
         function showError(msg) {
             errorDiv.querySelector('span').textContent = msg;
             errorDiv.style.display = 'flex';
         }
 
+        // Check ya logueado
         if (localStorage.getItem('pandaDashUser')) {
             window.location.href = 'index.html';
         }
     </script>
-</body>
 </body>
 
 </html>

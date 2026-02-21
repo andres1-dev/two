@@ -16,23 +16,21 @@
 
   <!-- Favicon y iconos mejorados -->
   <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- CSS Modularizado - Jerarquía Organizada -->
-  <link rel="stylesheet" href="css/core/base.css">
-  <link rel="stylesheet" href="css/core/layout.css">
-  <link rel="stylesheet" href="css/core/content.css">
-  <link rel="stylesheet" href="css/modules/scanner.css">
-  <link rel="stylesheet" href="css/modules/admin.css">
-  <link rel="stylesheet" href="css/modules/upload.css">
-  <link rel="stylesheet" href="css/modules/soportes.css">
-  <link rel="stylesheet" href="css/modules/historial.css">
-  <link rel="stylesheet" href="css/modules/soportes_grid.css">
-  <script src="js/core/auth_check.js"></script>
+  <!-- CSS Modularizado - SOLO MOBILE -->
+  <link rel="stylesheet" href="css/estilos_base.css">
+  <link rel="stylesheet" href="css/estilos_interfaz.css">
+  <link rel="stylesheet" href="css/estilos_contenido.css">
+  <link rel="stylesheet" href="css/estilos_qr_escaner.css">
+  <link rel="stylesheet" href="css/estilos_admin.css">
+  <link rel="stylesheet" href="css/estilos_upload.css">
+  <link rel="stylesheet" href="css/estilos_soportes.css">
+  <script src="js/auth_check.js"></script>
+  <!-- ELIMINADO: estilos_pc.css -->
 
   <!-- jQuery and DataTables -->
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -49,9 +47,13 @@
   <!-- SheetJS for Excel processing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+  <!-- Upload Siesa Logic -->
+  <script src="js/upload_siesa.js"></script>
+
   <!-- Biblioteca para escanear QR -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@latest/dist/html5-qrcode.min.js"></script>
 
+  <link rel="stylesheet" href="css/estilos_historial.css">
 </head>
 
 <body>
@@ -79,7 +81,7 @@
             </svg>
           </div>
           <h1 class="logo-text">PandaDash</h1>
-          <p class="version-text">Build 7.3.14</p>
+          <p class="version-text">Build 4.0.0</p>
 
           <div class="loading-spinner">
             <span class="spinner-dot"></span>
@@ -226,47 +228,43 @@
       <div class="app-header">
         <div class="header-main-row"
           style="display: flex; gap: 12px; align-items: center; width: 100%; margin-bottom: 8px;">
-          <div class="barcode-input-container"
-            style="flex: 1; margin-bottom: 0; display: flex; align-items: center; position: relative;">
+          <div class="barcode-input-container" style="flex: 1; margin-bottom: 0;">
             <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
-            <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric"
-              style="width: 100%; padding-right: 54px;">
+            <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric">
+          </div>
 
-            <div class="header-menu-container" style="position: absolute; right: 6px; z-index: 10;">
-              <button id="mainMenuToggleBtn" class="icon-btn main-menu-toggle" onclick="toggleHeaderMenu()"
-                title="Opciones"
-                style="background: transparent; border: none; box-shadow: none; width: 40px; height: 40px;">
-                <i class="fas fa-ellipsis-v"></i>
-                <span class="global-menu-badge" id="globalMenuBadge" style="display: none;"></span>
+          <div class="header-menu-container">
+            <button id="mainMenuToggleBtn" class="icon-btn main-menu-toggle" onclick="toggleHeaderMenu()"
+              title="Opciones">
+              <i class="fas fa-ellipsis-v"></i>
+              <span class="global-menu-badge" id="globalMenuBadge" style="display: none;"></span>
+            </button>
+
+            <div id="headerDropdownMenu" class="header-dropdown-menu">
+              <button id="openDailyReportBtn" class="dropdown-item" title="Resumen Diario">
+                <i class="fas fa-chart-pie"></i> <span>Resumen Diario</span>
               </button>
-
-              <div id="headerDropdownMenu" class="header-dropdown-menu">
-                <button id="openDailyReportBtn" class="dropdown-item" title="Resumen Diario">
-                  <i class="fas fa-chart-pie"></i> <span>Resumen Diario</span>
-                </button>
-                <button id="mobileQueueBtn" class="dropdown-item" title="Cola de carga"
-                  onclick="if(window.toggleQueue) window.toggleQueue();">
-                  <i class="fas fa-cloud-upload-alt"></i> <span>Cola de Carga</span>
-                  <span class="mobile-queue-badge dropdown-badge" style="display: none;">0</span>
-                </button>
-                <button id="openSoportesGridBtn" class="dropdown-item" title="Entregas">
-                  <i class="fas fa-images"></i> <span>Entregas</span>
-                  <span class="notification-badge dropdown-badge" id="soportesNotification"
-                    style="display: none;">•</span>
-                </button>
-                <button id="refreshDataBtn" class="dropdown-item" onclick="loadDataFromServer()" title="Actualizar">
-                  <i class="fas fa-sync-alt"></i> <span>Actualizar Datos</span>
-                </button>
-                <div class="dropdown-divider" id="adminDivider" style="display: none;"></div>
-                <button id="openUserAdminBtn" class="dropdown-item" onclick="openUserAdmin()"
-                  title="Administrar Usuarios" style="display: none;">
-                  <i class="fas fa-users-cog"></i> <span>Usuarios</span>
-                </button>
-                <div class="dropdown-divider"></div>
-                <button id="openSettingsBtn" class="dropdown-item" title="Configuración">
-                  <i class="fas fa-cog"></i> <span>Configuración</span>
-                </button>
-              </div>
+              <button id="mobileQueueBtn" class="dropdown-item" title="Cola de carga"
+                onclick="if(window.toggleQueue) window.toggleQueue();">
+                <i class="fas fa-cloud-upload-alt"></i> <span>Cola de Carga</span>
+                <span class="mobile-queue-badge dropdown-badge" style="display: none;">0</span>
+              </button>
+              <button id="openSoportesGridBtn" class="dropdown-item" title="Entregas">
+                <i class="fas fa-images"></i> <span>Entregas</span>
+                <span class="notification-badge dropdown-badge" id="soportesNotification"
+                  style="display: none;">•</span>
+              </button>
+              <button id="refreshDataBtn" class="dropdown-item" onclick="loadDataFromServer()" title="Actualizar">
+                <i class="fas fa-sync-alt"></i> <span>Actualizar Datos</span>
+              </button>
+              <div class="dropdown-divider" id="adminDivider" style="display: none;"></div>
+              <button id="openUserAdminBtn" class="dropdown-item" onclick="openUserAdmin()" title="Administrar Usuarios"
+                style="display: none;">
+                <i class="fas fa-users-cog"></i> <span>Usuarios</span>
+              </button>
+              <button id="openSettingsBtn" class="dropdown-item" title="Configuración">
+                <i class="fas fa-cog"></i> <span>Configuración</span>
+              </button>
             </div>
           </div>
 
@@ -1049,36 +1047,32 @@
       </div>
     </div>
 
-    <!-- =========================================
-         LÓGICA DEL SISTEMA (JS MODULAR)
-         ========================================= -->
-
-    <!-- Core: Configuración, Datos y Audio -->
-    <script src="js/core/config.js"></script>
-    <script src="js/core/database.js"></script>
-    <script src="js/core/audio.js"></script>
-    <script src="js/core/auth.js"></script>
-    <script src="js/core/main_logic.js"></script>
-    <script src="js/core/app_init.js"></script>
-
-    <!-- UI: Interfaz y Renderizado -->
-    <script src="js/ui/interfaz.js"></script>
-    <script src="js/ui/renderizado.js"></script>
-
-    <!-- Modules: Funcionalidad Específica -->
-    <script src="js/modules/notifications.js"></script>
-    <script src="js/modules/scanner_camera.js"></script>
-    <script src="js/modules/scanner_qr_lib.js"></script>
-    <script src="js/modules/scanner_logic.js"></script>
-    <script src="js/modules/history.js"></script>
-    <script src="js/modules/upload_siesa.js"></script>
-    <script src="js/modules/upload_queue.js"></script>
-    <script src="js/modules/soportes_grid.js"></script>
-    <script src="js/modules/soportes_grid_init.js"></script>
-    <script src="js/modules/admin.js"></script>
-
-    <!-- Service Worker -->
+    <!-- JS Modularizado -->
+    <script src="js/cola_carga.js"></script>
+    <script src="js/configuracion.js"></script>
+    <script src="js/sonidos.js"></script>
+    <script src="js/interfaz.js"></script>
+    <script src="js/renderizado.js"></script>
+    <script src="js/principal.js"></script>
+    <script src="js/notificaciones.js"></script>
+    <script src="js/datos.js"></script>
+    <script src="js/lector_qr.js"></script>
+    <script src="js/camara.js"></script>
+    <script src="js/qr_escaner.js"></script>
     <script src="sw.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin_usuarios.js"></script>
+    <script src="js/historial.js"></script>
+    <script src="js/inicio.js"></script>
+    <script src="js/cola_carga_core.js"></script>
+    <script src="js/cola_carga_ui.js"></script>
+    <script src="js/soportes_datatable.js"></script>
+
+    <!-- Soportes Grid -->
+    <link rel="stylesheet" href="css/estilos_soportes_grid.css">
+    <script src="js/soportes_grid.js"></script>
+
+    <script src="js/soportes_grid_init.js"></script>
 
     <!-- MODAL DE FILTROS PARA SOPORTES -->
     <div id="soportesFilterModal" class="soportes-filter-modal" style="display: none;">

@@ -1,51 +1,43 @@
 // Service Worker para PandaDash - Versión optimizada para PWA
 // CORREGIDO: Eliminadas notificaciones duplicadas
-const CACHE_NAME = 'pandadash-v9.7'; // Incrementar versión
+const CACHE_NAME = 'pandadash-v9.6'; // Incrementar versión
 
 const BASE = (new URL('.', self.location)).href;
 
 const RELATIVE_ASSETS = [
-  './',
+  /*'',
   'index.html',
-  'manifest.json',
-  /* CSS Core */
-  'css/core/base.css',
-  'css/core/layout.css',
-  'css/core/content.css',
-  /* CSS Modules */
-  'css/modules/scanner.css',
-  'css/modules/admin.css',
-  'css/modules/upload.css',
-  'css/modules/soportes.css',
-  'css/modules/soportes_grid.css',
-  'css/modules/historial.css',
-  /* JS Core */
-  'js/core/config.js',
-  'js/core/database.js',
-  'js/core/audio.js',
-  'js/core/auth_check.js',
-  'js/core/auth.js',
-  'js/core/main_logic.js',
-  'js/core/app_init.js',
-  /* JS UI */
-  'js/ui/interfaz.js',
-  'js/ui/renderizado.js',
-  /* JS Modules */
-  'js/modules/scanner_camera.js',
-  'js/modules/scanner_qr_lib.js',
-  'js/modules/scanner_logic.js',
-  'js/modules/history.js',
-  'js/modules/upload_siesa.js',
-  'js/modules/upload_queue.js',
-  'js/modules/soportes_grid.js',
-  'js/modules/soportes_grid_init.js',
-  'js/modules/notifications.js',
-  'js/modules/admin.js',
-  /* Icons */
+  'css/estilos_admin.css',
+  'css/estilos_base.css',
+  'css/estilos_contenido.css',
+  'css/estilos_interfaz.css',
+  'css/estilos_qr_escaner.css',
+  'css/estilos_soporte_grid.css',
+  'css/estilos_soporte.css',
+  'css/estilos_upload.css', */
+  /* scripts principales */
+  /*'js/admin_usuarios.js',
+  'js/auth.js',
+  'js/camara.js',
+  'js/cola_carga.js',
+  'js/configuracion.js',
+  'js/datos.js',
+  'js/historial.js',
+  'js/inicio.js',
+  'js/interfaz.js',
+  'js/lector_qr.js',
+  'js/principal.js',
+  'js/qr_escaner.js',
+  'js/renderizado.js',
+  'js/sonidos.js',
+  'js/soporte_grid.js',
+  'js/upload_siesa.js',*/
+  /* icons */
   'icons/icon-192.png',
   'icons/icon-256.png',
   'icons/icon-384.png',
   'icons/icon-512.png',
+  'icons/icon-512-maskable.png',
   'icons/icon-1024.png',
   'icons/favicon.ico'
 ];
