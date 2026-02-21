@@ -509,8 +509,7 @@
 
       <div class="app-header">
         <div class="header-top">
-          <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between;">
-            <div id="status">Sistema Listo</div>
+          <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: flex-end;">
             <div style="display: flex; gap: 12px;">
               <button id="openDailyReportBtn" class="icon-btn" title="Resumen Diario">
                 <i class="fas fa-chart-pie"></i>
@@ -541,7 +540,10 @@
           <i class="fa-solid fa-barcode" id="inputIcon" title="Tocar para acción"></i>
           <input type="text" id="barcode" autofocus placeholder="Escanear con PDA..." inputmode="numeric">
         </div>
-        <div class="data-stats" id="data-stats">Esperando datos...</div>
+        <div class="system-status-bar">
+          <div id="status">Sistema Listo</div>
+          <div class="data-stats" id="data-stats">Esperando datos...</div>
+        </div>
       </div>
 
       <div id="results"></div>

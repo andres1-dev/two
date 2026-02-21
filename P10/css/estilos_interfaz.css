@@ -68,20 +68,34 @@
   transform: translateY(-50%) scale(0.9);
 }
 
-/* Estado del Sistema */
+/* Estado del Sistema Unificado */
+.system-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--background);
+  border-radius: 14px;
+  padding: 6px 8px;
+  margin-top: 10px;
+  border: 1px solid var(--border-light);
+  gap: 12px;
+}
+
 #status {
   text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 10px;
   margin: 0;
-  width: fit-content;
+  flex-shrink: 0;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 #status.ready {
@@ -108,14 +122,16 @@
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
-  width: 100%;
-  text-align: center;
-  font-size: 11px;
+  flex: 1;
+  text-align: right;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-secondary) !important;
-  position: relative;
-  z-index: 10;
-  min-height: 20px;
-  margin-top: 4px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 4px;
 }
 
 /* --- BOTÓN MÓVIL COLA --- */

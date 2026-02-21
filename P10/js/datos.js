@@ -43,7 +43,7 @@ function handleDataLoadSuccess(serverData) {
         }
         if (dataStats) {
             dataStats.innerHTML = `
-        <i class="fas fa-database"></i> ${database.length} registros | ${new Date().toLocaleTimeString()}
+        <i class="fas fa-database"></i> ${database.length} Reg | ${new Date().toLocaleTimeString()}
         `;
         }
 
@@ -114,7 +114,7 @@ function handleDataLoadError(error) {
         dataLoaded = true;
 
         if (statusDiv) statusDiv.innerHTML = '<i class="fas fa-database"></i> SISTEMA LISTO (DATOS CACHEADOS)';
-        if (dataStats) dataStats.innerHTML = `${database.length} registros | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
+        if (dataStats) dataStats.innerHTML = `${database.length} Reg | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
 
         // En handleDataLoadError, dentro del else (caché)
         if (resultsDiv) {
