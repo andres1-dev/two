@@ -58,19 +58,7 @@ function renderUserTable(users) {
         return;
     }
 
-    let html = `
-    <table class="user-table">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>ID</th>
-                <th>Rol</th>
-                <th>Email</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
+    let html = `<div class="user-cards-grid">`;
 
     users.forEach(user => {
         let roleIcon = '';
@@ -89,32 +77,37 @@ function renderUserTable(users) {
         }
 
         html += `
-        <tr>
-            <td>
-                <div class="user-cell-name">
-                    <strong>${user.nombre}</strong>
+        <div class="user-card">
+            <div class="user-card-header">
+                <div class="user-info-primary">
+                    <span class="user-name-title">${user.nombre}</span>
+                    <span class="user-id-subtitle"><i class="fas fa-id-card"></i> ${user.id}</span>
                 </div>
-            </td>
-            <td>${user.id}</td>
-            <td>
-                <span class="role-badge role-${user.rol.toLowerCase()}">
-                    ${roleIcon} ${user.rol}
-                </span>
-            </td>
-            <td>${user.email || '-'}</td>
-            <td>
+                <div class="user-role-container">
+                    <span class="role-badge role-${user.rol.toLowerCase()}">
+                        ${roleIcon} ${user.rol}
+                    </span>
+                </div>
+            </div>
+            <div class="user-card-body">
+                <div class="user-detail-item">
+                    <i class="fas fa-envelope"></i> <span>${user.email || 'No email registrado'}</span>
+                </div>
+                ${user.phone ? `<div class="user-detail-item"><i class="fas fa-phone"></i> <span>${user.phone}</span></div>` : ''}
+            </div>
+            <div class="user-card-footer">
                 <button class="action-btn edit-btn" onclick="editUser('${user.id}')" title="Editar">
                     <i class="fas fa-edit"></i>
                 </button>
                 <button class="action-btn delete-btn" onclick="deleteUser('${user.id}', '${user.nombre}')" title="Eliminar">
                     <i class="fas fa-trash-alt"></i>
                 </button>
-            </td>
-        </tr>
+            </div>
+        </div>
         `;
     });
 
-    html += '</tbody></table>';
+    html += '</div>';
     listContainer.innerHTML = html;
 
     // Guardar usuarios en memoria para edición

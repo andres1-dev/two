@@ -59,68 +59,92 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Table styles - mobile optimized */
-.user-table {
+/* --- Modern User Cards Layout --- */
+.user-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
 }
 
-.user-table thead {
-  display: none;
-  /* Ocultar cabecera en móvil, usar datos como bloques */
-}
-
-.user-table,
-.user-table tbody,
-.user-table tr,
-.user-table td {
-  display: block;
-}
-
-.user-table tr {
+.user-card {
   background: white;
-  border-radius: 16px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
 }
 
-.user-table tr:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+.user-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
   border-color: var(--primary-soft);
 }
 
-.user-table td {
-  padding: 6px 0;
-  border: none;
+/* Card Header: Name + ID on left, Badge on right */
+.user-card-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px dashed var(--border-light);
+  padding-bottom: 12px;
 }
 
-.user-table td:before {
-  content: attr(data-label);
-  font-weight: 600;
-  color: var(--text-secondary);
-  min-width: 80px;
-  font-size: 0.8rem;
-}
-
-/* User cell */
-.user-cell-name {
+.user-info-primary {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
-.user-cell-name strong {
-  font-weight: 700;
+.user-name-title {
+  font-weight: 800;
   color: var(--text-main);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+}
+
+.user-id-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Card Body: Info details */
+.user-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.user-detail-item i {
+  color: var(--primary);
+  width: 16px;
+  text-align: center;
+}
+
+/* Card Footer: Buttons */
+.user-card-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 /* Badges */
@@ -163,18 +187,21 @@
 
 /* Action buttons */
 .action-btn {
-  width: 40px;
+  flex: 1;
+  /* Stretch evenly */
   height: 40px;
   border-radius: 12px;
   border: none;
   background: var(--background);
-  color: var(--text-secondary);
+  color: var(--text-main);
   cursor: pointer;
-  margin-right: 8px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
+  font-weight: 600;
+  font-size: 0.85rem;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 .action-btn:active {
