@@ -206,7 +206,7 @@ class UploadQueue {
       queueItemsList.innerHTML = `
       <div class="queue-empty-state">
         <i class="fas fa-check-circle"></i>
-        <p>Sin elementos pendientes</p>
+        <p>Cola de carga despejada</p>
       </div>
     `;
       return;
@@ -219,40 +219,59 @@ class UploadQueue {
 
       let statusClass = '';
       let statusIcon = '';
+      let statusText = '';
 
       if (item.status === 'processing') {
         statusClass = 'processing';
-        statusIcon = '<i class="fas fa-sync-alt fa-spin"></i>';
+        statusIcon = '<div class="queue-spinner"></div>';
+        statusText = 'Procesando...';
       } else if (item.retries >= MAX_RETRIES) {
         statusClass = 'error';
-        statusIcon = '<i class="fas fa-exclamation-circle"></i>';
+        statusIcon = '<i class="fas fa-exclamation-triangle"></i>';
+        statusText = 'Error crítico';
       } else if (item.status === 'retrying') {
         statusClass = 'retrying';
-        statusIcon = `<i class="fas fa-redo"></i><span>${item.retries}/${MAX_RETRIES}</span>`;
+        statusIcon = '<i class="fas fa-redo-alt"></i>';
+        statusText = `Reintentando (${item.retries}/${MAX_RETRIES})`;
       } else {
         statusClass = 'pending';
         statusIcon = '<i class="fas fa-clock"></i>';
+        statusText = 'En espera';
       }
 
       itemElement.className = `queue-item-card ${statusClass}`;
 
-      let previewContent = '';
-      if (item.type === 'photo') {
-        const factura = item.factura || 'Sin factura';
-        previewContent = `📷 ${factura}`;
-      } else if (item.type === 'data') {
-        previewContent = `📄 ${item.data.documento || 'Sin ID'}`;
+      let previewHtml = '';
+      if (item.type === 'photo' && item.data.fotoBase64) {
+        previewHtml = `<div class="queue-item-thumb">
+          <img src="data:image/jpeg;base64,${item.data.fotoBase64}" alt="Thumb">
+        </div>`;
+      } else {
+        previewHtml = `<div class="queue-item-thumb empty">
+          <i class="fas fa-${item.type === 'photo' ? 'camera' : 'file-alt'}"></i>
+        </div>`;
       }
 
+      const titleText = item.factura || (item.data && item.data.documento) || 'Elemento sin ID';
+      const detailText = item.type === 'photo' ? 'Soporte fotográfico' : 'Documento de datos';
+
       itemElement.innerHTML = `
-      <div class="queue-item-main">
-        <div class="queue-item-icon">${statusIcon}</div>
-        <div class="queue-item-content">
-          <div class="queue-item-title">${previewContent}</div>
-          <div class="queue-item-time">${item.addedAt}</div>
+        <div class="queue-item-main">
+          ${previewHtml}
+          <div class="queue-item-content">
+            <div class="queue-item-title-row">
+              <span class="queue-item-title">${titleText}</span>
+              <span class="queue-item-badge">${statusText}</span>
+            </div>
+            <div class="queue-item-info">
+              <span class="queue-item-type">${detailText}</span>
+              <span class="queue-item-dot">•</span>
+              <span class="queue-item-time">${item.addedAt}</span>
+            </div>
+          </div>
+          <div class="queue-item-status-icon">${statusIcon}</div>
         </div>
-      </div>
-    `;
+      `;
 
       queueItemsList.appendChild(itemElement);
     });

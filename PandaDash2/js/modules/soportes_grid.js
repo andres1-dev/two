@@ -98,8 +98,7 @@ const SoportesGrid = {
           if (selectedDates.length === 2 || selectedDates.length === 1) {
             const start = selectedDates[0];
             const end = selectedDates.length === 2 ? selectedDates[1] : selectedDates[0];
-            this.aplicarFiltros({ fechaInicio: start, fechaFin: end });
-            this.updateKPIs(start, end);
+            this.triggerUnifiedFilters(start, end);
           }
         }
       });
@@ -111,20 +110,15 @@ const SoportesGrid = {
     if (this.closeFiltersBtn) this.closeFiltersBtn.addEventListener('click', () => this.toggleFilterModal(false));
     if (this.filterOverlay) this.filterOverlay.addEventListener('click', () => this.toggleFilterModal(false));
 
-    if (this.applyFiltersBtn) {
-      this.applyFiltersBtn.addEventListener('click', () => {
-        if (this.flatpickrInstance && this.flatpickrInstance.selectedDates.length > 0) {
-          const start = this.flatpickrInstance.selectedDates[0];
-          const end = this.flatpickrInstance.selectedDates.length === 2 ? this.flatpickrInstance.selectedDates[1] : start;
-          this.aplicarFiltros({ fechaInicio: start, fechaFin: end });
-          this.updateKPIs(start, end);
-        } else {
-          // Si no hay flatpickr o fechas, solo aplicar filtros de selects
-          this.aplicarFiltros({});
-          this.updateKPIs();
-        }
-        this.toggleFilterModal(false);
-      });
+    // Listeners para selects de filtros (Aplicación inmediata)
+    const kpiFilterClient = document.getElementById('kpiFilterClient');
+    const kpiFilterProvider = document.getElementById('kpiFilterProvider');
+
+    if (kpiFilterClient) {
+      kpiFilterClient.addEventListener('change', () => this.triggerUnifiedFilters());
+    }
+    if (kpiFilterProvider) {
+      kpiFilterProvider.addEventListener('change', () => this.triggerUnifiedFilters());
     }
 
     if (this.resetFilterBtn) {
@@ -137,13 +131,10 @@ const SoportesGrid = {
         }
 
         // Resetear selects
-        const cli = document.getElementById('kpiFilterClient');
-        const pro = document.getElementById('kpiFilterProvider');
-        if (cli) cli.value = '';
-        if (pro) pro.value = '';
+        if (kpiFilterClient) kpiFilterClient.value = '';
+        if (kpiFilterProvider) kpiFilterProvider.value = '';
 
-        this.aplicarFiltros({ fechaInicio: primerDiaMes, fechaFin: hoy });
-        this.updateKPIs(primerDiaMes, hoy);
+        this.triggerUnifiedFilters(primerDiaMes, hoy);
         this.toggleFilterModal(false);
       });
     }
@@ -210,6 +201,28 @@ const SoportesGrid = {
     });
   },
 
+  // Disparador único para aplicar filtros en Grid y KPIs simultáneamente
+  triggerUnifiedFilters: function (fInicio, fFin) {
+    let start = fInicio;
+    let end = fFin;
+
+    if (!start || !end) {
+      if (this.flatpickrInstance && this.flatpickrInstance.selectedDates.length > 0) {
+        start = this.flatpickrInstance.selectedDates[0];
+        end = this.flatpickrInstance.selectedDates.length === 2 ? this.flatpickrInstance.selectedDates[1] : start;
+      }
+    }
+
+    // Aplicar a la visualización del Grid (Fotos)
+    this.aplicarFiltros({
+      fechaInicio: start,
+      fechaFin: end
+    });
+
+    // Aplicar a la visualización de KPIs (Tarjetas y Tabla)
+    this.updateKPIs(start, end);
+  },
+
   open: function () {
     if (this.modal) this.modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -243,11 +256,13 @@ const SoportesGrid = {
       this.showLoading();
     }
 
-    this.isLoading = true;
-    this.updateStats(); // Reflejar estado de carga de inmediato
-
     // Forzar limpieza de cache de KPIs para traer lo más reciente
     this.datosFacturadosCache = null;
+
+    if (!background) {
+      this.isLoading = true;
+      this.updateStats();
+    }
 
     try {
       if (typeof obtenerDatosSoportes !== 'function') {
@@ -266,20 +281,8 @@ const SoportesGrid = {
       // Limpiar contenedor y renderizar primera página
       this.container.innerHTML = '';
 
-      // Aplicar filtros iniciales (Mes actual) si hay flatpickr
-      if (this.flatpickrInstance && this.flatpickrInstance.selectedDates.length > 0) {
-        const start = this.flatpickrInstance.selectedDates[0];
-        const end = this.flatpickrInstance.selectedDates.length === 2 ? this.flatpickrInstance.selectedDates[1] : start;
-        this.aplicarFiltros({ fechaInicio: start, fechaFin: end });
-        this.updateKPIs(start, end);
-      } else {
-        this.render();
-        this.updateStats();
-        // Cargar KPIs del mes actual por defecto
-        const hoy = new Date();
-        const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        this.updateKPIs(primerDiaMes, hoy);
-      }
+      // Aplicar filtros iniciales (Mes actual o selección previa)
+      this.triggerUnifiedFilters();
 
 
     } catch (error) {
@@ -357,13 +360,16 @@ const SoportesGrid = {
             const facturaId = fact.factura;
             if (!facturaId || facturaId.trim() === '') return;
 
+            const cant = parseFloat(fact.cantidad) || 0;
+            const val = parseFloat(fact.valorBruto) || 0;
+
             if (!facturasUnicasMap.has(facturaId)) {
               facturasUnicasMap.set(facturaId, {
                 factura: facturaId,
                 fecha: fact.fecha,
                 fechaEntrega: fact.fechaEntrega,
-                cantidad: parseFloat(fact.cantidad) || 0,
-                valorBruto: parseFloat(fact.valorBruto) || 0,
+                cantidad: cant,
+                valorBruto: val,
                 confirmacion: fact.confirmacion || '',
                 estado: fact.estado || '', // Status (Index 0)
                 cliente: fact.cliente || '',
@@ -371,6 +377,12 @@ const SoportesGrid = {
                 lote: fact.lote || '',
                 referencia: fact.referencia || ''
               });
+            } else {
+              // Acumular cantidades y valores para facturas con múltiples ítems
+              const existing = facturasUnicasMap.get(facturaId);
+              existing.cantidad += cant;
+              existing.valorBruto += val;
+              // Mantener el lote/referencia más reciente o el primero
             }
           });
         }
@@ -611,13 +623,9 @@ const SoportesGrid = {
       this._kpiTableInitialized = true;
 
       const searchInput = document.getElementById('kpiSearchInput');
-      const filterClient = document.getElementById('kpiFilterClient');
-      const filterProvider = document.getElementById('kpiFilterProvider');
-
-      const triggerRender = () => this.renderPendingTable();
-      if (searchInput) searchInput.addEventListener('input', triggerRender);
-      if (filterClient) filterClient.addEventListener('change', triggerRender);
-      if (filterProvider) filterProvider.addEventListener('change', triggerRender);
+      if (searchInput) {
+        searchInput.addEventListener('input', () => this.renderPendingTable());
+      }
     }
 
     const searchStr = (document.getElementById('kpiSearchInput')?.value || '').toLowerCase();
@@ -988,6 +996,21 @@ const SoportesGrid = {
     // APPEND (no reemplazar) - esto es clave para infinite scroll
     this.container.appendChild(fragment);
 
+    // Animación de entrada escalonada para nuevos items
+    const newItems = Array.from(this.container.children).slice(-itemsToShow.length);
+    newItems.forEach((item, index) => {
+      item.style.opacity = '0';
+      item.style.transform = 'translateY(15px)';
+      item.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          item.style.opacity = '1';
+          item.style.transform = 'translateY(0)';
+        }, index * 40); // 40ms delay entre cada uno
+      });
+    });
+
     // Actualizar estado de "hasMore"
     this.hasMore = end < this.filteredEntregas.length;
 
@@ -1015,11 +1038,15 @@ const SoportesGrid = {
       div.classList.add('wide');
     }
 
-    // Template del item
+    // Template del item con mejoras premium: fade-in, lazy loading y placeholders elegantes
     div.innerHTML = `
       ${item.tieneImagen ? `
-        <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')">
-          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s600-c" alt="Soporte" loading="lazy">
+        <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')" style="background: #f1f5f9;">
+          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s600-c" 
+               alt="Soporte" 
+               loading="lazy" 
+               style="opacity: 0; transition: opacity 0.4s ease-in-out;" 
+               onload="this.style.opacity='1'; this.parentElement.style.background='white';">
           <div class="image-overlay">
             <span>${item.factura}</span>
           </div>
@@ -1030,19 +1057,19 @@ const SoportesGrid = {
       ` : `
         <div class="grid-item-noimage" style="background: ${item.bgColor};">
           <div class="noimage-content">
-            <i class="fas fa-file-invoice" style="color: ${item.color};"></i>
-            <span class="noimage-factura">${item.factura}</span>
+            <i class="fas fa-file-invoice" style="color: ${item.color}; transform: scale(1.1);"></i>
+            <span class="noimage-factura" style="box-shadow: 0 4px 10px rgba(0,0,0,0.05);">${item.factura}</span>
           </div>
         </div>
       `}
       
       <div class="grid-item-content">
         <div class="grid-item-header">
-          <div class="cliente-badge" style="background: ${item.bgColor}; color: ${item.color};" title="${item.cliente}">
-            <i class="fas fa-building"></i>
+          <div class="cliente-badge" style="background: ${item.bgColor}; color: ${item.color}; font-weight: 800; letter-spacing: -0.2px;" title="${item.cliente}">
+            <i class="fas fa-building" style="font-size: 0.8em; margin-right: 4px;"></i>
             <span class="cliente-nombre">${item.cliente}</span>
           </div>
-          <div class="item-time">
+          <div class="item-time" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
             <i class="far fa-clock"></i>
             ${item.fechaRelativa}
           </div>
@@ -1162,20 +1189,34 @@ const SoportesGrid = {
 
     let resultados = [...this.entregas];
 
+    // Obtener valores de los selects de la interfaz si no se pasan en 'filtros'
+    const filterClient = filtros.cliente !== undefined ? filtros.cliente : (document.getElementById('kpiFilterClient')?.value || '');
+    const filterProvider = filtros.proveedor !== undefined ? filtros.proveedor : (document.getElementById('kpiFilterProvider')?.value || '');
+
     // Filtro por fecha
     if (filtros.fechaInicio && filtros.fechaFin) {
       const inicio = this.normalizarFecha(filtros.fechaInicio);
       const fin = this.normalizarFecha(filtros.fechaFin);
       fin.setHours(23, 59, 59, 999);
 
-      console.log('Filtrando fechas:', inicio, 'a', fin);
-
       resultados = resultados.filter(item => {
         if (!item.fechaObj) return false;
         return item.fechaObj >= inicio && item.fechaObj <= fin;
       });
+    }
 
-      console.log(`   Resultados después de filtro fecha: ${resultados.length}`);
+    // Filtro por Cliente
+    if (filterClient && filterClient !== '') {
+      resultados = resultados.filter(item => item.cliente === filterClient);
+    }
+
+    // Filtro por Proveedor
+    if (filterProvider && filterProvider !== '') {
+      resultados = resultados.filter(item => {
+        // En los soportes fotográficos, el proveedor a veces no está mapeado directamente.
+        // Si el item tiene proveedor, filtrar. Si no, podemos intentar ignorar o buscarlo.
+        return item.proveedor === filterProvider || !item.proveedor;
+      });
     }
 
     // Filtro por búsqueda
@@ -1188,8 +1229,6 @@ const SoportesGrid = {
         item.referencia.toLowerCase().includes(busqueda) ||
         item.cliente.toLowerCase().includes(busqueda)
       );
-
-      console.log(`   Resultados después de búsqueda: ${resultados.length}`);
     }
 
     this.filteredEntregas = resultados;
