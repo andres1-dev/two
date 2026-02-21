@@ -243,11 +243,13 @@ const SoportesGrid = {
       this.showLoading();
     }
 
-    this.isLoading = true;
-    this.updateStats(); // Reflejar estado de carga de inmediato
-
     // Forzar limpieza de cache de KPIs para traer lo más reciente
     this.datosFacturadosCache = null;
+
+    if (!background) {
+      this.isLoading = true;
+      this.updateStats();
+    }
 
     try {
       if (typeof obtenerDatosSoportes !== 'function') {
@@ -988,6 +990,21 @@ const SoportesGrid = {
     // APPEND (no reemplazar) - esto es clave para infinite scroll
     this.container.appendChild(fragment);
 
+    // Animación de entrada escalonada para nuevos items
+    const newItems = Array.from(this.container.children).slice(-itemsToShow.length);
+    newItems.forEach((item, index) => {
+      item.style.opacity = '0';
+      item.style.transform = 'translateY(15px)';
+      item.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          item.style.opacity = '1';
+          item.style.transform = 'translateY(0)';
+        }, index * 40); // 40ms delay entre cada uno
+      });
+    });
+
     // Actualizar estado de "hasMore"
     this.hasMore = end < this.filteredEntregas.length;
 
@@ -1015,11 +1032,15 @@ const SoportesGrid = {
       div.classList.add('wide');
     }
 
-    // Template del item
+    // Template del item con mejoras premium: fade-in, lazy loading y placeholders elegantes
     div.innerHTML = `
       ${item.tieneImagen ? `
-        <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')">
-          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s600-c" alt="Soporte" loading="lazy">
+        <div class="grid-item-image" onclick="SoportesGrid.previewImage('${item.ih3}', '${item.factura}')" style="background: #f1f5f9;">
+          <img src="https://lh3.googleusercontent.com/d/${item.ih3}=s600-c" 
+               alt="Soporte" 
+               loading="lazy" 
+               style="opacity: 0; transition: opacity 0.4s ease-in-out;" 
+               onload="this.style.opacity='1'; this.parentElement.style.background='white';">
           <div class="image-overlay">
             <span>${item.factura}</span>
           </div>
@@ -1030,19 +1051,19 @@ const SoportesGrid = {
       ` : `
         <div class="grid-item-noimage" style="background: ${item.bgColor};">
           <div class="noimage-content">
-            <i class="fas fa-file-invoice" style="color: ${item.color};"></i>
-            <span class="noimage-factura">${item.factura}</span>
+            <i class="fas fa-file-invoice" style="color: ${item.color}; transform: scale(1.1);"></i>
+            <span class="noimage-factura" style="box-shadow: 0 4px 10px rgba(0,0,0,0.05);">${item.factura}</span>
           </div>
         </div>
       `}
       
       <div class="grid-item-content">
         <div class="grid-item-header">
-          <div class="cliente-badge" style="background: ${item.bgColor}; color: ${item.color};" title="${item.cliente}">
-            <i class="fas fa-building"></i>
+          <div class="cliente-badge" style="background: ${item.bgColor}; color: ${item.color}; font-weight: 800; letter-spacing: -0.2px;" title="${item.cliente}">
+            <i class="fas fa-building" style="font-size: 0.8em; margin-right: 4px;"></i>
             <span class="cliente-nombre">${item.cliente}</span>
           </div>
-          <div class="item-time">
+          <div class="item-time" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
             <i class="far fa-clock"></i>
             ${item.fechaRelativa}
           </div>

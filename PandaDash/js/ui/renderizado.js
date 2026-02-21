@@ -17,13 +17,13 @@ function displayFullResult(item, qrParts) {
       <div class="main-details-grid">
   `;
 
-    // Campos Clave Principales
+    // Campos Clave Principales (Minimalistas)
     const mainFields = ['lote', 'referencia'];
     mainFields.forEach(key => {
         if (item[key]) {
             html += `
          <div class="detail-box">
-           <div class="detail-box-label">${key}</div>
+           <div class="detail-box-label">${key === 'lote' ? 'Lote' : 'Referencia'}</div>
            <div class="detail-box-value">${item[key]}</div>
          </div>
        `;
@@ -37,7 +37,7 @@ function displayFullResult(item, qrParts) {
         const count = item.datosSiesa.length;
         html += `
        <div class="siesa-list-header">
-         Facturas Relacionadas <span class="badge-count">${count}</span>
+         <span><i class="fas fa-list-ul"></i> Relacionados</span> <span class="badge-count">${count}</span>
        </div>
     `;
 

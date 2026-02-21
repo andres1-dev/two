@@ -108,14 +108,38 @@ body {
   z-index: 100;
 }
 
-/* Scrollbar personalizado - móvil */
-#results::-webkit-scrollbar {
-  width: 4px;
+/* --- PREMIUM SCROLLBAR --- */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-#results::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1);
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
   border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* --- GLASSMORPHISM UTILITIES --- */
+.glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Botones accesibles */

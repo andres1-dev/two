@@ -236,20 +236,40 @@ class UploadQueue {
 
       itemElement.className = `queue-item-card ${statusClass}`;
 
-      let previewContent = '';
-      if (item.type === 'photo') {
-        const factura = item.factura || 'Sin factura';
-        previewContent = `📷 ${factura}`;
-      } else if (item.type === 'data') {
-        previewContent = `📄 ${item.data.documento || 'Sin ID'}`;
+      // Determinar miniatura o icono
+      let thumbnailHtml = '';
+      if (item.type === 'photo' && item.data && item.data.fotoBase64) {
+        thumbnailHtml = `
+          <div class="queue-item-thumb">
+            <img src="data:${item.data.fotoTipo || 'image/jpeg'};base64,${item.data.fotoBase64}" alt="Thumb">
+            <div class="queue-item-status-mini ${statusClass}">
+              ${statusIcon}
+            </div>
+          </div>
+        `;
+      } else {
+        thumbnailHtml = `
+          <div class="queue-item-thumb">
+            <div class="queue-item-thumbnail-placeholder">
+              <i class="fas ${item.type === 'photo' ? 'fa-camera' : 'fa-file-alt'}"></i>
+            </div>
+            <div class="queue-item-status-mini ${statusClass}">
+              ${statusIcon}
+            </div>
+          </div>
+        `;
       }
+
+      const title = item.type === 'photo' ? (item.factura || 'Sin factura') : (item.data.documento || 'Documento');
 
       itemElement.innerHTML = `
       <div class="queue-item-main">
-        <div class="queue-item-icon">${statusIcon}</div>
+        ${thumbnailHtml}
         <div class="queue-item-content">
-          <div class="queue-item-title">${previewContent}</div>
-          <div class="queue-item-time">${item.addedAt}</div>
+          <div class="queue-item-title">${title}</div>
+          <div class="queue-item-time" style="display: flex; align-items: center; gap: 4px;">
+            <i class="far fa-clock" style="font-size: 0.9em;"></i> ${item.addedAt}
+          </div>
         </div>
       </div>
     `;

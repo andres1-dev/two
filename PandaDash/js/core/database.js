@@ -6,11 +6,18 @@ function loadDataFromServer() {
 
     // Usar el sistema de prioridad dinámica para el estado principal
     if (typeof window.updateStatusDisplay === 'function') {
-        window.updateStatusDisplay("SINCRONIZANDO CON SERVIDOR...", "loading");
+        window.updateStatusDisplay("ACTUALIZANDO...", "loading");
+    }
+
+    // Activar barra de progreso global (Hairline loader)
+    const progressBar = document.getElementById('global-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = '30%';
+        progressBar.style.opacity = '1';
     }
 
     if (dataStats) {
-        dataStats.innerHTML = '<i class="fas fa-sync fa-spin"></i> Actualizando base de datos...';
+        dataStats.innerHTML = '<i class="fas fa-satellite-dish"></i> Sincronizando...';
     }
 
     // Usamos la función de main.js en lugar del fetch
@@ -37,8 +44,19 @@ function handleDataLoadSuccess(serverData) {
 
         // Actualizar UI de estado
         if (typeof window.updateStatusDisplay === 'function') {
-            window.updateStatusDisplay("SISTEMA ACTUALIZADO");
+            window.updateStatusDisplay("SISTEMA AL DÍA");
         }
+
+        // Finalizar barra de progreso global
+        const progressBar = document.getElementById('global-progress-bar');
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.opacity = '0';
+                setTimeout(() => progressBar.style.width = '0%', 400);
+            }, 500);
+        }
+
         if (dataStats) {
             dataStats.innerHTML = `
         <i class="fas fa-database"></i> ${database.length} | 
