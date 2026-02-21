@@ -4,12 +4,13 @@ function loadDataFromServer() {
     const statusDiv = document.getElementById('status');
     const dataStats = document.getElementById('data-stats');
 
-    if (statusDiv) {
-        statusDiv.className = 'loading';
-        statusDiv.innerHTML = '<i class="fas fa-sync fa-spin"></i> CARGANDO DATOS...';
+    // Usar el sistema de prioridad dinámica para el estado principal
+    if (typeof window.updateStatusDisplay === 'function') {
+        window.updateStatusDisplay("SINCRONIZANDO CON SERVIDOR...", "loading");
     }
+
     if (dataStats) {
-        dataStats.innerHTML = '<i class="fas fa-server"></i> Procesando datos locales...';
+        dataStats.innerHTML = '<i class="fas fa-sync fa-spin"></i> Actualizando base de datos...';
     }
 
     // Usamos la función de main.js en lugar del fetch
@@ -35,20 +36,19 @@ function handleDataLoadSuccess(serverData) {
         cacheData(database);
 
         // Actualizar UI de estado
-        if (statusDiv) {
-            statusDiv.className = 'ready';
-            statusDiv.innerHTML = `
-        <i class="fas fa-check-circle"></i> SISTEMA LISTO
-        `;
+        if (typeof window.updateStatusDisplay === 'function') {
+            window.updateStatusDisplay("SISTEMA ACTUALIZADO");
         }
         if (dataStats) {
             dataStats.innerHTML = `
-        <i class="fas fa-database"></i> ${database.length} Reg | ${new Date().toLocaleTimeString()}
-        `;
+        <i class="fas fa-database"></i> ${database.length} | 
+        <i class="fas fa-clock"></i> ${new Date().toLocaleTimeString()}
+    `;
         }
 
-        // Mostrar contenido principal con nuevo diseño
-        if (resultsDiv) {
+        // Mostrar contenido principal SOLO si NO hay resultados activos (background friendly)
+        const resultsDiv = document.getElementById('results');
+        if (resultsDiv && (!window.currentDocumentData)) {
             resultsDiv.innerHTML = `
         <div class="result-item" style="text-align: center; padding: 40px 20px;">
             <div style="margin-bottom: 30px;">
@@ -76,18 +76,6 @@ function handleDataLoadSuccess(serverData) {
                     Developed by <strong style="color: var(--text-main); font-weight: 600;">Andrés Mendoza</strong><br>
                     © 2026 · Supported by GrupoTDM
                 </p>
-                
-                <div style="display: flex; justify-content: center; gap: 12px;">
-                    <a href="https://www.facebook.com/templodelamoda/" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
-                        <i class="fab fa-facebook-f" style="font-size: 14px;"></i>
-                    </a>
-                    <a href="https://www.instagram.com/eltemplodelamoda/" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
-                        <i class="fab fa-instagram" style="font-size: 14px;"></i>
-                    </a>
-                    <a href="https://wa.me/573168007979" target="_blank" style="width: 36px; height: 36px; border-radius: 50%; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; border: 1px solid var(--border);">
-                        <i class="fab fa-whatsapp" style="font-size: 14px;"></i>
-                    </a>
-                </div>
             </div>
         </div>
     `;
@@ -113,7 +101,9 @@ function handleDataLoadError(error) {
         database = cachedData.data;
         dataLoaded = true;
 
-        if (statusDiv) statusDiv.innerHTML = '<i class="fas fa-database"></i> SISTEMA LISTO (DATOS CACHEADOS)';
+        if (typeof window.updateStatusDisplay === 'function') {
+            window.updateStatusDisplay("SISTEMA LISTO (DATOS CACHEADOS)", "ready");
+        }
         if (dataStats) dataStats.innerHTML = `${database.length} Reg | Última actualización: ${new Date(cachedData.timestamp).toLocaleString()}`;
 
         // En handleDataLoadError, dentro del else (caché)

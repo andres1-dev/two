@@ -50,9 +50,53 @@ function hideLoadingScreen() {
             if (barcodeInput) {
                 barcodeInput.focus();
             }
+            // Actualizar estado al iniciar
+            if (typeof window.updateStatusDisplay === 'function') window.updateStatusDisplay();
         }, 500);
     }
 }
+
+/**
+ * Actualiza el texto del estado (status) con prioridad dinámica
+ * Prioridad: 1. Mensaje temporal (2 seg), 2. Cliente filtrado, 3. Estado listo por modo
+ */
+window.updateStatusDisplay = function (tempMessage = null, tempClass = null) {
+    const statusDiv = document.getElementById('status');
+    if (!statusDiv) return;
+
+    // Si hay un mensaje temporal, mostrarlo y programar el retorno
+    if (tempMessage) {
+        statusDiv.textContent = tempMessage;
+        if (tempClass) statusDiv.className = tempClass;
+
+        // Limpiar cualquier timer previo
+        if (window._statusTimer) clearTimeout(window._statusTimer);
+
+        window._statusTimer = setTimeout(() => {
+            window.updateStatusDisplay(); // Llamada sin parámetros para volver al estado base
+        }, 2000);
+        return;
+    }
+
+    // Estado Base (Permanente)
+    let baseMessage = "SISTEMA LISTO";
+    let baseClass = "ready";
+
+    const hasClient = (typeof USER_SETTINGS !== 'undefined' && USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient);
+
+    if (hasClient) {
+        baseMessage = USER_SETTINGS.selectedClient;
+    } else {
+        // Si no hay filtro, mostrar el modo actual de forma amigable
+        const mode = window.APP_MODE || 'PDA';
+        if (mode === 'PDA') baseMessage = "PDA: ESCANEO LÁSER";
+        else if (mode === 'MANUAL') baseMessage = "MODO MANUAL";
+        else if (mode === 'CAMERA') baseMessage = "CÁMARA: LISTO";
+    }
+
+    statusDiv.textContent = baseMessage;
+    statusDiv.className = baseClass;
+};
 
 // Imágenes
 function mostrarImagenCompleta(imageUrl) {
@@ -475,7 +519,11 @@ function initUIListeners() {
                     inputIcon.title = USER_SETTINGS.persistentFocus ? "Foco Activo (Tocar para desactivar)" : "Foco Inactivo (Tocar para activar)";
                     inputIcon.style.color = USER_SETTINGS.persistentFocus ? "var(--primary)" : "var(--text-secondary)";
                 }
-                if (statusDiv) statusDiv.textContent = "Modo PDA: Escaneo rápido";
+
+                if (typeof window.updateStatusDisplay === 'function') {
+                    window.updateStatusDisplay("MODO PDA: LISTO");
+                }
+
                 enforceFocusLoop();
 
             } else if (mode === 'MANUAL') {
@@ -490,7 +538,10 @@ function initUIListeners() {
                     inputIcon.className = "fas fa-keyboard";
                     inputIcon.title = "Tocar para abrir teclado";
                 }
-                if (statusDiv) statusDiv.textContent = `${USER_SETTINGS.selectedClient.substring(0, 200)}`;
+
+                if (typeof window.updateStatusDisplay === 'function') {
+                    window.updateStatusDisplay("MODO MANUAL: ACTIVO");
+                }
 
             } else if (mode === 'CAMERA') {
                 if (btnCamera) btnCamera.classList.add('active');
@@ -510,7 +561,10 @@ function initUIListeners() {
                     inputIcon.className = "fas fa-camera";
                     inputIcon.title = "Tocar para abrir cámara";
                 }
-                if (statusDiv) statusDiv.textContent = "Modo Cámara: Listo";
+
+                if (typeof window.updateStatusDisplay === 'function') {
+                    window.updateStatusDisplay("MODO CÁMARA: LISTO");
+                }
             }
         }
 
@@ -521,15 +575,9 @@ function initUIListeners() {
                     USER_SETTINGS.persistentFocus = !USER_SETTINGS.persistentFocus;
 
                     const msg = USER_SETTINGS.persistentFocus ? "Foco Persistente: ACTIVADO" : "Foco Persistente: DESACTIVADO";
-                    if (statusDiv) {
-                        statusDiv.textContent = msg;
+                    if (typeof window.updateStatusDisplay === 'function') {
+                        window.updateStatusDisplay(msg);
                     }
-
-                    setTimeout(() => {
-                        if (window.APP_MODE === 'PDA') {
-                            statusDiv.textContent = "Modo PDA: Escaneo rápido";
-                        }
-                    }, 2000);
 
                     if (inputIcon) {
                         inputIcon.title = USER_SETTINGS.persistentFocus ? "Foco Activo (Tocar para desactivar)" : "Foco Inactivo (Tocar para activar)";
@@ -936,13 +984,8 @@ function initSettingsUI() {
 
         saveUserSettings();
 
-        const statusEl = document.getElementById('status');
-        if (statusEl) {
-            if (USER_SETTINGS.filterEnabled && USER_SETTINGS.selectedClient) {
-                statusEl.textContent = `${USER_SETTINGS.selectedClient.substring(0, 1000)}`;
-            } else {
-                statusEl.textContent = 'Sistema Listo';
-            }
+        if (typeof window.updateStatusDisplay === 'function') {
+            window.updateStatusDisplay();
         }
 
         if (typeof window.updateUserUI === 'function') window.updateUserUI();
