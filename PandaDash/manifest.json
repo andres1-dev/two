@@ -18,9 +18,9 @@
   "icons": [
     {
       "src": "icons/icon.svg",
-      "sizes": "any",
+      "sizes": "1600x1600 any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "related_applications": [],
