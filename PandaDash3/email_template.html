@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablece tu contraseña - {{appName}}</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7fb;">
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+        style="background-color: #f4f7fb;">
+        <tr>
+            <td style="padding: 40px 20px;">
+
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                    style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);">
+
+                    <tr>
+                        <td
+                            style="background-color: #ffffff; padding: 36px 40px 28px; text-align: center; border-radius: 24px 24px 0 0;">
+                            <div
+                                style="margin: 0 auto 16px; width: 88px; height: 88px; background-color: #ffffff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15); padding: 12px;">
+                                <img src="{{appLogo}}" alt="{{appName}}" width="62" height="62"
+                                    style="display: block; border: 0;">
+                            </div>
+                            <h1
+                                style="margin: 0; color: {{appColor}}; font-size: 28px; font-weight: 600; letter-spacing: -0.3px;">
+                                {{appName}}</h1>
+                            <p style="margin: 8px 0 0; color: #64748b; font-size: 14px; font-weight: 400;">
+                                {{appDescription}}</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 40px 40px 20px;">
+                            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 22px; font-weight: 600;">Hola
+                                {{userName}}</h2>
+                            <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.5;">
+                                Haz clic en el botón para restablecer tu contraseña.
+                            </p>
+
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="margin: 30px 0 20px;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="{{resetUrl}}"
+                                            style="display: inline-block; background: {{appColor}}; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 500; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);">Restablecer
+                                            contraseña</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0 0 28px; color: #64748b; font-size: 15px; text-align: center;">
+                                ⏳ Este enlace expira en <strong style="color: {{appColor}};">5 minutos</strong>.
+                            </p>
+
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                                style="background-color: #f0f9ff; border-radius: 16px; margin: 20px 0 10px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 10px; color: #1e4a6b; font-size: 15px; font-weight: 600;">
+                                            🔒 Recomendaciones importantes</p>
+                                        <ul
+                                            style="margin: 0; padding-left: 20px; color: #2c3e50; font-size: 14px; line-height: 1.6;">
+                                            <li style="margin-bottom: 8px;">Elige una contraseña segura que no hayas
+                                                usado antes.</li>
+                                            <li style="margin-bottom: 8px;">La contraseña debe tener al menos 8
+                                                caracteres, incluir mayúsculas, minúsculas y números.</li>
+                                            <li style="margin-bottom: 0;">Si no solicitaste restablecer tu contraseña,
+                                                contacta a <a href="mailto:{{supportEmail}}"
+                                                    style="color: {{appColor}}; text-decoration: none; font-weight: 500;">{{supportEmail}}</a>.
+                                            </li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p
+                                style="margin: 28px 0 0; color: #64748b; font-size: 14px; line-height: 1.5; text-align: center;">
+                                ¿Tienes problemas? Escríbenos a <a href="mailto:{{supportEmail}}"
+                                    style="color: {{appColor}}; text-decoration: underline; font-weight: 500;">{{supportEmail}}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td
+                            style="background-color: #f8fafc; padding: 24px 40px; border-radius: 0 0 24px 24px; border-top: 1px solid #e2e8f0;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; color: #94a3b8; font-size: 12px;">
+                                        <p style="margin: 0 0 10px;">
+                                            Este es un mensaje automático de <strong>{{appName}}</strong>. Por favor,
+                                            no respondas a este correo.
+                                        </p>
+                                        <p style="margin: 0;">
+                                            {{footerCredits}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>
