@@ -24,9 +24,8 @@
     },
     {
       "src": "icons/apple-touch-icon.svg",
-      "sizes": "1600x1600",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "sizes": "1024x1024",
+      "type": "image/svg+xml"
     }
   ],
   "related_applications": [],
