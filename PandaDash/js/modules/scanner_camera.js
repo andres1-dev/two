@@ -425,9 +425,9 @@ function aplicarMarcaDeAgua(ctx, width, height) {
         posY -= lineSpacing;
     }
 
-    // 4. Título: PandaDash (más grande)
+    // 4. Título: App Name (más grande)
     ctx.font = `700 ${fontSizeTitle}px ${fontFamily}`;
-    ctx.fillText("PandaDash", marginLeft, posY);
+    ctx.fillText(CONFIG.APP_NAME, marginLeft, posY);
 }
 
 // Función para mostrar brevemente una vista previa (opcional)
@@ -700,7 +700,7 @@ async function eliminarEntrega(factura) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('factura', factura);
-        formData.append('token', sessionStorage.getItem('pandaDashToken') || '');
+        formData.append('token', sessionStorage.getItem('token') || '');
 
         // Usar fetch para llamar al API
         // Nota: API_URL_POST está definida en configuracion.js

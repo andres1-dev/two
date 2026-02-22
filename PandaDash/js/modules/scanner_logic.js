@@ -1,4 +1,4 @@
-// QR Scanner Module para PandaDash - VERSIÓN MEJORADA ROBUSTA
+// QR Scanner Module - VERSIÓN MEJORADA ROBUSTA
 class QRScanner {
   constructor() {
     this.scanner = null;

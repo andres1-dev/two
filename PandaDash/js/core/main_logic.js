@@ -1,7 +1,7 @@
 // principal.js - Datos con Factura Optimizado
 // Configuración de Sheets
 // Configuración de Sheets - Obtenida dinámicamente tras login
-const API_KEY = localStorage.getItem('pandaDashApiKey') || '';
+const API_KEY = localStorage.getItem('apiKey') || '';
 
 // Fuentes de datos
 const SOURCE_SPREADSHEET_ID_DATA2 = "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI";

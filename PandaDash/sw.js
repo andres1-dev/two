@@ -1,6 +1,9 @@
-// Service Worker para PandaDash - Versión optimizada para PWA
+// Service Worker para App - Versión optimizada para PWA
+// Leer configuración de la app
+importScripts('js/core/config.js');
+
 // CORREGIDO: Eliminadas notificaciones duplicadas
-const CACHE_NAME = 'pandadash-v9.7'; // Incrementar versión
+const CACHE_NAME = `${CONFIG.APP_NAME}-v9.8`; // Incrementar versión
 
 const BASE = (new URL('.', self.location)).href;
 
@@ -71,7 +74,7 @@ let lastProcessedNotificationId = null;
 let processingNotification = false;
 const PROCESSING_LOCK_TIMEOUT = 5000; // 5 segundos de timeout para el lock
 
-const DB_NAME = 'PandaDashNotifications';
+const DB_NAME = 'DeepSeekNotifications';
 const DB_VERSION = 1;
 
 // Inicializar IndexedDB
@@ -329,11 +332,11 @@ async function checkNotifications() {
         // Actualizar el timestamp solo después de procesar
         await setPersistentValue('lastNotifTs', ts);
 
-        await self.registration.showNotification(notif.title || 'PandaDash', {
+        await self.registration.showNotification(notif.title || CONFIG.APP_NAME, {
           body: notif.body || 'Nuevo aviso del sistema',
           icon: './icons/icon-192.png',
           badge: './icons/icon-192.png',
-          tag: 'panda-notif',
+          tag: 'app-notif',
           vibrate: [200, 100, 200],
           data: { url: './', timestamp: ts }
         });
@@ -435,7 +438,7 @@ self.addEventListener('push', (event) => {
         await setPersistentValue('lastNotifTs', ts);
         processingNotification = true;
 
-        const title = payload.title || 'PandaDash';
+        const title = payload.title || CONFIG.APP_NAME;
         const options = {
           body: payload.body || 'Tienes un mensaje nuevo',
           icon: './icons/icon-192.png',
@@ -456,7 +459,7 @@ self.addEventListener('push', (event) => {
         console.error('[SW] Error procesando push:', err);
         // Solo mostrar notificación genérica si es un error real
         if (err !== 'No hay notificaciones recientes') {
-          return self.registration.showNotification('PandaDash', {
+          return self.registration.showNotification(CONFIG.APP_NAME, {
             body: 'Abre la app para ver el mensaje',
             icon: './icons/icon-192.png',
             data: { url: './' }

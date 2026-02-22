@@ -30,7 +30,7 @@ async function loadUsersList() {
     try {
         const formData = new FormData();
         formData.append('action', 'getUsers');
-        formData.append('token', sessionStorage.getItem('pandaDashToken') || '');
+        formData.append('token', sessionStorage.getItem('token') || '');
 
         const response = await fetch(API_URL_POST, {
             method: 'POST',
@@ -163,7 +163,7 @@ async function saveUser(e) {
         const formData = new FormData();
         formData.append('action', 'saveUser');
         formData.append('userData', JSON.stringify(userData));
-        formData.append('token', sessionStorage.getItem('pandaDashToken') || '');
+        formData.append('token', sessionStorage.getItem('token') || '');
 
         const response = await fetch(API_URL_POST, {
             method: 'POST',
@@ -196,7 +196,7 @@ async function deleteUser(userId, userName) {
         const formData = new FormData();
         formData.append('action', 'deleteUser');
         formData.append('id', userId);
-        formData.append('token', sessionStorage.getItem('pandaDashToken') || '');
+        formData.append('token', sessionStorage.getItem('token') || '');
 
         const response = await fetch(API_URL_POST, {
             method: 'POST',

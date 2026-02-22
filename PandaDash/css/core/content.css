@@ -33,6 +33,15 @@
   color: var(--text-secondary);
   font-weight: 700;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.animated-result-icon {
+  margin-right: 6px;
+  color: var(--primary);
+  font-size: 12px;
+  animation: subtleFloat 3s ease-in-out infinite;
 }
 
 .document-id {

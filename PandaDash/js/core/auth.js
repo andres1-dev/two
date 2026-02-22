@@ -1,5 +1,5 @@
 // Gestión de autenticación y sesiones (Versión Independiente)
-const AUTH_KEY = 'pandaDashUser';
+const AUTH_KEY = 'user';
 
 // Estado de usuario
 let currentUser = null;
@@ -64,9 +64,9 @@ function showApp() {
 function logout() {
     currentUser = null;
     localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem('pandaDashApiKey');
+    localStorage.removeItem('apiKey');
     localStorage.removeItem(ACTIVITY_KEY);
-    sessionStorage.removeItem('pandaDashToken');
+    sessionStorage.removeItem('token');
     window.location.replace('login.html');
 }
 

@@ -914,6 +914,9 @@ function initSettingsUI() {
     const filterToggle = document.getElementById('clientFilterToggle');
     const audioToggle = document.getElementById('audioFeedbackToggle');
     const clientContainer = document.getElementById('clientSelectContainer');
+    const biometrySetting = document.getElementById('biometrySetting');
+    const biometryToggle = document.getElementById('biometryToggle');
+    const biometryDesc = document.getElementById('biometryDesc');
 
     if (!minBtn || !modal) return;
 
@@ -941,6 +944,22 @@ function initSettingsUI() {
 
         if (clientContainer) {
             clientContainer.style.display = USER_SETTINGS.filterEnabled ? 'block' : 'none';
+        }
+
+        // Biometría
+        if (biometrySetting && typeof BIOMETRY !== 'undefined') {
+            BIOMETRY.isSupported().then(supported => {
+                if (supported) {
+                    biometrySetting.style.display = 'flex';
+                    if (biometryToggle) biometryToggle.checked = BIOMETRY.isRegistered();
+                    if (biometryDesc) {
+                        biometryDesc.textContent = BIOMETRY.isRegistered() ?
+                            "Activado (Huella/FaceID)" : "Desactivado";
+                    }
+                } else {
+                    biometrySetting.style.display = 'none';
+                }
+            });
         }
     }
 
@@ -1002,6 +1021,32 @@ function initSettingsUI() {
     }
 
     if (clientSelect) clientSelect.addEventListener('change', updateSettings);
+
+    // Listener para Biometría
+    if (biometryToggle) {
+        biometryToggle.addEventListener('change', async (e) => {
+            if (e.target.checked) {
+                // Intentar registrar
+                const result = await BIOMETRY.register();
+                if (result.success) {
+                    if (typeof window.updateStatusDisplay === 'function') {
+                        window.updateStatusDisplay("BIOMETRÍA CONFIGURADA");
+                    }
+                } else {
+                    alert(result.message);
+                    e.target.checked = false; // Revertir
+                }
+            } else {
+                // Eliminar registro
+                if (confirm("¿Deseas desactivar el inicio de sesión biométrico en este dispositivo?")) {
+                    BIOMETRY.remove();
+                } else {
+                    e.target.checked = true; // Revertir
+                }
+            }
+            loadToUI(); // Refrescar textos
+        });
+    }
 }
 
 // Función global para manejar el colapsable

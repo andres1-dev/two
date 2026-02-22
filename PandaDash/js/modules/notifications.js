@@ -97,7 +97,7 @@ class NotificationManager {
         if (window.currentUser && window.currentUser.rol) {
             role = window.currentUser.rol.toUpperCase();
         } else {
-            const stored = localStorage.getItem('pandaDashUser');
+            const stored = localStorage.getItem('user');
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
@@ -482,7 +482,7 @@ class NotificationManager {
     sendTestNotification(msg = 'Prueba de notificación local') {
         if (Notification.permission === 'granted') {
             if (this.swRegistration) {
-                this.swRegistration.showNotification('PandaDash', {
+                this.swRegistration.showNotification(CONFIG.APP_NAME, {
                     body: msg,
                     icon: 'icons/icon-192.png',
                     badge: 'icons/icon-192.png',
@@ -490,7 +490,7 @@ class NotificationManager {
                     tag: 'test-notification'
                 });
             } else {
-                new Notification('PandaDash', { body: msg });
+                new Notification(CONFIG.APP_NAME, { body: msg });
             }
         } else {
             this.requestPermission(false);

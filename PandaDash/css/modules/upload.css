@@ -29,9 +29,16 @@
 
 #uploadSiesaView .app-title {
   font-size: 1.8rem;
-  font-weight: 700;
   margin-bottom: 0.25rem;
   color: white;
+}
+
+#uploadSiesaView .app-title .brand-app-name {
+  color: white !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  font-weight: 500 !important;
 }
 
 #uploadSiesaView .app-subtitle {

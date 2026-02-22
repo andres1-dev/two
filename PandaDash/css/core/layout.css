@@ -4,7 +4,7 @@
 
 /* --- HEADER & STATUS --- */
 .app-header {
-  padding: 16px 16px 8px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 8px;
   background: white;
   position: sticky;
   top: 0;
@@ -721,24 +721,7 @@
   color: white;
 }
 
-.logo-text {
-  font-size: 2rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.5px;
-}
-
-.version-text {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 2rem;
-}
-
+/* .brand-app-name y .brand-app-version se usan ahora desde base.css para branding unificado */
 .loading-spinner {
   margin-top: 2rem;
 }
@@ -979,7 +962,6 @@
 
 .login-header h1 {
   font-size: 22px;
-  font-weight: 800;
   color: var(--text-main);
   margin: 0 0 4px;
 }

@@ -4,24 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nueva Contraseña · PandaDash</title>
+    <title>Nueva Contraseña · App</title>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome 6.4.0 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #1a3144;
-            --accent: #2563EB;
-            --bg: #f3f4f6;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-            --success: #10b981;
-            --error: #ef4444;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
 
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-ios.svg?v=2">
+
+    <!-- Metadatos de la PWA estáticos para compatibilidad -->
+    <meta name="apple-mobile-web-app-title" content="App" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="App" />
+    <meta name="msapplication-TileColor" content="#FFFFFF" />
+    <meta name="msapplication-tap-highlight" content="no" />
+
+    <!-- Configuración Global de la App y Branding Dinámico -->
+    <script src="js/core/config.js"></script>
+    <script>
+        document.title = `Nueva Contraseña · ${CONFIG.APP_NAME}`;
+        if (document.querySelector('meta[name="application-name"]')) document.querySelector('meta[name="application-name"]').content = CONFIG.APP_NAME;
+        if (document.querySelector('meta[name="apple-mobile-web-app-title"]')) document.querySelector('meta[name="apple-mobile-web-app-title"]').content = CONFIG.APP_SHORT_NAME;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.brand-app-name').forEach(el => el.textContent = CONFIG.APP_NAME);
+            document.querySelectorAll('.brand-app-desc').forEach(el => el.textContent = CONFIG.APP_DESCRIPTION);
+            document.querySelectorAll('.brand-logo-alt').forEach(el => el.alt = `${CONFIG.APP_NAME} Logo`);
+            document.querySelectorAll('.credits').forEach(el => el.innerHTML = CONFIG.FOOTER_CREDITS);
+        });
+    </script>
+    <!-- CSS Base centralizado para el Branding -->
+    <link rel="stylesheet" href="css/core/base.css">
+
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -29,9 +45,9 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            font-family: var(--font-main, 'Inter', sans-serif);
+            background-color: var(--background, #f3f4f6);
+            color: var(--text-main, #1f2937);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -44,7 +60,7 @@
             width: 100%;
             max-width: 440px;
             border-radius: 24px;
-            box-shadow: var(--shadow);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             padding: 2.5rem;
             animation: slideUp 0.5s ease-out;
         }
@@ -66,23 +82,39 @@
             margin-bottom: 2rem;
         }
 
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            animation: subtleFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes subtleFloat {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
         .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1rem;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
             display: block;
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
         .header p {
-            font-size: 0.9rem;
-            color: var(--text-light);
+            line-height: 1.5;
+            color: var(--text-secondary);
         }
 
         /* --- Input Styles --- */
@@ -267,9 +299,11 @@
 
     <div class="card">
         <div class="header">
-            <img src="https://lh3.googleusercontent.com/d/1RyuX2h2gPve2mk1kI5dbDDHvVhLMWcGs" alt="L" class="logo">
-            <h1>PandaDash</h1>
-            <p>Restablecer Contraseña</p>
+            <div class="logo-container">
+                <img src="icons/icon.svg" alt="App Logo" class="logo brand-logo-alt">
+            </div>
+            <h1 class="brand-app-name">Cargando...</h1>
+            <p class="brand-app-desc">Restablecer Contraseña</p>
         </div>
 
         <div id="tokenNotice" class="token-warning" style="display: none;">
@@ -318,7 +352,7 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbyOwBp1er4nu9Uth2nS5rY2tYfvY-NMdWJkA3dIjmuaVUTLvnUyKtJIG62ACK22RpNWRQ/exec";
+        const API = API_URL_POST;
 
         const inp1 = document.getElementById('p1');
         const inp2 = document.getElementById('p2');
@@ -412,6 +446,7 @@
             }
         });
     </script>
+    </div>
 </body>
 
 </html>

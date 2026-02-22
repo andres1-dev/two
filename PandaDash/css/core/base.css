@@ -133,3 +133,27 @@ input,
 button {
   font-size: 16px !important;
 }
+
+/* --- BRANDING GLOBAL COMPARTIDO --- */
+.brand-app-name {
+  font-family: var(--font-main, 'Inter', sans-serif) !important;
+  font-size: 2rem !important;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #60a5fa 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1.2 !important;
+  margin-bottom: 0.5rem !important;
+  text-align: center;
+}
+
+.brand-app-desc,
+.brand-app-version {
+  font-family: var(--font-main, 'Inter', sans-serif) !important;
+  font-size: 0.85rem !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
+  text-align: center;
+  margin: 0 !important;
+}

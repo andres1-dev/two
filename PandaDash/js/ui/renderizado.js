@@ -12,7 +12,9 @@ function displayFullResult(item, qrParts) {
     // 1. Cabecera Principal (Datos del Documento)
     html += `
     <div class="result-header-main">
-      <div class="document-title">Documento REC</div>
+      <div class="document-title">
+        <i class="fas fa-file-invoice animated-result-icon"></i> Documento REC
+      </div>
       <div class="document-id">${item.documento || qrParts.documento}</div>
       <div class="main-details-grid">
   `;

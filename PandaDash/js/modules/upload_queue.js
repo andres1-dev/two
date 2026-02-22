@@ -440,7 +440,7 @@ class UploadQueue {
     // for(let pair of formData.entries()) { console.log(pair[0]); } 
 
     // Añadir token de sesión
-    const token = sessionStorage.getItem('pandaDashToken') || '';
+    const token = sessionStorage.getItem('token') || '';
     formData.append('token', token);
 
     const response = await fetch(API_URL_POST, {

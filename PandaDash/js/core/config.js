@@ -1,9 +1,19 @@
 // Configuración y constantes globales
 const CONFIG = {
-    VERSION: "5.0.0", // Updated version
+    APP_NAME: "DeepSeek",
+    APP_SHORT_NAME: "DeepSeek",
+    APP_DESCRIPTION: "Professional QR Delivery System",
+    APP_VERSION: "7.3.14", // Updated version matching the build number
+    VERSION: "7.3.14", // Keep for legacy support if needed
     CACHE_TTL: 24 * 60 * 60 * 1000, // 24 horas en milisegundos
     MAX_IMAGE_SIZE: 800, // Tamaño máximo para redimensionar imágenes
     MAX_CHUNK_SIZE: 50000, // ~50KB por solicitud
+    FOOTER_CREDITS: "Developed by <strong>Andrés Mendoza</strong><br>© 2026 · Supported by GrupoTDM",
+    SOCIAL_LINKS: {
+        FACEBOOK: "https://www.facebook.com/templodelamoda/",
+        INSTAGRAM: "https://www.instagram.com/eltemplodelamoda/",
+        WHATSAPP: "https://wa.me/573168007979"
+    }
 };
 
 // Mapeo de clientes a NIT (Movido aquí para acceso global)
@@ -30,7 +40,7 @@ let USER_SETTINGS = { ...DEFAULT_SETTINGS };
 
 // Cargar configuración guardada
 try {
-    const savedSettings = localStorage.getItem('pdaUserSettings');
+    const savedSettings = localStorage.getItem('userSettings');
     if (savedSettings) {
         // Cargar ajustes pero siempre resetear persistentFocus a false al inicio
         const parsed = JSON.parse(savedSettings);
@@ -50,7 +60,7 @@ function saveUserSettings() {
         // NO guardar persistentFocus (conflictivo)
         delete settingsToSave.persistentFocus;
 
-        localStorage.setItem('pdaUserSettings', JSON.stringify(settingsToSave));
+        localStorage.setItem('userSettings', JSON.stringify(settingsToSave));
     } catch (e) {
         console.error("Error guardando configuración:", e);
     }
@@ -59,7 +69,7 @@ function saveUserSettings() {
 // Guardar/Cargar Modo de App
 function saveAppMode(mode) {
     try {
-        localStorage.setItem('pdaAppMode', mode);
+        localStorage.setItem('appMode', mode);
     } catch (e) {
         console.error("Error guardando modo:", e);
     }
@@ -67,9 +77,9 @@ function saveAppMode(mode) {
 
 function getSavedAppMode() {
     try {
-        return localStorage.getItem('pdaAppMode') || 'PDA';
+        return localStorage.getItem('appMode') || 'CAMERA';
     } catch (e) {
-        return 'PDA';
+        return 'CAMERA';
     }
 }
 
@@ -89,7 +99,7 @@ let currentQRParts = null;
 let dataLoaded = false;
 
 // Constantes para la cola de carga
-const UPLOAD_QUEUE_KEY = 'pdaUploadQueue';
+const UPLOAD_QUEUE_KEY = 'uploadQueue';
 const MAX_RETRIES = 9999; // Ilimitados intentos
 
 // La cola de carga se inicializa globalmente en cola_carga.js (window.uploadQueue)
