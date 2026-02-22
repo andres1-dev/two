@@ -479,8 +479,11 @@
 
                 // Metadatos dinámicos completos para la plantilla de correo
                 const isGitHub = window.location.hostname.includes('github.io');
-                const repoPath = 'PandaDash3'; // Tu carpeta en GitHub
-                const githubRawBase = `https://raw.githubusercontent.com/Andres1-dev/two/main/${repoPath}`;
+                const githubUser = 'Andres1-dev';
+                const githubRepo = 'two';
+                const folderPath = 'PandaDash3'; // Tu subcarpeta en GitHub
+
+                const githubRawBase = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/main/${folderPath}`;
                 const localBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 
                 formData.append('appName', CONFIG.APP_NAME);
@@ -489,8 +492,6 @@
                 formData.append('appColor', getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#2563EB');
                 formData.append('supportEmail', 'soporte@' + CONFIG.APP_NAME.toLowerCase() + '.com');
                 formData.append('footerCredits', CONFIG.FOOTER_CREDITS);
-
-                // IMPORTANTE: La plantilla SIEMPRE debe ser la de GitHub para que GAS pueda verla
                 formData.append('templateUrl', `${githubRawBase}/email_template.html`);
                 formData.append('resetBaseUrl', `${localBase}/reset.html`);
 

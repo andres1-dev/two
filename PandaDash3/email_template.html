@@ -10,30 +10,36 @@
 <body
     style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7fb;">
 
+    <!-- CONTENEDOR PRINCIPAL -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
         style="background-color: #f4f7fb;">
         <tr>
             <td style="padding: 40px 20px;">
 
+                <!-- TARJETA PRINCIPAL -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
                     style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);">
 
+                    <!-- HEADER -->
                     <tr>
                         <td
                             style="background-color: #ffffff; padding: 36px 40px 28px; text-align: center; border-radius: 24px 24px 0 0;">
+                            <!-- Logo Dinámico -->
                             <div
                                 style="margin: 0 auto 16px; width: 88px; height: 88px; background-color: #ffffff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15); padding: 12px;">
                                 <img src="{{appLogo}}" alt="{{appName}}" width="62" height="62"
-                                    style="display: block; border: 0;">
+                                    style="display: block; border: 0; width: 62px; height: 62px;">
                             </div>
                             <h1
                                 style="margin: 0; color: {{appColor}}; font-size: 28px; font-weight: 600; letter-spacing: -0.3px;">
                                 {{appName}}</h1>
-                            <p style="margin: 8px 0 0; color: #64748b; font-size: 14px; font-weight: 400;">
+                            <p
+                                style="margin: 8px 0 0; color: {{appColor}}; opacity: 0.85; font-size: 14px; font-weight: 400;">
                                 {{appDescription}}</p>
                         </td>
                     </tr>
 
+                    <!-- CUERPO DEL MENSAJE -->
                     <tr>
                         <td style="padding: 40px 40px 20px;">
                             <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 22px; font-weight: 600;">Hola
@@ -57,6 +63,7 @@
                                 ⏳ Este enlace expira en <strong style="color: {{appColor}};">5 minutos</strong>.
                             </p>
 
+                            <!-- RECOMENDACIONES DE SEGURIDAD -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
                                 style="background-color: #f0f9ff; border-radius: 16px; margin: 20px 0 10px;">
                                 <tr>
@@ -86,6 +93,7 @@
                         </td>
                     </tr>
 
+                    <!-- FOOTER -->
                     <tr>
                         <td
                             style="background-color: #f8fafc; padding: 24px 40px; border-radius: 0 0 24px 24px; border-top: 1px solid #e2e8f0;">
@@ -93,8 +101,8 @@
                                 <tr>
                                     <td style="text-align: center; color: #94a3b8; font-size: 12px;">
                                         <p style="margin: 0 0 10px;">
-                                            Este es un mensaje automático de <strong>{{appName}}</strong>. Por favor,
-                                            no respondas a este correo.
+                                            Este es un mensaje automático de <strong>{{appName}}</strong>. Por favor, no
+                                            respondas a este correo.
                                         </p>
                                         <p style="margin: 0;">
                                             {{footerCredits}}

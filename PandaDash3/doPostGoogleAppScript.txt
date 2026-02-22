@@ -494,12 +494,23 @@ function recuperarContrasena(id, params) {
       });
 
     } catch (e) {
-      Logger.log("Error cargando o enviando plantilla: " + e.message);
-      // Fallback genérico ultra-limpio
+      Logger.log("Error de plantilla: " + e.message);
+      // Fallback: Si no se pudo cargar la plantilla, enviar al menos el link con estilo mínimo
       MailApp.sendEmail({
         to: user.email,
-        subject: "Restablecimiento de contraseña",
-        body: `Hola ${user.nombre}, usa este enlace para restablecer tu contraseña: ${resetUrl}`
+        subject: `Restablecimiento de contraseña - ${params.appName || 'Sistema'}`,
+        htmlBody: `
+          <div style="font-family:sans-serif; padding:20px; border:1px solid #eee; border-radius:12px; max-width:500px; margin:auto;">
+            <h2 style="color:#2563EB;">Hola ${user.nombre}</h2>
+            <p>Hemos recibido una solicitud para restablecer tu contraseña en <strong>${params.appName || 'nuestro sistema'}</strong>.</p>
+            <div style="text-align:center; margin:30px 0;">
+              <a href="${resetUrl}" style="display:inline-block; background:#2563EB; color:#fff; padding:12px 25px; text-decoration:none; border-radius:8px; font-weight:bold;">Restablecer contraseña ahora</a>
+            </div>
+            <p style="color:#666; font-size:12px; border-top:1px solid #eee; padding-top:20px;">
+              Este es un mensaje de emergencia. No pudimos cargar el diseño completo desde GitHub, pero el enlace de arriba es 100% seguro y funcional.
+            </p>
+          </div>
+        `
       });
     }
 
