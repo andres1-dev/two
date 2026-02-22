@@ -3,7 +3,7 @@
 importScripts('js/core/config.js');
 
 // CORREGIDO: Eliminadas notificaciones duplicadas
-const CACHE_NAME = `${CONFIG.APP_NAME}-v9.8`; // Incrementar versión
+const CACHE_NAME = `${CONFIG.APP_NAME}-v10.0`; // Network-First Strategy 100% Online
 
 const BASE = (new URL('.', self.location)).href;
 
@@ -196,21 +196,31 @@ self.addEventListener('fetch', (event) => {
   const isExternal = EXTERNAL_ASSETS.some(cdn => req.url.startsWith(cdn));
 
   if (isIcon || isExternal) {
+    // Network First behavior with Cache fallback
     event.respondWith(
-      caches.match(req).then(cached => {
-        return cached || fetch(req).then(response => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
-          }
-          return response;
-        });
+      fetch(req).then(response => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(req);
       })
     );
   } else {
-    event.respondWith(fetch(req).catch(() => {
-      return caches.match(req);
-    }));
+    // Para el resto de los archivos, Network First estricto
+    event.respondWith(
+      fetch(req).then(response => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(req);
+      })
+    );
   }
 });
 
