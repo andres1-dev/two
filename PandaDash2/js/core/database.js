@@ -52,9 +52,9 @@ function handleDataLoadSuccess(serverData) {
             <div style="margin-bottom: 30px;">
                 <!-- REEMPLAZADO: Logo SVG oficial - CON COLORES ORIGINALES, FONDO TRANSPARENTE -->
                 <div style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-                    <img src="icons/icon.svg" alt="PandaDash Logo" style="width: 100%; height: 100%;">
+                    <img src="icons/icon.svg" alt="DeepSeek Logo" style="width: 100%; height: 100%;">
                 </div>
-                <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 8px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">PandaDash</h1>
+                <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 8px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">DeepSeek</h1>
                 <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">Professional QR Delivery System</p>
             </div>
             
@@ -106,9 +106,9 @@ function handleDataLoadError(error) {
         <div class="result-item" style="text-align: center; color: var(--gray);">
             <!-- REEMPLAZADO: Logo SVG oficial - Tamaño 4rem (64px) -->
             <div style="width: 4rem; height: 4rem; margin: 0 auto 0.15rem auto; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">
-                <img src="icons/icon.svg" alt="PandaDash Logo" style="width: 80%; height: 80%;">
+                <img src="icons/icon.svg" alt="DeepSeek Logo" style="width: 80%; height: 80%;">
             </div>
-            <h1 style="margin: 0; font-size: 1.8rem; margin-top: 0.5rem;">PandaDash™</h1>
+            <h1 style="margin: 0; font-size: 1.8rem; margin-top: 0.5rem;">DeepSeek™</h1>
             <div style="margin-top: 6px; font-size: 13px; line-height: 1.3;">
                 <p style="margin: 2px 0;">Developed by Andrés Mendoza © 2026</p>
                 <p style="margin: 2px 0;">
