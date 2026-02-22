@@ -1,40 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- PandaDash Universal Identity: GitHub-Style Minimalism -->
-<svg width="500px" height="500px" viewBox="0 0 500 500" version="1.1" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-    <title>PandaDash Cyber-Panda Logo</title>
+<!-- PandaDash Ultimate Identity: Continuous Gradient Silhouette (Max-Size Edition) -->
+<svg width="1024px" height="1024px" viewBox="70.25 68.6 883.4 883.4" version="1.1" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <title>PandaDash Professional - Continuous Gradient</title>
     <defs>
-        <!-- Gradientes de Transición Suave (Secuencia Profesional) -->
-        <linearGradient id="cyberGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+        <!-- Gradiente Único y Real: Transición fluida sin cortes visibles -->
+        <linearGradient id="realContinuousGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" /> <!-- Sky Blue -->
+            <stop offset="50%" style="stop-color:#2563EB;stop-opacity:1" /> <!-- Corporate Blue -->
+            <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" /> <!-- Deep Naval -->
         </linearGradient>
-        <linearGradient id="cyberGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#2563EB;stop-opacity:1" />
-        </linearGradient>
-        <linearGradient id="cyberGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
-        </linearGradient>
+
+        <!-- Máscara de Sustracción de Alta Precisión (Troquelado GitHub) -->
+        <mask id="pandaSilhuetteMask">
+            <rect width="1024" height="1024" fill="white" />
+            <!-- Silueta original del panda extraída de GUIA.svg -->
+            <path fill="black" d="M509.914 287.404C529.177 287.581 524.649 309.736 526.342 322.115C534.724 383.421 617.82 399.568 618.872 463.984C619.284 489.202 609.694 502.643 593.058 520.222C604.126 534.344 603.027 537.648 591.508 550.787L591.527 585.981C612.108 586.443 632.697 586.442 653.278 585.979C653.661 577.688 653.501 568.726 653.494 560.374C647.037 552.257 646.913 550.672 652.924 542.43C641.36 530.336 635.074 520.753 634.251 503.705C632.828 468.888 670.749 455.073 686.01 428.235C691.987 417.723 685.097 385.562 701.833 385.023C714.64 384.611 711.472 413.359 715.377 421.489C730.143 452.243 775.079 464.878 774.548 503.871C774.421 520.649 766.463 529.921 755.103 541.202C761.677 549.271 760.998 551.088 755.546 559.663C754.169 585.604 755.482 612.078 755.106 638.088C754.931 650.228 755.697 662.499 754.137 674.581C753.49 679.587 748.519 682.293 743.848 682.376C735.338 682.787 726.78 682.566 718.25 682.551L669.691 682.502L513.75 682.514L349.604 682.501L306.327 682.63C297.144 682.668 283.522 683.139 274.793 681.559C274.25 681.05 273.714 680.533 273.185 680.009C271.996 678.825 270.173 676.861 269.992 675.169C268.726 663.328 269.422 649.861 269.451 637.928L269.497 560.499C266.92 557.017 265.772 555.079 263.665 551.261C265.493 547.59 266.817 545.677 269.404 542.589C259.929 533.828 253.123 525.168 250.583 512.529C242.318 471.402 288.846 456.403 306.604 427.713C313.23 415.926 308.667 401.16 315.525 389.485C317.895 385.449 324.824 384.021 327.868 387.166C336.724 396.317 330.756 415.428 335.897 425.763C349.998 454.105 389.307 467.009 390.898 502.164C391.805 519.936 382.417 530.733 371.176 543.205C373.76 546.472 374.943 548.187 376.139 552.161C368.698 562.601 370.834 574.089 371.064 586.39C391.791 586.71 411.419 587.312 432.021 584.82C434.015 573.891 433.533 562.074 433.466 550.921C428.004 545.252 425.441 543.018 423.225 535.394C424.86 528.46 427.391 525.728 431.839 520.313C415.748 503.594 407.057 488.096 406.284 464.698C404.487 410.299 465.11 390.938 488.739 349.843C494.803 339.4 496.647 327.143 497.231 315.266C497.875 302.158 497.552 294.464 509.914 287.404Z" />
+        </mask>
     </defs>
 
     <g id="SVGRepo_bgCarrier" stroke-width="0"/>
     <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
-
+    
+    <!-- Lógica de Máximo Espacio (95%) y Centrado Milimétrico vía ViewBox -->
     <g id="SVGRepo_iconCarrier">
-        <!-- Contenedor con Escala 92% (Clonando la lógica de renderizado de GitHub) -->
-        <g transform="translate(20, 20) scale(0.92)">
-            
-            <!-- PARTE 1: La Oreja y Mejilla Izquierda (El Inicio) -->
-            <path d="M120,40 C75,40 40,75 40,120 L40,160 C40,160 30,220 80,260 L130,300 L130,100 L120,40 Z" fill="url(#cyberGrad1)" />
-            
-            <!-- PARTE 2: El Rostro Central y Flecha Dash (El Cuerpo) -->
-            <path d="M150,80 L150,380 L250,460 L350,380 L350,80 C350,80 250,40 150,80 Z M250,150 L320,280 L250,240 L180,280 L250,150 Z" fill="url(#cyberGrad2)" />
-            
-            <!-- PARTE 3: La Oreja y Mejilla Derecha (La Profundidad) -->
-            <path d="M380,40 C425,40 460,75 460,120 L460,160 C460,160 470,220 420,260 L370,300 L370,100 L380,40 Z" fill="url(#cyberGrad3)" />
-            
+        <g mask="url(#pandaSilhuetteMask)">
+            <!-- El cuerpo sólido del logo con Degradado Continuo -->
+            <path fill="url(#realContinuousGrad)" d="M501.253 94.2927C612.358 90.7181 716.945 130.611 795.062 204.861C875.51 281.268 922.081 386.66 924.412 497.585C927.678 612.02 885.263 723.048 806.532 806.158C735.294 881.703 626.235 925.931 523.125 928.983C416.237 929.939 323.556 898.437 241.785 828.842C150.143 750.846 104.565 643.077 99.5884 524.038C95.9878 413.161 136.209 305.328 211.541 223.892C287.44 141.393 390.185 98.9663 501.253 94.2927Z" />
         </g>
     </g>
 </svg>
