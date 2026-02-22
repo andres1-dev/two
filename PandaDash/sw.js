@@ -3,7 +3,7 @@
 importScripts('js/core/config.js');
 
 // CORREGIDO: Eliminadas notificaciones duplicadas
-const CACHE_NAME = `${CONFIG.APP_NAME}-v10.6`; // Network-First Strategy 100% Online
+const CACHE_NAME = `${CONFIG.APP_NAME}-v10.7`; // Network-First Strategy 100% Online
 
 const BASE = (new URL('.', self.location)).href;
 
