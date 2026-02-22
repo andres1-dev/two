@@ -4,7 +4,7 @@
 
 /* --- HEADER & STATUS --- */
 .app-header {
-  padding: 30px 16px 8px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 8px;
   background: white;
   position: sticky;
   top: 0;
