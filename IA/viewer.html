@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepScope - Visor de Datos Real-Time</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --accent: #3b82f6;
+            --border: #334155;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        .json-viewer {
+            background: #000;
+            padding: 20px;
+            border-radius: 12px;
+            overflow: auto;
+            max-height: 65vh;
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-sync {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-copy {
+            background: #475569;
+            color: white;
+        }
+
+        .loader {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+        }
+
+        @line_number: keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-syncing .loader {
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Visor Real-Time (Sin Cache)</h1>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Estado</div>
+                    <div class="stat-value" id="status">Listo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Documentos</div>
+                    <div class="stat-value" id="count">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls" id="controlBar">
+            <button class="btn-sync" onclick="fetchFromAPI()">
+                <span class="loader"></span>
+                Actualizar desde Google Sheets
+            </button>
+            <input type="text" id="searchInput" placeholder="Filtrar por REC, Lote o Cliente...">
+            <button class="btn-copy" onclick="copyToClipboard()">Copiar JSON</button>
+        </div>
+
+        <div id="jsonViewer" class="json-viewer">Presiona "Actualizar" para traer los datos reales usando tu API Key.
+        </div>
+    </div>
+
+    <!-- Scripts necesarios para la lógica real -->
+    <script src="js/config.js"></script>
+    <script src="js/dataFilter.js"></script>
+    <script src="js/mainData.js"></script>
+
+    <script>
+        // Limpiar el localStorage viejo por seguridad
+        localStorage.removeItem('deepscope_cache');
+        localStorage.removeItem('deepscope_last_update');
+
+        async function fetchFromAPI() {
+            const apiKey = localStorage.getItem('apiKey');
+            if (!apiKey) {
+                alert("❌ No se encontró la API Key. Por favor, ingrésala primero en la configuración de la app principal.");
+                return;
+            }
+
+            const btn = document.querySelector('.btn-sync');
+            document.getElementById('controlBar').classList.add('status-syncing');
+            document.getElementById('status').textContent = "Sincronizando...";
+            document.getElementById('jsonViewer').textContent = "Consultando Google Sheets...";
+
+            try {
+                // Usamos el motor oficial mainData.js
+                await window.contextData.refresh();
+
+                const data = window.contextData.preparedContext;
+                if (data && data.db) {
+                    document.getElementById('count').textContent = data.count;
+                    document.getElementById('status').textContent = "Actualizado";
+                    displayData(data.db);
+                }
+            } catch (error) {
+                document.getElementById('jsonViewer').textContent = "❌ Error: " + error.message;
+                document.getElementById('status').textContent = "Error";
+            } finally {
+                document.getElementById('controlBar').classList.remove('status-syncing');
+            }
+        }
+
+        function displayData(data) {
+            const viewer = document.getElementById('jsonViewer');
+            viewer.textContent = JSON.stringify(data, null, 4);
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('jsonViewer').textContent;
+            navigator.clipboard.writeText(text).then(() => alert("Copiado!"));
+        }
+
+        // Filtrado local sobre los datos traídos
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const fullData = window.contextData?.preparedContext?.db;
+            if (!fullData) return;
+
+            const filtered = fullData.filter(item => {
+                const searchStr = `${item.rec} ${item.lote} ${item.referencia} ${item.facturas.map(f => f.cliente).join(' ')}`.toLowerCase();
+                return searchStr.includes(term);
+            });
+            displayData(filtered);
+        });
+    </script>
+
+</body>
+
+</html>

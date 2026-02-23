@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Sheets API Key</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .loading {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            max-height: 400px;
+            font-size: 13px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Test Sheets API Directo</h1>
+
+        <div class="controls">
+            <input type="text" id="apiKey" value="AIzaSyDvtBUmhS_f3SvQzHN2Qz3molW0nEEM01A"
+                placeholder="Ingresar API Key">
+        </div>
+
+        <div class="controls">
+            <input type="text" id="sheetId" value="133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI"
+                placeholder="ID de la Hoja de Cálculo">
+            <input type="text" id="range" value="DATA2!S1:S10" placeholder="Rango (p.ej. Hoja1!A1:B10)">
+            <button onclick="testConnection()">Probar Conexión</button>
+        </div>
+
+        <div id="status" class="status loading" style="display: none;"></div>
+
+        <h3>Respuesta de la API:</h3>
+        <pre id="output">Los resultados aparecerán aquí...</pre>
+    </div>
+
+    <script>
+        async function testConnection() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const sheetId = document.getElementById('sheetId').value.trim();
+            const range = document.getElementById('range').value.trim();
+            const statusDiv = document.getElementById('status');
+            const outputPre = document.getElementById('output');
+
+            if (!apiKey || !sheetId || !range) {
+                showStatus('Faltan datos requeridos', 'error');
+                return;
+            }
+
+            showStatus('Consultando Google Sheets API...', 'loading');
+            outputPre.textContent = 'Cargando...';
+
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+
+            try {
+                console.log('Fetching:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('¡Conexión Exitosa!', 'success');
+                    outputPre.textContent = JSON.stringify(data, null, 2);
+                    console.log('Success:', data);
+                } else {
+                    showStatus('Error de API', 'error');
+                    outputPre.textContent = JSON.stringify(data, null, 2);
+                    console.error('API Error:', data);
+                }
+            } catch (error) {
+                showStatus('Error de Red/Fetch', 'error');
+                outputPre.textContent = error.message;
+                console.error('Fetch Error:', error);
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.style.display = 'block';
+        }
+    </script>
+
+</body>
+
+</html>

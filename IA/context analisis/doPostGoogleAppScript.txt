@@ -1,0 +1,794 @@
+const SPREADSHEET_ID = '1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw';
+const SHEET_NAME = 'SOPORTES';
+const FOLDER_ID = '1uaC605ZYOJKbdNJinVrvGAAo5tLAQRtO';
+
+// --- CONFIGURACIÓN DE BRANDING E INFRAESTRUCTURA ---
+const APP_CONFIG = {
+  NAME: "DeepSeek",
+  DESCRIPTION: "Professional QR Delivery System",
+  LOGO_URL: "https://raw.githubusercontent.com/Andres1-dev/two/main/PandaDash/icons/icon.svg", 
+  COLOR: "#2563EB",
+  SUPPORT_EMAIL: "coordinadorlogisticocdi@gmail.com",
+  SUPPORT_PHONE: "+57 (316) 800-7979",
+  FOOTER: "Developed by <strong>Andrés Mendoza</strong><br>© 2026 · Supported by GrupoTDM",
+  DEFAULT_SUBJECT: "Restablecimiento de contraseña"
+};
+
+const EMAIL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.1);">
+                    <tr>
+                        <td style="background-color: #ffffff; padding: 36px 40px 28px; text-align: center; border-radius: 24px 24px 0 0;">
+                            <div style="margin: 0 auto 20px; text-align: center;">
+                                <img src="{{appLogo}}" alt="{{appName}}" width="80" height="80" style="display: inline-block; border: 0; width: 80px; height: 80px;">
+                            </div>
+                            <h1 style="margin: 0; color: {{appColor}}; font-size: 28px; font-weight: 600; letter-spacing: -0.3px;">
+                              {{appName}}
+                            </h1>
+
+                            <p style="margin: 8px 0 0; color: {{appColor}}; opacity: 0.85; font-size: 14px; font-weight: 400;">
+                              {{appDescription}}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 40px 20px;">
+                            <div style="text-align: center;">
+                                <h2 style="margin: 0 0 12px; color: #1e293b; font-size: 24px; font-weight: 700;">Hola, {{userName}}</h2>
+                                <p style="margin: 0 0 32px; color: #475569; font-size: 16px; line-height: 1.6;">
+                                    Hemos detectado una solicitud de cambio de contraseña asociada a tu cuenta.<br>
+                                </p>
+                            </div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0 20px;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="{{resetUrl}}" style="display: inline-block; background: {{appColor}}; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 500; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);">Restablecer contraseña</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 0 0 28px; color: #64748b; font-size: 15px; text-align: center;">
+                                Este enlace expira en <strong style="color: {{appColor}};">5 minutos</strong>.
+                            </p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f0f9ff; border-radius: 16px; margin: 20px 0 10px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 10px; color: #1e4a6b; font-size: 15px; font-weight: 600;">Recomendaciones importantes</p>
+                                        <ul style="margin: 0; padding-left: 20px; color: #2c3e50; font-size: 14px; line-height: 1.6;">
+                                            <li style="margin-bottom: 8px;">Elige una contraseña segura que no hayas usado antes.</li>
+                                            <li style="margin-bottom: 8px;">La contraseña debe tener al menos 8 caracteres.</li>
+                                            <li style="margin-bottom: 0;">
+                                            Si no reconoces esta solicitud, contacta inmediatamente a soporte para proteger tu cuenta:
+                                            <a href="mailto:{{supportEmail}}" style="color: {{appColor}}; text-decoration: none; font-weight: 600;">{{supportEmail}}</a>
+                                            o al WhatsApp <strong>{{supportPhone}}</strong>.
+                                            </li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8fafc; padding: 24px 40px; border-radius: 0 0 24px 24px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 11px; line-height: 1.6;">
+                            <div style="margin-bottom: 12px;">Este es un mensaje automático de <strong>{{appName}}</strong>. Por favor, no respondas a este correo.</div>
+                            <div style="color: #64748b;">{{footerCredits}}</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+`;
+
+// --- UTILIDADES ---
+function getFormattedDateTime(date = new Date()) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
+// --- SEGURIDAD RESET PASSWORD ---
+
+function generarPasswordTemporal() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let pass = '';
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+}
+
+
+
+function generarTokenSeguro() {
+  return Utilities.getUuid().replace(/-/g, "") + Date.now();
+}
+
+function guardarTokenReset(userId, token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  tokens.push({
+    token: token,
+    userId: userId,
+    expires: Date.now() + (5 * 60 * 1000), // 5 minutos
+    used: false
+  });
+
+  PropertiesService.getScriptProperties()
+    .setProperty("RESET_TOKENS", JSON.stringify(tokens));
+}
+
+function validarToken(token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  const data = tokens.find(t => t.token === token);
+
+  if (!data)
+    return { valid: false, message: "Token inválido" };
+
+  if (data.used)
+    return { valid: false, message: "Token ya utilizado" };
+
+  if (Date.now() > data.expires)
+    return { valid: false, message: "Token expirado" };
+
+  return { valid: true, userId: data.userId };
+}
+
+
+function invalidarToken(token) {
+
+  const tokens = JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("RESET_TOKENS") || "[]"
+  );
+
+  const index = tokens.findIndex(t => t.token === token);
+
+  if (index !== -1) {
+    tokens[index].used = true;
+
+    PropertiesService.getScriptProperties()
+      .setProperty("RESET_TOKENS", JSON.stringify(tokens));
+  }
+}
+
+// --- SEGURIDAD SESIÓN ---
+function guardarTokenSesion(userId, token) {
+  const sessions = JSON.parse(PropertiesService.getScriptProperties().getProperty("SESSIONS") || "{}");
+  sessions[token] = {
+    userId: userId,
+    expires: Date.now() + (24 * 60 * 60 * 1000) // 24 horas
+  };
+  PropertiesService.getScriptProperties().setProperty("SESSIONS", JSON.stringify(sessions));
+}
+
+function validarTokenSesion(token) {
+  if (!token) return false;
+  const sessions = JSON.parse(PropertiesService.getScriptProperties().getProperty("SESSIONS") || "{}");
+  const session = sessions[token];
+  if (!session) return false;
+  if (Date.now() > session.expires) {
+    delete sessions[token];
+    PropertiesService.getScriptProperties().setProperty("SESSIONS", JSON.stringify(sessions));
+    return false;
+  }
+  return true;
+}
+
+// --- MAIN GET HANDLER (Para Polling) ---
+function doGet(e) {
+  try {
+
+    // VISTA RESET PASSWORD
+    if (e.parameter.view === 'reset' && e.parameter.token) {
+      return HtmlService.createHtmlOutput(`
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial; padding:20px; text-align:center;}
+            input { padding:10px; width:80%; margin:10px 0;}
+            button { padding:10px 20px; background:#2563EB; color:white; border:none; border-radius:8px;}
+          </style>
+        </head>
+        <body>
+          <h2>Cambiar contraseña</h2>
+          <input type="password" id="newPass" placeholder="Nueva contraseña">
+          <br>
+          <button onclick="save()">Guardar</button>
+
+          <script>
+            function save(){
+              const newPass = document.getElementById("newPass").value;
+              fetch("?action=resetPassword&token=${e.parameter.token}&newPassword=" + encodeURIComponent(newPass), {method:"POST"})
+                .then(r=>r.json())
+                .then(d=>alert(d.message));
+            }
+          </script>
+        </body>
+        </html>
+      `);
+    }
+
+    const action = e.parameter.action;
+    
+
+    return ContentService.createTextOutput("DeepSeek API Active")
+      .setMimeType(ContentService.MimeType.TEXT);
+
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.message)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+// --- MAIN POST HANDLER ---
+function doPost(e) {
+  try {
+    if (!e) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'No se recibió el evento de solicitud'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    let params = e.parameter || {};
+    
+    // Fallback para datos enviados como JSON en el cuerpo
+    if (!params.action && e.postData && e.postData.contents && e.postData.contents.startsWith('{')) {
+      try {
+        const jsonData = JSON.parse(e.postData.contents);
+        params = Object.assign({}, params, jsonData);
+      } catch (err) {
+        console.error("Error parseando JSON en doPost:", err);
+      }
+    }
+    
+    const action = params.action;
+
+    // --- VALIDACIÓN DE TOKEN ---
+    // Excepto para login y resetPassword
+    if (action !== 'login' && action !== 'resetPassword' && action !== 'recover') {
+      const token = params.token;
+      if (!validarTokenSesion(token)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          message: 'Sesión inválida o expirada. Por favor inicie sesión nuevamente.',
+          authError: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    if (action === "resetPassword") {
+      return cambiarPassword(
+        params.token,
+        params.newPassword
+      );
+    }
+
+
+
+
+    // --- ACCIONES DE USUARIO ---
+    if (action === 'login') {
+       return verificarCredenciales(params.id, params.password);
+    } 
+    else if (action === 'recover') {
+       return recuperarContrasena(params.id, params);
+    }
+    else if (action === 'biometricLogin') {
+       return loginBiometrico(params.id);
+    }
+    else if (action === 'getUsers') {
+       return listarUsuarios();
+    }
+    else if (action === 'saveUser') {
+       return guardarUsuario(params.userData);
+    }
+    else if (action === 'deleteUser') {
+       return eliminarUsuario(params.id);
+    }
+    
+    // --- ACCIONES DE DATOS ---
+    else if (action === 'delete') {
+       return eliminarRegistro(params.factura);
+    }
+    
+    else if (action === 'resetPassword') {
+      return cambiarPassword(params.token, params.newPassword);
+    }
+    
+    // Acción ask-ai eliminada (ahora se maneja en el cliente)
+    else if (action === 'ask-ai') {
+       return ContentService.createTextOutput(JSON.stringify({
+         success: false,
+         message: 'Esta acción ha sido migrada al cliente. Por favor actualice el frontend.'
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+
+    
+    // Guardar datos (Acción por defecto si no es ninguna de las anteriores)
+    const datos = {
+        documento: params.documento || '',
+        lote: params.lote || '',
+        referencia: params.referencia || '',
+        cantidad: params.cantidad || 0,
+        factura: params.factura || '',
+        nit: params.nit || '',
+        usuario: params.usuario || 'Desconocido',
+        fotoUrl: ''
+    };
+    
+    if (params.fotoBase64 && params.fotoNombre && params.fotoTipo) {
+      try {
+        const fotoUrl = guardarImagenEnDrive(
+          params.fotoBase64,
+          params.fotoNombre,
+          params.fotoTipo
+        );
+        datos.fotoUrl = fotoUrl;
+      } catch (imgError) {
+        Logger.log('Error al procesar la imagen: ' + imgError.message);
+      }
+    }
+    
+    const resultado = guardarDatosAlInicio(datos);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: resultado
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error en doPost: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+// --- GESTIÓN DE USUARIOS ---
+
+function getUsers() {
+  const usersJson = PropertiesService.getScriptProperties().getProperty('USERS');
+  if (!usersJson) return [];
+  return JSON.parse(usersJson);
+}
+
+function saveUsers(users) {
+  PropertiesService.getScriptProperties().setProperty('USERS', JSON.stringify(users));
+}
+
+function listarUsuarios() {
+  const users = getUsers();
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    users: users
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function guardarUsuario(userDataJson) {
+  try {
+    const newUser = JSON.parse(userDataJson);
+    if (!newUser.id || !newUser.nombre || !newUser.password) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Datos incompletos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    let users = getUsers();
+    const existingIndex = users.findIndex(u => u.id === newUser.id);
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = newUser;
+    } else {
+      users.push(newUser);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario guardado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al guardar usuario: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function eliminarUsuario(id) {
+  try {
+    let users = getUsers();
+    const initialLength = users.length;
+    users = users.filter(u => u.id !== id);
+
+    if (users.length === initialLength) {
+       return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Usuario no encontrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    saveUsers(users);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Usuario eliminado correctamente'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error al eliminar: ' + e.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function verificarCredenciales(id, password) {
+  if (!id || !password) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Credenciales incompletas'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const users = getUsers();
+    const userFound = users.find(u => u.id === String(id).trim() && u.password === String(password).trim());
+
+    if (userFound) {
+      const token = generarTokenSeguro();
+      guardarTokenSesion(userFound.id, token);
+      
+      const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || 'AIzaSyCndVtq2iXbW4fFJeAvC0gPW4UBLHw6swo';
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        token: token,
+        apiKey: apiKey,
+        user: {
+          id: userFound.id,
+          nombre: userFound.nombre,
+          rol: userFound.rol
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'ID o contraseña incorrectos'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Error en el servidor: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function loginBiometrico(id) {
+  if (!id) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'ID no proporcionado'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const users = getUsers();
+    const userFound = users.find(u => u.id === String(id).trim());
+
+    if (userFound) {
+      const token = generarTokenSeguro();
+      guardarTokenSesion(userFound.id, token);
+      
+      const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || 'AIzaSyCndVtq2iXbW4fFJeAvC0gPW4UBLHw6swo';
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        token: token,
+        apiKey: apiKey,
+        user: {
+          id: userFound.id,
+          nombre: userFound.nombre,
+          rol: userFound.rol
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'Usuario no encontrado para biometría'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Error en biometría: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function recuperarContrasena(id, params) {
+  if (!id)
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: 'Se requiere ID'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const users = getUsers();
+    const user = users.find(u => u.id === String(id).trim());
+
+    if (!user)
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'Usuario no encontrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    if (!user.email)
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false, message: 'El usuario no tiene email registrado'
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    // 🔐 GENERAMOS TOKEN PARA RESET
+    const token = generarTokenSeguro();
+    guardarTokenReset(user.id, token);
+
+    // 🔗 URL Dinámica: Construida desde la base enviada por la web
+    const resetUrl = (params.resetBaseUrl || "https://andres1-dev.github.io/two/PandaDash/reset.html") 
+      + "?token=" + encodeURIComponent(token);
+
+    // 📧 ENVIAR CORREO USANDO PLANTILLA EMBEBIDA (PARA MÁXIMA FIABILIDAD)
+    try {
+      let htmlTemplate = EMAIL_TEMPLATE;
+
+      // Combinar datos locales de APP_CONFIG con datos de la petición y el usuario
+      const templateData = {
+        appName: APP_CONFIG.NAME,
+        appDescription: APP_CONFIG.DESCRIPTION,
+        appLogo: APP_CONFIG.LOGO_URL,
+        appColor: APP_CONFIG.COLOR,
+        supportEmail: APP_CONFIG.SUPPORT_EMAIL,
+        supportPhone: APP_CONFIG.SUPPORT_PHONE,
+        footerCredits: APP_CONFIG.FOOTER,
+        userName: user.nombre,
+        resetUrl: resetUrl
+      };
+
+      // Reemplazo dinámico de {{key}}
+      htmlTemplate = htmlTemplate.replace(/\{\{([^}]+)\}\}/g, function(match, key) {
+        const cleanKey = key.trim();
+        return templateData[cleanKey] || match; 
+      });
+
+      MailApp.sendEmail({
+        to: user.email,
+        subject: `${APP_CONFIG.DEFAULT_SUBJECT} - ${APP_CONFIG.NAME}`,
+        htmlBody: htmlTemplate
+      });
+
+    } catch (e) {
+      Logger.log("Error enviando correo: " + e.message);
+      // Fallback ultra-básico por si falla el motor de plantillas
+      MailApp.sendEmail({
+        to: user.email,
+        subject: "Restablecimiento de contraseña",
+        body: `Hola ${user.nombre}, usa este enlace para restablecer tu contraseña: ${resetUrl}`
+      });
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: `Enlace enviado a ${user.email}`
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false, message: error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+
+
+// --- FUNCIÓN PARA ELIMINAR REGISTRO (CON ELIMINACIÓN DE IMAGEN) ---
+function eliminarRegistro(facturaEliminar) {
+  if (!facturaEliminar) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No hay factura'})).setMimeType(ContentService.MimeType.JSON);
+
+  try {
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    
+    if (!allDataResponse.values || allDataResponse.values.length === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Hoja vacía'})).setMimeType(ContentService.MimeType.JSON);
+    
+    let values = allDataResponse.values;
+    const headers = values[0];
+    let colFactura = -1, colIdImagen = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toString().toUpperCase().includes('FACTURA')) colFactura = i;
+        if (headers[i].toString().toUpperCase().includes('ID IMAGEN')) colIdImagen = i;
+    }
+    if (colFactura === -1) colFactura = 5;
+    if (colIdImagen === -1) colIdImagen = 7;
+    
+    const newValues = [headers];
+    let deletedCount = 0;
+    
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      if (row[colFactura].toString() !== facturaEliminar.toString()) {
+        newValues.push(row);
+      } else {
+        deletedCount++;
+        // Eliminar la imagen de Drive si existe
+        if (colIdImagen !== -1 && row[colIdImagen] && row[colIdImagen] !== 'Sin ID') {
+          try { 
+            DriveApp.getFileById(row[colIdImagen]).setTrashed(true); 
+          } catch(e) {
+            Logger.log('Error al eliminar imagen: ' + e.message);
+          }
+        }
+      }
+    }
+    
+    if (deletedCount === 0) return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No se encontró factura'})).setMimeType(ContentService.MimeType.JSON);
+    
+    Sheets.Spreadsheets.Values.clear({}, SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    Sheets.Spreadsheets.Values.update({ values: newValues }, SPREADSHEET_ID, `${SHEET_NAME}!A1`, { valueInputOption: 'USER_ENTERED' });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true, 
+      message: `Registro ${facturaEliminar} eliminado correctamente`
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+     return ContentService.createTextOutput(JSON.stringify({success: false, message: 'Error al eliminar: ' + error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function guardarImagenEnDrive(base64Data, fileName, mimeType) {
+  const decodedData = Utilities.base64Decode(base64Data);
+  const blob = Utilities.newBlob(decodedData, mimeType, fileName);
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const file = folder.createFile(blob);
+  file.setName(fileName);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
+
+function guardarDatosAlInicio(datos) { 
+  try {
+    const fechaHora = getFormattedDateTime();
+    let fileId = null, imageLink = '';
+    if (datos.fotoUrl) {
+      const match = datos.fotoUrl.match(/\/d\/([^/]+)\//);
+      if (match && match[1]) {
+        fileId = match[1];
+        imageLink = `https://lh3.googleusercontent.com/d/${fileId}`;
+      }
+    }
+
+    const nuevaFila = [
+      fechaHora, datos.documento, datos.lote, datos.referencia, 
+      datos.cantidad, datos.factura, datos.nit, fileId || 'Sin ID', imageLink, datos.usuario
+    ];
+
+    const sheets = Sheets.Spreadsheets.Values;
+    const allDataResponse = sheets.get(SPREADSHEET_ID, `${SHEET_NAME}!A:J`);
+    let allData = [];
+    
+    if (allDataResponse.values && allDataResponse.values.length > 0) {
+      allData.push(allDataResponse.values[0]); // Mantener encabezados
+      allData.push(nuevaFila); // Insertar nueva fila después de encabezados
+      
+      // Agregar el resto de los datos (excepto encabezados que ya agregamos)
+      for (let i = 1; i < allDataResponse.values.length; i++) {
+        allData.push(allDataResponse.values[i]);
+      }
+    } else {
+      allData.push(['Fecha y Hora', 'Documento', 'Lote', 'Referencia', 'Cantidad', 'Factura', 'NIT', 'ID Imagen', 'Link Imagen', 'Usuario']);
+      allData.push(nuevaFila);
+    }
+    
+    sheets.update({ values: allData }, SPREADSHEET_ID, `${SHEET_NAME}!A:J`, { valueInputOption: 'USER_ENTERED' });
+    return "¡Datos guardados correctamente!";
+
+  } catch (error) {
+    throw new Error('No se pudieron guardar los datos: ' + error.message);
+  }
+}
+
+
+function cambiarPassword(token, newPassword) {
+
+  if (!token || !newPassword)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message:'Datos incompletos'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  const validacion = validarToken(token);
+
+  if (!validacion.valid)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message: validacion.message
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  let users = getUsers();
+  const index = users.findIndex(u => u.id === validacion.userId);
+
+  if (index === -1)
+    return ContentService.createTextOutput(JSON.stringify({
+      success:false,
+      message:'Usuario no encontrado'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  users[index].password = newPassword;
+  saveUsers(users);
+
+  invalidarToken(token);
+
+  return ContentService.createTextOutput(JSON.stringify({
+    success:true,
+    message:'Contraseña actualizada correctamente'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// --- INTEGRACIÓN GEMINI AI ---
+
+const DEEPSCOPE_SHEETS = {
+  DATA2: "133NiyjNApZGkEFs4jUvpJ9So-cSEzRVeW2FblwOCrjI",
+  SIESA: "1FcQhVIKtWy4O-aGTNfA6l4C5Q4_u1LZErpj3CMglfQM",
+  REC: "1esc5REq0c03nHLpGcLwZRW29yq2gZnrpbz75gCCjrqc",
+  SOPORTES: "1VaPBwgRu1QWhmsV_Qgf7cgraSxiAWRX6-wBEyUlGoJw"
+};
+
+// --- REEMPLAZADO POR INTEGRACIÓN DEL LADO DEL CLIENTE ---
+// handleAIRequest ha sido eliminada para mejorar seguridad y latencia.
+
+// Función para leer datos de Sheets API v4 usando la misma API Key
+function getSheetStats(spreadsheetId, range, apiKey) {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+    
+    if (data.values) {
+      // Retornamos un resumen simplificado de las primeras 15 filas
+      return JSON.stringify(data.values);
+    }
+  } catch (err) {
+    return "Error leyendo hoja: " + err.message;
+  }
+  return "Sin datos legibles";
+}
+
+// FUNCIÓN PARA FORZAR AUTORIZACIÓN: Ejecuta esta función manualmente en el editor de GAS
+function forceAuth() {
+  UrlFetchApp.fetch("https://www.google.com");
+  console.log("Autorización de servicios externos completada.");
+}

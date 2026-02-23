@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepScope Agent</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Highlight.js para código -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Marked para markdown -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <!-- KaTeX para matemáticas -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <!-- Custom Modular CSS -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <i class="fas fa-plus"></i> Nuevo Chat
+                </button>
+            </div>
+            <div class="chat-list" id="chatList">
+                <!-- Chats dinámicos -->
+            </div>
+            <div class="sidebar-footer">
+                <button class="footer-action-btn" onclick="exportHistory()">
+                    <i class="fas fa-download"></i> Exportar JSON
+                </button>
+                <button class="footer-action-btn" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-upload"></i> Importar JSON
+                </button>
+                <input type="file" id="fileInput" style="display: none" accept=".json" onchange="importHistory(event)">
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header">
+                <div class="model">
+                    <div class="model-icon"><i class="fas fa-microchip"></i></div>
+                    <div class="model-info">
+                        <h2>DeepScope Agent</h2>
+                        <span id="chatTitleDisplay">Nuevo Chat</span>
+                    </div>
+                </div>
+                <div class="actions" style="display: flex; gap: 8px;">
+                    <button class="context-btn" id="contextBtn" onclick="window.contextData.toggleContext()">
+                        <i class="far fa-database"></i> <span>Contexto</span>
+                    </button>
+                    <button class="config-btn" onclick="openModal()">
+                        <i class="fas fa-sliders-h"></i> <span>Ajustes</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="messages" id="messages">
+                <!-- Mensajes -->
+            </div>
+
+            <!-- Input -->
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea id="userInput" placeholder="Escribe tu mensaje... (Enter para enviar)"
+                        rows="1"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item"><i class="fas fa-thermometer-half"></i> <span class="status-value"
+                        id="statusTemp">0.30</span></div>
+                <div class="status-item"><i class="fas fa-chart-pie"></i> <span class="status-value"
+                        id="statusP">0.95</span></div>
+                <div class="status-item"><i class="fas fa-list"></i> <span class="status-value" id="statusK">40</span>
+                </div>
+                <div class="status-item" style="margin-left: auto;"><i class="fas fa-bolt"></i> <span
+                        id="latencyDisplay">0s</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Config -->
+    <div class="modal" id="configModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-sliders-h"></i> Configuración del modelo</h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="preset-buttons">
+                    <button class="preset-btn active" onclick="setPreset('balanced')"><i
+                            class="fas fa-balance-scale"></i> Balanced</button>
+                    <button class="preset-btn" onclick="setPreset('creative')"><i class="fas fa-feather"></i>
+                        Creative</button>
+                    <button class="preset-btn" onclick="setPreset('precise')"><i class="fas fa-bullseye"></i>
+                        Precise</button>
+                    <button class="preset-btn" onclick="setPreset('fast')"><i class="fas fa-bolt"></i> Fast</button>
+                </div>
+
+                <div class="config-group">
+                    <label><i class="fas fa-key"></i> Gemini API Key</label>
+                    <input type="password" id="apiKeyInput" class="select-config"
+                        value="AIzaSyDvtBUmhS_f3SvQzHN2Qz3molW0nEEM01A">
+                </div>
+
+                <div class="config-group">
+                    <label>
+                        <i class="fas fa-thermometer-half"></i> Temperatura
+                        <span
+                            style="margin-left: auto; color: #94a3b8; font-weight: normal; font-size: 11px;">Creatividad</span>
+                    </label>
+                    <div class="slider-container">
+                        <input type="range" id="tempRange" min="0" max="1" step="0.05" value="0.3">
+                        <span class="slider-value" id="tempValueDisplay">0.30</span>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label>
+                        <i class="fas fa-chart-pie"></i> Top P
+                        <span
+                            style="margin-left: auto; color: #94a3b8; font-weight: normal; font-size: 11px;">Diversidad</span>
+                    </label>
+                    <div class="slider-container">
+                        <input type="range" id="topPRange" min="0" max="1" step="0.05" value="0.95">
+                        <span class="slider-value" id="topPValueDisplay">0.95</span>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label>
+                        <i class="fas fa-list"></i> Top K
+                        <span
+                            style="margin-left: auto; color: #94a3b8; font-weight: normal; font-size: 11px;">Vocabulario</span>
+                    </label>
+                    <select class="select-config" id="topKSelect">
+                        <option value="20">20 (Enfocado)</option>
+                        <option value="40" selected>40 (Balanceado)</option>
+                        <option value="60">60 (Creativo)</option>
+                        <option value="80">80 (Muy creativo)</option>
+                        <option value="100">100 (Máxima variedad)</option>
+                    </select>
+                </div>
+
+                <div class="config-group">
+                    <label>
+                        <i class="fas fa-ruler-horizontal"></i> Max Tokens
+                        <span
+                            style="margin-left: auto; color: #94a3b8; font-weight: normal; font-size: 11px;">Longitud</span>
+                    </label>
+                    <select class="select-config" id="tokensSelect">
+                        <option value="512">512 (Corto)</option>
+                        <option value="1024">1K (Medio)</option>
+                        <option value="2048" selected>2K (Balanceado)</option>
+                        <option value="4096">4K (Largo)</option>
+                        <option value="8192">8K (Muy largo)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modular JS -->
+    <script src="js/config.js"></script>
+    <script src="js/dataFilter.js"></script>
+    <script src="js/mainData.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+
+</html>
