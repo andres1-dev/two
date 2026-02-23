@@ -1,5 +1,7 @@
 // --- API LOGIC ---
 
+// --- API LOGIC ---
+
 async function sendMessage() {
     const input = document.getElementById('userInput');
     const text = input.value.trim();
@@ -21,7 +23,7 @@ async function sendMessage() {
 
     try {
         const apiKey = document.getElementById('apiKeyInput').value;
-        localStorage.setItem('apiKey', apiKey); // Sync for context scripts
+        localStorage.setItem('apiKey', apiKey);
 
         const temp = document.getElementById('tempRange').value;
         const topP = document.getElementById('topPRange').value;
@@ -30,27 +32,33 @@ async function sendMessage() {
 
         const startTime = performance.now();
 
-        // Prepare contents with context if active
-        let history = chat.messages.map(m => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: m.content }]
-        }));
-
-        // --- LOGICA DE CONTEXTO ---
-        let finalContext = "";
-        if (window.contextData && window.contextData.isContextActive) {
-            // El contexto se genera basado en el texto del usuario directamente
-            finalContext = window.contextData.getContextPrompt(text);
+        // --- NUEVA LÓGICA DE CONTEXTO INTEGRADA ---
+        let userMessage = text;
+        
+        // Si el contexto está activo, enriquecer el mensaje
+        if (window.ContextManager && window.ContextManager.isActive) {
+            userMessage = await window.ContextManager.generatePrompt(text);
         }
 
-        // Inyectar el contexto filtrado en el historial
-        if (finalContext) {
-            const lastMsgIndex = history.length - 1;
-            if (history[lastMsgIndex].role === 'user') {
-                history[lastMsgIndex].parts[0].text = finalContext + "\n\nPregunta del usuario: " + history[lastMsgIndex].parts[0].text;
-            }
+        // Preparar historial con el mensaje (enriquecido o normal)
+        let history = [];
+        
+        // Añadir mensajes anteriores (sin incluir el último que acabamos de añadir)
+        for (let i = 0; i < chat.messages.length - 1; i++) {
+            const msg = chat.messages[i];
+            history.push({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }]
+            });
         }
+        
+        // Añadir el mensaje actual (ya enriquecido si aplica)
+        history.push({
+            role: 'user',
+            parts: [{ text: userMessage }]
+        });
 
+        // Llamada a la API
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${MODEL}:streamGenerateContent?key=${apiKey}&alt=sse`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -69,7 +77,6 @@ async function sendMessage() {
             const errJson = await response.json().catch(() => ({}));
             throw new Error(errJson.error?.message || `Error ${response.status}: Respuesta inválida de la API`);
         }
-
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -101,6 +108,8 @@ async function sendMessage() {
             addCodeActions(streamingDiv);
             streamingDiv.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
         }
+        
+        // Guardar la respuesta original (sin el contexto inyectado)
         chat.messages.push({ role: 'model', content: fullResponse });
 
         document.getElementById('latencyDisplay').textContent = ((performance.now() - startTime) / 1000).toFixed(2) + 's';
