@@ -3,23 +3,17 @@
  */
 
 function toggleCard(header) {
-    const card = header.closest('.card');
     const cardContent = header.nextElementSibling;
     const indicator = header.querySelector('.collapse-indicator');
-    
-    card.classList.toggle('expanded');
     cardContent.classList.toggle('expanded');
-    if (indicator) indicator.classList.toggle('expanded');
+    indicator.classList.toggle('expanded');
 }
 
 function toggleComparison(header) {
-    const card = header.closest('.card') || header.parentElement;
     const content = header.nextElementSibling;
     const indicator = header.querySelector('.comparison-collapse-icon');
-    
-    if (card) card.classList.toggle('expanded');
     content.classList.toggle('expanded');
-    if (indicator) indicator.classList.toggle('expanded');
+    indicator.classList.toggle('expanded');
 }
 
 function datosToggleCard(element) {

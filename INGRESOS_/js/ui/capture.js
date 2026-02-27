@@ -14,104 +14,46 @@ async function captureAndDownloadCards() {
         if (loadingText) loadingText.textContent = "Procesando informe visual...";
         if (captureBtn) captureBtn.classList.add('hidden');
 
-        // 1. Abrir todas las tarjetas y guardar estado original
-        const cardHeaders = document.querySelectorAll('.card-header');
-        const originalStates = [];
-        
-        cardHeaders.forEach(header => {
-            const cardContent = header.nextElementSibling;
-            originalStates.push(cardContent.classList.contains('expanded'));
-            if (!cardContent.classList.contains('expanded')) {
-                cardContent.classList.add('expanded');
-                const indicator = header.querySelector('.collapse-indicator');
-                if (indicator) indicator.classList.add('expanded');
-            }
-        });
+        cardsContainer.classList.add('capture-mode');
+        openAllCards();
+        await new Promise(r => setTimeout(r, 1000));
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 2. Configuración para captura
-        const isMobile = window.matchMedia("(max-width: 768px)").matches;
-        
-        // Ocultar elementos temporales
-        const elementsToHide = document.querySelectorAll('.date-selector-container, .social-links');
-        elementsToHide.forEach(el => el.style.visibility = 'hidden');
-
-        // Guardar estilos originales
-        const originalStyles = {
-            width: cardsContainer.style.width,
-            overflow: cardsContainer.style.overflow,
-            margin: cardsContainer.style.margin,
-            transform: cardsContainer.style.transform,
-            zoom: document.body.style.zoom
-        };
-
-        // Ajustar para captura - FORZAR ANCHO 1800px (más amplio)
-        cardsContainer.style.width = '1800px';
-        cardsContainer.style.maxWidth = '1800px';
-        cardsContainer.style.minWidth = '1800px';
-        cardsContainer.style.overflow = 'visible';
-        cardsContainer.style.margin = '0 auto';
-        
-        if (isMobile) {
-            document.body.style.zoom = '1';
-        }
-
-        // 3. Capturar con html2canvas
-        const canvasOptions = {
-            scale: isMobile ? 3 : 2,
-            logging: false,
+        const canvas = await html2canvas(cardsContainer, {
+            scale: 2,
             useCORS: true,
-            allowTaint: true,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: isMobile ? 3000 : 1800,
-            windowHeight: cardsContainer.scrollHeight,
-            backgroundColor: '#f9fafb'
-        };
-
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const canvas = await html2canvas(cardsContainer, canvasOptions);
-
-        // 4. Restaurar todo al estado original
-        elementsToHide.forEach(el => el.style.visibility = 'visible');
-        Object.assign(cardsContainer.style, originalStyles);
-        document.body.style.zoom = originalStyles.zoom;
-        
-        // Restaurar estado de las tarjetas
-        cardHeaders.forEach((header, index) => {
-            const cardContent = header.nextElementSibling;
-            const indicator = header.querySelector('.collapse-indicator');
-            
-            if (!originalStates[index]) {
-                cardContent.classList.remove('expanded');
-                if (indicator) indicator.classList.remove('expanded');
+            logging: false,
+            backgroundColor: "#f8f9fa",
+            onclone: (doc) => {
+                const clones = doc.querySelector('.cards-container');
+                clones.style.padding = "20px";
+                clones.style.maxWidth = "1200px";
             }
         });
 
-        // 5. Obtener imagen y subir a Drive
-        const imageQuality = isMobile ? 1.0 : 0.9;
-        const imageData = canvas.toDataURL('image/png', imageQuality).split(',')[1];
-        
-        // Descargar archivo PNG
+        const imageData = canvas.toDataURL('image/png');
+        const blob = await (await fetch(imageData)).blob();
+
+        // Link download
         const link = document.createElement('a');
-        link.href = 'data:image/png;base64,' + imageData;
+        link.href = imageData;
         link.download = `Informe_Ingresos_${formatDate(new Date()).replace(/\//g, '-')}.png`;
         link.click();
-        
-        // Subir a Drive
-        const imageUrl = await uploadImageToDrive(imageData);
-        console.log('URL final para WhatsApp:', imageUrl);
-        
-        // 6. Generar y abrir mensaje de WhatsApp
-        const whatsappMessage = generateWhatsAppMessage(imageUrl);
-        console.log('Mensaje generado (primeros 200 chars):', decodeURIComponent(whatsappMessage).substring(0, 200));
-        openWhatsApp(whatsappMessage);
+
+        // WhatsApp sharing logic
+        const response = await uploadImageToDrive(imageData);
+        if (response.success && response.url) {
+            const message = generateWhatsAppMessage(response.url);
+            openWhatsApp(message);
+        } else {
+            const message = generateWhatsAppMessage();
+            openWhatsApp(message);
+        }
 
     } catch (e) {
         console.error("Capture error:", e);
         alert("Error al generar el informe visual.");
     } finally {
+        cardsContainer.classList.remove('capture-mode');
         if (captureBtn) captureBtn.classList.remove('hidden');
         if (loadingOverlay) loadingOverlay.classList.remove('active');
     }
@@ -236,25 +178,14 @@ function openWhatsApp(message) {
 }
 
 async function uploadImageToDrive(base64Image) {
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbx7fU6_eYkE3gEqR-9B_Rk_X5Wj3YjYyYjYyYjYyYjY/exec';
     try {
-        console.log('Subiendo imagen a Drive...');
-        const response = await fetch('https://script.google.com/macros/s/AKfycbz6sUS28Xza02Kjwg-Eez1TPn4BBj2XcZGF8gKxEHr4Fsxz4eqYoQYHCqx5NWaOP1OR8g/exec', {
+        const response = await fetch(webAppUrl, {
             method: 'POST',
-            body: base64Image
+            body: JSON.stringify({ image: base64Image, folderId: '1_X_X_X_X_X_X_X_X_X_X_X_X_X_X' })
         });
-        
-        const result = await response.json();
-        console.log('Respuesta de Drive:', result);
-        
-        if (result.status === "success") {
-            console.log('URL de imagen:', result.imageUrl);
-            return result.imageUrl;
-        } else {
-            console.error("Error al subir la imagen:", result.message);
-            return null;
-        }
-    } catch (error) {
-        console.error("Error en la petición:", error);
-        return null;
+        return await response.json();
+    } catch (e) {
+        return { success: false };
     }
 }

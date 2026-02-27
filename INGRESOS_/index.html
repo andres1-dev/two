@@ -54,25 +54,18 @@
     <!-- Header -->
     <div class="dashboard-header">
         <h1 class="dashboard-title">
-            <div class="tooltip">
-                Ingresos de Marca Propia <i class="fas fa-info-circle"
-                    style="font-size: 16px; opacity: 0.6; cursor: help;"></i>
-                <span class="tooltiptext" style="width: 220px;">Andrés Mendoza © 2026</span>
-            </div>
+            <i class="fas fa-chart-line"></i>
+            Ingresos de Marca Propia
             <button id="updateReportBtn" class="update-btn-small" title="Actualizar Reporte" style="display: none;">
                 <i class="fas fa-sync-alt"></i>
             </button>
         </h1>
         <div class="date-selector-container">
-            <div class="social-links">
-                <a href="#" id="whatsappBtn" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-                <a href="#" id="emailBtn" aria-label="Email"><i class="fas fa-envelope"></i></a>
-            </div>
             <input type="date" id="datePicker" class="date-picker">
             <select id="proveedorFilter" class="proveedor-filter">
-                <option value="todos">TODOS</option>
-                <option value="universo">UNIVERSO</option>
-                <option value="angeles">ÁNGELES</option>
+                <option value="todos">Todos los proveedores</option>
+                <option value="universo">El Universo</option>
+                <option value="angeles">Los Ángeles</option>
             </select>
             <button id="captureBtn" class="capture-btn" title="Enviar informe" style="display: none;">
                 <i class="fas fa-paper-plane"></i>
@@ -85,13 +78,10 @@
         <div class="card">
             <div class="card-header" onclick="toggleCard(this)">
                 <h2 class="card-title">
-                    <div class="card-icon dia"><i class="fas fa-calendar-day"></i></div>
-                    <div class="title-text-group">
-                        <span class="title-main">Día</span>
-                        <span class="days-badge" id="dia-habiles"></span>
-                    </div>
+                    <div class="card-icon dia"><i class="fas fa-calendar-day"></i></div> Resumen Diario
                 </h2>
                 <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="days-badge" id="dia-habiles"></span>
                     <span class="date-badge" id="dia-fecha"></span>
                     <i class="fas fa-chevron-down collapse-indicator"></i>
                 </div>
@@ -236,13 +226,10 @@
         <div class="card">
             <div class="card-header" onclick="toggleCard(this)">
                 <h2 class="card-title">
-                    <div class="card-icon mes"><i class="fas fa-calendar-alt"></i></div>
-                    <div class="title-text-group">
-                        <span class="title-main">Mes</span>
-                        <span class="days-badge" id="mes-habiles"></span>
-                    </div>
+                    <div class="card-icon mes"><i class="fas fa-calendar-alt"></i></div> Resumen Mensual
                 </h2>
                 <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="days-badge" id="mes-habiles"></span>
                     <span class="date-badge" id="mes-mes"></span>
                     <i class="fas fa-chevron-down collapse-indicator"></i>
                 </div>
@@ -387,13 +374,10 @@
         <div class="card">
             <div class="card-header" onclick="toggleCard(this)">
                 <h2 class="card-title">
-                    <div class="card-icon ano"><i class="fas fa-calendar"></i></div>
-                    <div class="title-text-group">
-                        <span class="title-main">Año</span>
-                        <span class="days-badge" id="año-habiles"></span>
-                    </div>
+                    <div class="card-icon ano"><i class="fas fa-calendar"></i></div> Resumen Anual
                 </h2>
                 <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="days-badge" id="año-habiles"></span>
                     <span class="date-badge" id="año-año"></span>
                     <i class="fas fa-chevron-down collapse-indicator"></i>
                 </div>
@@ -541,7 +525,7 @@
             <div class="card-top-border"></div>
             <div class="card-header" onclick="toggleCard(this)">
                 <h2 class="card-title">
-                    <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Tendencia
+                    <div class="card-icon tendencia"><i class="fas fa-chart-line"></i></div> Análisis de Tendencia
                 </h2>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span class="date-badge" id="tendencia-mes"></span>
@@ -554,7 +538,7 @@
                 <div class="executive-summary" id="tendencia-resumen">
                     <div class="summary-icon"><i class="fas fa-lightbulb"></i></div>
                     <div class="summary-content">
-                        <p id="tendencia-resumen-texto">Analizando tendencias...</p>
+                        <p id="tendencia-resumen-texto">Analizando tendencias financieras...</p>
                         <div class="trend-indicator" id="global-trend-indicator">
                             <span class="indicator-dot"></span>
                             <span class="indicator-text">Tendencia global: </span>
@@ -697,7 +681,18 @@
         </div>
     </div>
 
-
+    <!-- Footer -->
+    <footer>
+        <p1>Developed by Andrés Mendoza © 2025</p1>
+        <p>Supported by <a href="https://www.eltemplodelamoda.com/" target="_blank">GrupoTDM</a></p>
+        <div class="social-links">
+            <a href="https://www.facebook.com/templodelamoda/?locale=es_LA" target="_blank" aria-label="Facebook"><i
+                    class="fab fa-facebook"></i></a>
+            <a href="https://www.instagram.com/eltemplodelamoda/?hl=es" target="_blank" aria-label="Instagram"><i
+                    class="fab fa-instagram"></i></a>
+            <a href="#" id="whatsappBtn" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+    </footer>
 
     <!-- PWA Install Button -->
     <button id="installBtn" class="install-btn hidden pulse">
@@ -722,7 +717,6 @@
     <script src="js/ui/charts.js?v=10"></script>
     <script src="js/ui/events.js?v=10"></script>
     <script src="js/ui/capture.js?v=10"></script>
-    <script src="js/ui/email.js?v=10"></script>
     <script src="js/ui/database.js?v=10"></script>
     <script src="js/pwa/sw_init.js?v=10"></script>
 

@@ -1,42 +1,43 @@
 /* Trend Analysis Card Styles - matching backup.html */
 .trend-analysis-card {
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow-md);
     overflow: hidden;
-    margin-top: 25px;
-    transition: all 0.3s ease;
-    background: white;
+    margin-top: 0;
+    transition: var(--transition);
+    background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+    border: 1px solid var(--border-color);
 }
 
 .trend-analysis-card:hover {
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--box-shadow-xl);
+    transform: translateY(-8px);
+    border-color: var(--primary-light);
 }
 
-.card-top-border {
-    height: 4px;
-    background: linear-gradient(90deg, #9b59b6, #8e44ad, #4361ee);
-}
-
-.card-icon.tendencia {
-    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+.card:hover .card-icon.tendencia,
+.card.expanded .card-icon.tendencia {
+    background: var(--info-color);
+    color: white;
 }
 
 /* Executive summary */
 .executive-summary {
-    background: linear-gradient(135deg, rgba(155, 89, 182, 0.08), rgba(142, 68, 173, 0.05));
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
+    background: var(--bg-light);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 24px;
     display: flex;
     align-items: flex-start;
-    gap: 15px;
-    border-left: 4px solid #9b59b6;
+    gap: 16px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-color);
 }
 
 .summary-icon {
     font-size: 24px;
-    color: #9b59b6;
-    margin-top: 3px;
+    color: var(--primary-color);
+    margin-top: 2px;
 }
 
 .summary-content {
@@ -46,26 +47,28 @@
 .trend-indicator {
     display: flex;
     align-items: center;
-    margin-top: 8px;
-    font-size: 14px;
+    margin-top: 10px;
+    font-size: 15px;
 }
 
 .indicator-dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    margin-right: 8px;
-    background: #95a5a6;
+    margin-right: 10px;
+    background: var(--text-medium);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .indicator-text {
-    font-weight: 500;
-    margin-right: 5px;
+    font-weight: 600;
+    margin-right: 6px;
     color: var(--text-dark);
 }
 
 .indicator-value {
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .indicator-value.positive {
@@ -83,12 +86,13 @@
 /* Chart styles */
 .chart-container {
     position: relative;
-    height: 300px;
-    margin: 25px 0;
-    background: #fff;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    height: 340px;
+    margin: 28px 0;
+    background: linear-gradient(135deg, #ffffff, #fefefe);
+    border-radius: var(--border-radius);
+    padding: 28px;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--box-shadow-md);
 }
 
 .chart-toolbar {
@@ -99,9 +103,10 @@
 }
 
 .chart-title {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-dark);
-    font-size: 16px;
+    font-size: 18px;
+    letter-spacing: -0.02em;
 }
 
 .chart-actions {
@@ -110,50 +115,62 @@
 }
 
 .chart-action-btn {
-    background: var(--bg-light);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
+    background: linear-gradient(135deg, var(--bg-light), var(--bg-gray));
+    border: 2px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 10px;
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow);
+    color: var(--text-dark);
 }
 
 .chart-action-btn:hover {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-md);
 }
 
 .chart-footer {
-    margin-top: 10px;
-    font-size: 12px;
+    margin-top: 12px;
+    font-size: 13px;
     color: var(--text-medium);
     text-align: right;
+    font-weight: 500;
 }
 
 .chart-note {
     font-style: italic;
+    opacity: 0.9;
 }
 
 /* Highlight data items */
 .data-item.highlight {
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 8px;
-    padding: 15px;
-    border-left: 3px solid var(--primary-color);
-    transition: all 0.3s;
+    background: linear-gradient(135deg, #ffffff 0%, var(--primary-light) 100%);
+    border-radius: var(--border-radius-sm);
+    padding: 24px;
+    border: 2px solid var(--border-color);
+    border-left: 5px solid var(--primary-color);
+    transition: var(--transition);
+    box-shadow: var(--box-shadow);
 }
 
 .data-item.highlight:hover {
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%);
+    border-color: var(--primary-color);
+    transform: translateY(-4px);
+    box-shadow: var(--box-shadow-lg);
 }
 
 .data-description {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-medium);
-    margin-top: 5px;
+    margin-top: 6px;
+    font-weight: 500;
 }
 
 /* Trend value color states */
@@ -180,25 +197,33 @@
 
 /* Comparison items in trend analysis */
 .comparison-item {
-    padding: 12px 15px;
-    border-radius: 8px;
-    transition: all 0.3s;
+    padding: 16px 18px;
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9));
+    border: 2px solid transparent;
 }
 
 .comparison-item:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: linear-gradient(135deg, #ffffff, var(--bg-light));
+    border-color: var(--border-color);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
 }
 
 .comparison-item.positive {
-    border-left: 3px solid var(--success-color);
+    border-left: 4px solid var(--success-color);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(255, 255, 255, 0.9));
 }
 
 .comparison-item.negative {
-    border-left: 3px solid var(--danger-color);
+    border-left: 4px solid var(--danger-color);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(255, 255, 255, 0.9));
 }
 
 .comparison-description {
     font-size: 12px;
     color: var(--text-medium);
-    margin-top: 4px;
+    margin-top: 6px;
+    font-weight: 500;
 }
