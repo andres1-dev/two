@@ -198,8 +198,7 @@ Muestra Semanal (S${semanaActual}/S${semanaAnterior}) Gestión ${flechaGestion} 
 
     // Agregar enlaces
     mensaje += `\n\nEnlaces importantes:
-☆ Link a la aplicación: https://andres1-dev.github.io/one/ingresos/informe/generar
-☆ Link de ingresos vs despacho: https://andres1-dev.github.io/two/vs/index`;
+☆ Link a la aplicación: https://andres1-dev.github.io/one/ingresos/informe/generar`;
 
     if (imageUrl) {
         mensaje += `\n★ Resumen visual: ${imageUrl}`;

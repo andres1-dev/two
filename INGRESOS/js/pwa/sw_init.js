@@ -4,20 +4,31 @@
 
 let deferredPrompt;
 
+// Registrar Service Worker con ruta relativa
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('SW registered'))
-            .catch(err => console.log('SW failed', err));
+        // Obtener la ruta base de la aplicación
+        const baseUrl = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        const swPath = baseUrl + 'sw.js';
+        
+        navigator.serviceWorker.register(swPath, { scope: baseUrl })
+            .then(reg => {
+                console.log('✅ Service Worker registrado:', reg.scope);
+            })
+            .catch(err => {
+                console.error('❌ Error al registrar Service Worker:', err);
+            });
     });
 }
 
+// Detectar evento de instalación de PWA
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     showInstallPromotion();
 });
 
+// Mostrar botón de instalación
 function showInstallPromotion() {
     const installBtn = document.getElementById('installBtn');
     if (installBtn) {
@@ -26,7 +37,7 @@ function showInstallPromotion() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') console.log('User installed');
+                console.log(`Usuario ${outcome === 'accepted' ? 'aceptó' : 'rechazó'} la instalación`);
                 deferredPrompt = null;
                 installBtn.classList.add('hidden');
             }
@@ -34,7 +45,13 @@ function showInstallPromotion() {
     }
 }
 
-// Three-finger swipe to refresh
+// Detectar cuando la app ya está instalada
+window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA instalada exitosamente');
+    deferredPrompt = null;
+});
+
+// Three-finger swipe to refresh (opcional)
 let touchStartY = 0;
 let touchCount = 0;
 
@@ -59,6 +76,27 @@ function showRefreshIndicator() {
         indicator = document.createElement('div');
         indicator.className = 'swipe-refresh-indicator';
         indicator.innerHTML = '<i class="fas fa-sync-alt"></i><span>Actualizando datos...</span>';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            animation: slideDown 0.3s ease;
+        `;
         document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            indicator.remove();
+        }, 2000);
     }
 }
